@@ -406,7 +406,12 @@
         console.log('取得したデータ:', data);
         questions = hardcodedQuestions;  // データが空の場合もハードコード使用
       }
-    
+
+      // ★ ここで初期表示を実行する
+      initAccountSelects();
+      renderQuestion();
+      updateScore();
+      
     });
   </script>
 </head>
@@ -872,9 +877,9 @@
     checkBtn.addEventListener("click", checkAnswer);
 
     // 初期化
-    initAccountSelects();
-    renderQuestion();
-    updateScore();
+    // initAccountSelects();
+    // renderQuestion();
+    // updateScore();
   </script>
 </body>
 </html>
