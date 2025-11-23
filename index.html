@@ -1,18 +1,23 @@
-<!DOCTYPE html><!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <title>Liberty Bookkeeping Trainer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
-      --liberty-blue: #005bac;
-      --liberty-blue-light: #e9f3ff;
-      --liberty-gray: #f5f5f5;
-      --liberty-text: #333333;
-      --accent: #ff9800;
-      --border-radius-lg: 18px;
-      --border-radius-md: 12px;
+      --bg-main: #f5f7fb;
+      --bg-card: #ffffff;
+      --primary: #005bac;
+      --primary-soft: #e2eef9;
+      --accent: #00a0e9;
+      --text-main: #222;
+      --text-muted: #666;
+      --border-soft: #dde3f0;
+      --danger: #d9534f;
+      --success: #28a745;
+      --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.06);
+      --radius-xl: 18px;
     }
 
     * {
@@ -21,520 +26,826 @@
 
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP",
-        "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-      background: linear-gradient(135deg, #f7f9fc, #e6edf7);
-      color: var(--liberty-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(circle at top left, #e6f0ff, #f5f7fb 40%, #ffffff 80%);
+      color: var(--text-main);
+      min-height: 100vh;
     }
 
-    a {
-      color: var(--liberty-blue);
-      text-decoration: none;
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
     }
-
-    /* HEADER */
 
     header {
-      background: #ffffff;
-      border-bottom: 1px solid #dde5f0;
-      padding: 10px 20px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .header-inner {
-      max-width: 1080px;
-      margin: 0 auto;
       display: flex;
       align-items: center;
       gap: 16px;
+      margin-bottom: 20px;
     }
 
-    .header-logo {
+    header img.logo {
       height: 40px;
     }
 
-    .header-title {
-      font-size: 1.15rem;
-      font-weight: 600;
-      color: var(--liberty-blue);
+    header .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .header-sub {
-      margin-left: auto;
-      font-size: 0.8rem;
-      color: #666666;
+    header .title-block h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: var(--primary);
     }
 
-    /* MAIN LAYOUT */
+    header .title-block span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
 
-    main {
-      max-width: 1080px;
-      margin: 24px auto 40px;
-      padding: 0 16px;
+    .layout {
       display: grid;
-      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-      gap: 24px;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+      gap: 18px;
     }
 
-    @media (max-width: 800px) {
-      main {
+    @media (max-width: 900px) {
+      .layout {
         grid-template-columns: 1fr;
       }
     }
 
-    /* INTRO PANEL */
-
-    .intro-card {
-      background: #ffffffcc;
-      border-radius: var(--border-radius-lg);
-      padding: 20px 22px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
-      border: 1px solid #dde5f0;
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-soft);
+      padding: 18px 18px 20px;
+      border: 1px solid rgba(0, 0, 0, 0.02);
     }
 
-    .intro-title {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: var(--liberty-blue);
-      margin-bottom: 4px;
-    }
-
-    .intro-tagline {
-      font-size: 0.9rem;
-      color: #555;
-      margin-bottom: 12px;
-    }
-
-    .intro-list {
-      font-size: 0.9rem;
-      padding-left: 1.1rem;
-      margin: 8px 0 0;
-    }
-
-    .intro-badge-row {
+    .card-header {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .badge {
-      font-size: 0.78rem;
-      border-radius: 999px;
-      padding: 4px 10px;
-      background: var(--liberty-blue-light);
-      color: var(--liberty-blue);
-      border: 1px solid #c2d6f2;
-    }
-
-    /* QUIZ PANEL */
-
-    .quiz-card {
-      background: #ffffff;
-      border-radius: var(--border-radius-lg);
-      padding: 20px 18px 18px;
-      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.06);
-      border: 1px solid #d7e1f2;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .quiz-header-row {
-      display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 10px;
+      gap: 8px;
     }
 
-    .quiz-title {
+    .card-title {
       font-size: 1rem;
       font-weight: 600;
-      color: var(--liberty-blue);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .quiz-meta {
-      font-size: 0.78rem;
-      color: #777;
+    .card-title-pill {
+      font-size: 0.75rem;
+      color: var(--bg-card);
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      padding: 2px 10px;
+      border-radius: 999px;
     }
 
     .lang-toggle {
       display: inline-flex;
       border-radius: 999px;
-      border: 1px solid #ccd6ea;
-      overflow: hidden;
-      font-size: 0.78rem;
+      padding: 2px;
+      background: var(--primary-soft);
     }
 
     .lang-toggle button {
       border: none;
-      padding: 5px 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
       background: transparent;
+      font-size: 0.8rem;
       cursor: pointer;
-      min-width: 70px;
+      color: var(--text-muted);
     }
 
     .lang-toggle button.active {
-      background: var(--liberty-blue);
-      color: #ffffff;
+      background: #fff;
+      color: var(--primary);
+      font-weight: 600;
+      box-shadow: 0 0 0 1px rgba(0, 91, 172, 0.06);
     }
 
-    .question-body {
-      background: var(--liberty-blue-light);
-      border-radius: var(--border-radius-md);
-      padding: 10px 12px;
-      font-size: 0.9rem;
-      line-height: 1.5;
+    .question-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
     }
 
-    .question-id {
-      font-size: 0.78rem;
-      color: #777;
-      margin-bottom: 4px;
+    .badge {
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
     }
 
     .question-text {
+      background: linear-gradient(135deg, #f8fbff, #f3f3ff);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(0, 91, 172, 0.08);
+      font-size: 0.9rem;
+    }
+
+    .question-text p {
+      margin: 0 0 4px;
+    }
+
+    .question-text p:last-child {
+      margin-bottom: 0;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-size: 0.8rem;
+    }
+
+    .toggle-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .toggle-row input[type="checkbox"] {
+      accent-color: var(--primary);
+    }
+
+    /* 仕訳入力テーブル */
+    .entry-table {
+      margin: 6px 0 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border-soft);
+      overflow: hidden;
+      background: #fafbff;
+    }
+
+    .entry-header-row,
+    .entry-row {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1.2fr) 100px minmax(0, 1.2fr) 100px;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .entry-header-row {
+      background: #e9f1ff;
+      padding: 6px 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .entry-row {
+      padding: 6px 8px;
+      font-size: 0.85rem;
+      border-top: 1px solid #edf1fb;
+      background: #fff;
+    }
+
+    .entry-row:nth-child(even) {
+      background: #fdfdff;
+    }
+
+    .entry-row span.row-label {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    select,
+    input[type="number"] {
+      width: 100%;
+      font-size: 0.8rem;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border-soft);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s;
+    }
+
+    select:focus,
+    input[type="number"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(0, 91, 172, 0.15);
+      background: #f9fcff;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
       margin: 0;
     }
 
-    .question-text.en {
-      display: none;
+    .hint-text {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
     }
 
-    .question-text.show {
-      display: block;
-    }
-
-    .answer-box {
-      background: #fafbff;
-      border-radius: var(--border-radius-md);
-      border: 1px dashed #ccd6ea;
-      padding: 8px 10px;
-      font-size: 0.85rem;
-    }
-
-    .answer-box-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 4px;
-    }
-
-    .answer-box-title {
-      font-weight: 600;
-      color: #555;
-      font-size: 0.85rem;
-    }
-
-    .pill {
-      font-size: 0.7rem;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: #ffffff;
-      border: 1px solid #dde5f0;
-      color: #777;
-    }
-
-    .journal-text {
-      white-space: pre-line;
-      font-family: "SF Mono", Menlo, Consolas, monospace;
-      font-size: 0.8rem;
-      color: #333;
-    }
-
-    .answer-box.collapsed .journal-text {
-      display: none;
-    }
-
-    .answer-box.collapsed .toggle-answer-label::after {
-      content: "（クリックで表示）";
-      font-weight: normal;
-      color: #777;
-      margin-left: 4px;
-    }
-
-    .toggle-answer-label::after {
-      content: "（クリックで非表示）";
-      font-weight: normal;
-      color: #777;
-      margin-left: 4px;
-    }
-
-    .answer-box-header button {
-      border: none;
-      background: none;
-      padding: 0;
-      cursor: pointer;
-      font-size: 0.78rem;
-      color: var(--liberty-blue);
-      text-decoration: underline;
-    }
-
-    .quiz-footer {
+    .button-row {
       display: flex;
       flex-wrap: wrap;
-      justify-content: space-between;
       gap: 8px;
+      justify-content: flex-end;
       margin-top: 4px;
-      align-items: center;
-    }
-
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      margin-bottom: 4px;
     }
 
     .btn {
       border-radius: 999px;
       border: none;
-      padding: 7px 14px;
-      font-size: 0.85rem;
+      padding: 6px 14px;
+      font-size: 0.8rem;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       white-space: nowrap;
     }
 
     .btn-primary {
-      background: var(--liberty-blue);
-      color: #ffffff;
-    }
-
-    .btn-primary:hover {
-      opacity: 0.9;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 91, 172, 0.35);
     }
 
     .btn-secondary {
-      background: #ffffff;
-      color: var(--liberty-blue);
-      border: 1px solid #ccd6ea;
+      background: #e2e7f3;
+      color: var(--text-main);
     }
 
-    .btn-secondary:hover {
-      background: #f3f7ff;
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid rgba(0, 91, 172, 0.2);
     }
 
-    .small-note {
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .result-message {
+      font-size: 0.9rem;
+      margin-top: 4px;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .result-message.ok {
+      color: var(--success);
+    }
+
+    .result-message.ng {
+      color: var(--danger);
+    }
+
+    .answer-panel {
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #f7f9ff;
+      border: 1px dashed rgba(0, 91, 172, 0.25);
+      font-size: 0.8rem;
+    }
+
+    .answer-panel h3 {
+      margin: 0 0 6px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .answer-panel pre {
+      margin: 0 0 6px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 0.8rem;
+      overflow-x: auto;
+    }
+
+    .answer-panel small {
+      color: var(--text-muted);
       font-size: 0.75rem;
-      color: #777;
+    }
+
+    .side-card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .score-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .score-pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-size: 0.8rem;
+    }
+
+    footer {
+      margin-top: 18px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="header-inner">
-      <img
-        src="https://liberty-system.co.jp/common/img/logo.png"
-        alt="Liberty Co., Ltd."
-        class="header-logo"
-      />
-      <div>
-        <div class="header-title">Liberty Bookkeeping Trainer</div>
-        <div class="header-sub">簿記3級レベル ｜ 社内・クライアント学習用</div>
+  <div class="page">
+    <header>
+      <!-- Liberty ロゴ -->
+      <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
+      <div class="title-block">
+        <h1>Liberty Bookkeeping Trainer</h1>
+        <span>留学生・実務家向け 簿記仕訳トレーニング 2.0</span>
       </div>
-      <div class="header-sub">ver 0.1（GitHub Pages）</div>
-    </div>
-  </header>
+    </header>
 
-  <main>
-    <!-- LEFT: INTRO / 説明 -->
-    <section class="intro-card">
-      <h1 class="intro-title">簿記入門 2.0 トレーニング</h1>
-      <p class="intro-tagline">
-        リバティーが社内・クライアント向けに提供する「仕訳トレーニング」ページです。
-      </p>
-      <ul class="intro-list">
-        <li>日本語／英語の表示をボタンで切り替え</li>
-        <li>「次の問題へ」で順番に演習</li>
-        <li>「ランダム出題」でシャッフル練習</li>
-        <li>模範仕訳はワンクリックで表示／非表示</li>
-      </ul>
-      <div class="intro-badge-row">
-        <span class="badge">日商簿記3級レベル</span>
-        <span class="badge">会計を「共通言語」に</span>
-        <span class="badge">Liberty Official Style</span>
-      </div>
-    </section>
-
-    <!-- RIGHT: QUIZ -->
-    <section class="quiz-card">
-      <div class="quiz-header-row">
-        <div>
-          <div class="quiz-title" id="quiz-title">仕訳トレーニング</div>
-          <div class="quiz-meta" id="quiz-meta">第 1 問 / 全 3 問</div>
-        </div>
-        <div class="lang-toggle" aria-label="言語切り替え">
-          <button id="btn-lang-ja" class="active" type="button">日本語</button>
-          <button id="btn-lang-en" type="button">English</button>
-        </div>
-      </div>
-
-      <div class="question-body">
-        <div class="question-id" id="question-id">2-1 売上（現金）</div>
-        <p class="question-text ja show" id="question-text-ja">
-          商品を 1,100円で販売し、その代金のうち 100円をポイント利用、残り 1,000円を現金で受け取った。
-          100円のポイントは他社が発行するポイントで後日入金される。
-        </p>
-        <p class="question-text en" id="question-text-en">
-          Goods were sold for ¥1,100. Of this amount, ¥100 was paid using points issued by another
-          company (to be received later in cash), and the remaining ¥1,000 was received in cash.
-        </p>
-      </div>
-
-      <div class="answer-box collapsed" id="answer-box">
-        <div class="answer-box-header">
-          <div class="answer-box-title">
-            <span class="toggle-answer-label">模範仕訳</span>
+    <div class="layout">
+      <!-- 左：問題＆入力 -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-pill">Practice</span>
+            <span id="question-label">問題 1 / 4</span>
           </div>
-          <span class="pill">解答を確認して自己採点してください</span>
+          <div class="lang-toggle">
+            <button id="lang-ja" class="active">日本語</button>
+            <button id="lang-en">English</button>
+          </div>
         </div>
-        <div class="journal-text" id="journal-text">
-借方　売掛金　100
-借方　現金　1,000
-貸方　売上　1,100
 
-Debit  Accounts Receivable 100
-Debit  Cash                1,000
-Credit Sales              1,100
+        <div class="question-meta">
+          <span class="badge" id="category-label">日々の仕訳</span>
+          <span id="id-label">ID: 2-1</span>
+          <span id="random-label"></span>
         </div>
-      </div>
 
-      <div class="quiz-footer">
-        <div class="btn-row">
-          <button class="btn btn-primary" id="btn-next" type="button">
-            ▶ 次の問題へ
-          </button>
-          <button class="btn btn-secondary" id="btn-random" type="button">
-            🔀 ランダム出題
-          </button>
+        <div class="question-text" id="question-text-ja">
+          <!-- 日本語問題文 -->
         </div>
-        <div class="small-note">
-          ※ ブラウザを更新しても動作します。問題数の追加はコード内 <code>questions</code> を編集してください。
+        <div class="question-text" id="question-text-en" style="display:none;">
+          <!-- English question -->
         </div>
-      </div>
-    </section>
-  </main>
+
+        <div class="toggle-row">
+          <span>借方・貸方の科目と金額を入力してください。</span>
+          <label>
+            <input type="checkbox" id="random-mode" />
+            ランダム出題
+          </label>
+        </div>
+
+        <p class="hint-text">
+          行ごとに「借方勘定科目・金額」「貸方勘定科目・金額」を入力します。<br>
+          不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。
+        </p>
+
+        <!-- 仕訳入力テーブル -->
+        <div class="entry-table">
+          <div class="entry-header-row">
+            <span>行</span>
+            <span>借方勘定科目</span>
+            <span>金額</span>
+            <span>貸方勘定科目</span>
+            <span>金額</span>
+          </div>
+
+          <!-- 3行分用意 -->
+          <div class="entry-row">
+            <span class="row-label">1</span>
+            <select class="account-select" id="debit-account-1"></select>
+            <input type="number" id="debit-amount-1" min="0" inputmode="numeric" />
+            <select class="account-select" id="credit-account-1"></select>
+            <input type="number" id="credit-amount-1" min="0" inputmode="numeric" />
+          </div>
+
+          <div class="entry-row">
+            <span class="row-label">2</span>
+            <select class="account-select" id="debit-account-2"></select>
+            <input type="number" id="debit-amount-2" min="0" inputmode="numeric" />
+            <select class="account-select" id="credit-account-2"></select>
+            <input type="number" id="credit-amount-2" min="0" inputmode="numeric" />
+          </div>
+
+          <div class="entry-row">
+            <span class="row-label">3</span>
+            <select class="account-select" id="debit-account-3"></select>
+            <input type="number" id="debit-amount-3" min="0" inputmode="numeric" />
+            <select class="account-select" id="credit-account-3"></select>
+            <input type="number" id="credit-amount-3" min="0" inputmode="numeric" />
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button id="prev-question" class="btn btn-secondary">⏮ 前の問題へ</button>
+          <button id="check-answer" class="btn btn-primary">✔ 答え合わせ</button>
+          <button id="next-question" class="btn btn-outline">⏭ 次の問題へ</button>
+        </div>
+
+        <div id="result-message" class="result-message"></div>
+
+        <div class="answer-panel" id="answer-panel" style="display:none;">
+          <h3>模範仕訳 / Model Answer</h3>
+          <pre id="answer-ja"></pre>
+          <pre id="answer-en"></pre>
+          <small>※ 科目名と金額が合致していれば正解です（行の順番は問いません）。</small>
+        </div>
+      </section>
+
+      <!-- 右：進捗など -->
+      <aside class="card">
+        <div class="side-card-title">進捗 / Progress</div>
+        <div class="score-box">
+          <div class="score-pill" id="score-pill">正解 0 / 0</div>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0;">
+          ・「答え合わせ」で自動判定します。<br>
+          ・ランダム出題をONにすると、順番をシャッフルします。<br>
+          ・日本語 / 英語はいつでも切り替え可能です。
+        </p>
+      </aside>
+    </div>
+
+    <footer>
+      &copy; Liberty Co., Ltd. Bookkeeping Trainer 2.0
+    </footer>
+  </div>
 
   <script>
-    // ▼ ここに問題マスタを定義します（あとからいくらでも増やせます）
+    // 仕訳のマスターデータ（今はハードコード。将来 Supabase から取得も可能）
     const questions = [
       {
-        id: "2-1 売上（現金）",
-        section: "日々の仕訳例",
-        ja: "商品を 1,100円で販売し、その代金のうち 100円をポイント利用、残り 1,000円を現金で受け取った。100円のポイントは他社が発行するポイントで後日入金される。",
-        en: "Goods were sold for ¥1,100. Of this amount, ¥100 was paid using points issued by another company (to be received later in cash), and the remaining ¥1,000 was received in cash.",
-        journalJa:
-"借方　売掛金　100\n借方　現金　1,000\n貸方　売上　1,100",
-        journalEn:
-"Debit  Accounts Receivable   100\nDebit  Cash                1,000\nCredit Sales               1,100"
+        id: "2-1",
+        categoryJa: "日々の仕訳",
+        categoryEn: "Daily entries",
+        titleJa: "2-1 売上（現金＋ポイント）",
+        titleEn: "2-1 Sales (cash + point)",
+        questionJa:
+          "商品を 1,100円で販売し、その代金のうち 100円をポイント利用、残り 1,000円を現金で受け取った。100円のポイントは他社が発行するポイントで後日入金される。",
+        questionEn:
+          "A product was sold for 1,100 yen. 100 yen was paid using points issued by another company (to be received later in cash), and the remaining 1,000 yen was received in cash.",
+        solution: {
+          debit: [
+            { account: "売掛金", amount: 100 },
+            { account: "現金", amount: 1000 }
+          ],
+          credit: [
+            { account: "売上", amount: 1100 }
+          ]
+        },
+        journalJa: "借方：売掛金 100　現金 1,000　/　貸方：売上 1,100",
+        journalEn: "Debit: Accounts Receivable 100, Cash 1,000 / Credit: Sales 1,100"
       },
       {
-        id: "2-2 売上（売掛）",
-        section: "日々の仕訳例",
-        ja: "商品を 2,000円で販売し、代金は後日銀行振込で頂くこととなった。",
-        en: "Goods were sold for ¥2,000. The payment will be received later by bank transfer.",
-        journalJa:
-"借方　売掛金　2,000\n貸方　売上　2,000",
-        journalEn:
-"Debit  Accounts Receivable 2,000\nCredit Sales              2,000"
+        id: "2-2",
+        categoryJa: "日々の仕訳",
+        categoryEn: "Daily entries",
+        titleJa: "2-2 売上（売掛）",
+        titleEn: "2-2 Sales on credit",
+        questionJa:
+          "商品を 2,000円で販売し、代金は後日銀行振込で頂くこととなった。",
+        questionEn:
+          "Goods were sold for 2,000 yen. The payment will be received later by bank transfer.",
+        solution: {
+          debit: [
+            { account: "売掛金", amount: 2000 }
+          ],
+          credit: [
+            { account: "売上", amount: 2000 }
+          ]
+        },
+        journalJa: "借方：売掛金 2,000　/　貸方：売上 2,000",
+        journalEn: "Debit: Accounts Receivable 2,000 / Credit: Sales 2,000"
       },
       {
-        id: "2-3 商品の仕入（現金）",
-        section: "日々の仕訳例",
-        ja: "販売するための商品を購入し、その代金 10,000円を現金で支払った。",
-        en: "Merchandise for resale was purchased and ¥10,000 was paid in cash.",
-        journalJa:
-"借方　仕入　10,000\n貸方　現金　10,000",
-        journalEn:
-"Debit  Purchases 10,000\nCredit Cash      10,000"
+        id: "2-3",
+        categoryJa: "日々の仕訳",
+        categoryEn: "Daily entries",
+        titleJa: "2-3 商品の仕入（現金）",
+        titleEn: "2-3 Purchase of merchandise (cash)",
+        questionJa:
+          "販売するための商品を購入し、その代金 10,000円を現金で支払った。",
+        questionEn:
+          "Merchandise for resale was purchased and 10,000 yen was paid in cash.",
+        solution: {
+          debit: [
+            { account: "仕入", amount: 10000 }
+          ],
+          credit: [
+            { account: "現金", amount: 10000 }
+          ]
+        },
+        journalJa: "借方：仕入 10,000　/　貸方：現金 10,000",
+        journalEn: "Debit: Purchases 10,000 / Credit: Cash 10,000"
+      },
+      {
+        id: "2-5",
+        categoryJa: "日々の仕訳",
+        categoryEn: "Daily entries",
+        titleJa: "2-5 消耗品の購入（未払金）",
+        titleEn: "2-5 Purchase of supplies (accounts payable)",
+        questionJa:
+          "店内で使用するゴミ箱を購入し、その代金 10,000円は後日銀行振込とした。",
+        questionEn:
+          "A trash bin for in-store use was purchased and the 10,000 yen payment will be made later by bank transfer.",
+        solution: {
+          debit: [
+            { account: "消耗品費", amount: 10000 }
+          ],
+          credit: [
+            { account: "未払金", amount: 10000 }
+          ]
+        },
+        journalJa: "借方：消耗品費 10,000　/　貸方：未払金 10,000",
+        journalEn: "Debit: Supplies Expense 10,000 / Credit: Accounts Payable 10,000"
       }
-      // ★ ここに 2-4, 2-5... など、どんどん追加していけます
     ];
 
-    // ▼ 状態管理
+    // プルダウンに表示する勘定科目マスター
+    const accountMaster = [
+      "",
+      "現金",
+      "普通預金",
+      "売掛金",
+      "買掛金",
+      "未払金",
+      "仕入",
+      "売上",
+      "消耗品費"
+    ];
+
+    // 状態
     let currentIndex = 0;
-    let currentLang = "ja"; // "ja" or "en"
+    let currentLang = "ja";
+    let randomMode = false;
+    let historyStack = []; // 戻る用にインデックスを積む
+    let totalAnswered = 0;
+    let totalCorrect = 0;
 
-    // ▼ DOM 要素取得
-    const quizMetaEl = document.getElementById("quiz-meta");
-    const questionIdEl = document.getElementById("question-id");
-    const questionJaEl = document.getElementById("question-text-ja");
-    const questionEnEl = document.getElementById("question-text-en");
-    const journalTextEl = document.getElementById("journal-text");
-    const answerBoxEl = document.getElementById("answer-box");
+    // DOM 取得
+    const questionLabel = document.getElementById("question-label");
+    const categoryLabel = document.getElementById("category-label");
+    const idLabel = document.getElementById("id-label");
+    const randomLabel = document.getElementById("random-label");
+    const questionTextJa = document.getElementById("question-text-ja");
+    const questionTextEn = document.getElementById("question-text-en");
+    const langJaBtn = document.getElementById("lang-ja");
+    const langEnBtn = document.getElementById("lang-en");
+    const randomModeCheckbox = document.getElementById("random-mode");
+    const prevBtn = document.getElementById("prev-question");
+    const nextBtn = document.getElementById("next-question");
+    const checkBtn = document.getElementById("check-answer");
+    const resultMessage = document.getElementById("result-message");
+    const answerPanel = document.getElementById("answer-panel");
+    const answerJa = document.getElementById("answer-ja");
+    const answerEn = document.getElementById("answer-en");
+    const scorePill = document.getElementById("score-pill");
 
-    const btnNext = document.getElementById("btn-next");
-    const btnRandom = document.getElementById("btn-random");
-    const btnLangJa = document.getElementById("btn-lang-ja");
-    const btnLangEn = document.getElementById("btn-lang-en");
-
-    // ▼ 問題表示関数
-    function renderQuestion(index) {
-      const q = questions[index];
-      if (!q) return;
-
-      quizMetaEl.textContent = `第 ${index + 1} 問 / 全 ${questions.length} 問`;
-      questionIdEl.textContent = q.id;
-      questionJaEl.textContent = q.ja;
-      questionEnEl.textContent = q.en;
-
-      // 日本語・英語の模範仕訳を両方まとめて表示
-      journalTextEl.textContent = q.journalJa + "\n\n" + q.journalEn;
-
-      // 答えは毎回いったん畳んでおく
-      answerBoxEl.classList.add("collapsed");
+    // 勘定科目プルダウン初期化
+    function initAccountSelects() {
+      const selects = document.querySelectorAll(".account-select");
+      selects.forEach((sel) => {
+        sel.innerHTML = "";
+        accountMaster.forEach((name) => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name === "" ? "（空欄）" : name;
+          sel.appendChild(opt);
+        });
+      });
     }
 
-    // ▼ 言語切り替え
-    function updateLanguage(lang) {
-      currentLang = lang;
-      if (lang === "ja") {
-        questionJaEl.classList.add("show");
-        questionEnEl.classList.remove("show");
-        btnLangJa.classList.add("active");
-        btnLangEn.classList.remove("active");
+    // 入力をクリア
+    function clearEntryInputs() {
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById("debit-account-" + i).value = "";
+        document.getElementById("debit-amount-" + i).value = "";
+        document.getElementById("credit-account-" + i).value = "";
+        document.getElementById("credit-amount-" + i).value = "";
+      }
+      resultMessage.textContent = "";
+      resultMessage.className = "result-message";
+      answerPanel.style.display = "none";
+    }
+
+    // 画面へ問題を反映
+    function renderQuestion() {
+      const q = questions[currentIndex];
+      questionLabel.textContent = `問題 ${currentIndex + 1} / ${questions.length}`;
+      categoryLabel.textContent = currentLang === "ja" ? q.categoryJa : q.categoryEn;
+      idLabel.textContent = `ID: ${q.id}`;
+      randomLabel.textContent = randomMode ? "（ランダム出題中）" : "";
+
+      questionTextJa.textContent = q.questionJa;
+      questionTextEn.textContent = q.questionEn;
+
+      if (currentLang === "ja") {
+        questionTextJa.style.display = "block";
+        questionTextEn.style.display = "none";
       } else {
-        questionJaEl.classList.remove("show");
-        questionEnEl.classList.add("show");
-        btnLangJa.classList.remove("active");
-        btnLangEn.classList.add("active");
+        questionTextJa.style.display = "none";
+        questionTextEn.style.display = "block";
       }
+
+      // ボタン状態
+      langJaBtn.classList.toggle("active", currentLang === "ja");
+      langEnBtn.classList.toggle("active", currentLang === "en");
+      randomModeCheckbox.checked = randomMode;
+
+      // 入力クリア
+      clearEntryInputs();
     }
 
-    // ▼ 「次の問題へ」
-    btnNext.addEventListener("click", () => {
-      currentIndex = (currentIndex + 1) % questions.length;
-      renderQuestion(currentIndex);
-    });
+    // スコア表示更新
+    function updateScore() {
+      scorePill.textContent = `正解 ${totalCorrect} / ${totalAnswered}`;
+    }
 
-    // ▼ 「ランダム出題」
-    btnRandom.addEventListener("click", () => {
-      if (questions.length <= 1) return;
-      let newIndex = currentIndex;
-      while (newIndex === currentIndex) {
-        newIndex = Math.floor(Math.random() * questions.length);
+    // 次の問題へ
+    function goNextQuestion() {
+      historyStack.push(currentIndex); // 戻る用に積む
+
+      if (randomMode) {
+        // 現在と違うランダム問題
+        let next;
+        if (questions.length === 1) {
+          next = 0;
+        } else {
+          do {
+            next = Math.floor(Math.random() * questions.length);
+          } while (next === currentIndex);
+        }
+        currentIndex = next;
+      } else {
+        currentIndex = (currentIndex + 1) % questions.length;
       }
-      currentIndex = newIndex;
-      renderQuestion(currentIndex);
+      renderQuestion();
+    }
+
+    // 前の問題へ
+    function goPrevQuestion() {
+      if (historyStack.length === 0) {
+        return;
+      }
+      const prevIndex = historyStack.pop();
+      currentIndex = prevIndex;
+      renderQuestion();
+    }
+
+    // 入力から仕訳を取得
+    function getUserEntries() {
+      const debit = [];
+      const credit = [];
+
+      for (let i = 1; i <= 3; i++) {
+        const dAcc = document.getElementById("debit-account-" + i).value.trim();
+        const dAmtStr = document.getElementById("debit-amount-" + i).value.trim();
+        const cAcc = document.getElementById("credit-account-" + i).value.trim();
+        const cAmtStr = document.getElementById("credit-amount-" + i).value.trim();
+
+        if (dAcc !== "" && dAmtStr !== "") {
+          const amt = Number(dAmtStr);
+          if (!Number.isNaN(amt) && amt > 0) {
+            debit.push({ account: dAcc, amount: amt });
+          }
+        }
+        if (cAcc !== "" && cAmtStr !== "") {
+          const amt = Number(cAmtStr);
+          if (!Number.isNaN(amt) && amt > 0) {
+            credit.push({ account: cAcc, amount: amt });
+          }
+        }
+      }
+
+      return { debit, credit };
+    }
+
+    // 両側の合計が一致しているか（借方合計 = 貸方合計）
+    function isBalanced(entries) {
+      const sum = (list) => list.reduce((acc, e) => acc + e.amount, 0);
+      return sum(entries.debit) === sum(entries.credit);
+    }
+
+    // 片側（debit or credit）の比較：勘定科目＋金額の組み合わせが一致するか（順番は問わない）
+    function compareSide(userList, correctList) {
+      if (userList.length !== correctList.length) return false;
+
+      const remaining = correctList.map((e) => ({ ...e })); // コピー
+
+      for (const u of userList) {
+        const index = remaining.findIndex(
+          (c) => c.account === u.account && Number(c.amount) === Number(u.amount)
+        );
+        if (index === -1) {
+          return false;
+        }
+        remaining.splice(index, 1);
+      }
+      return remaining.length === 0;
+    }
+
+    // 答え合わせ
+    function checkAnswer() {
+      const q = questions[currentIndex];
+      const user = getUserEntries();
+
+      // 入力が 1 行もない場合
+      if (user.debit.length === 0 && user.credit.length === 0) {
+        resultMessage.textContent = "科目と金額を入力してください。";
+        resultMessage.className = "result-message ng";
+        answerPanel.style.display = "none";
+        return;
+      }
+
+      // 借方・貸方の合計チェック（任意）
+      if (!isBalanced(user)) {
+        resultMessage.textContent = "借方合計と貸方合計が一致していません。もう一度確認してください。";
+        resultMessage.className = "result-message ng";
+        // ここではまだ模範解答は出さない
+        answerPanel.style.display = "none";
+        return;
+      }
+
+      const okDebit = compareSide(user.debit, q.solution.debit);
+      const okCredit = compareSide(user.credit, q.solution.credit);
+      const isCorrect = okDebit && okCredit;
+
+      totalAnswered++;
+      if (isCorrect) {
+        totalCorrect++;
+      }
+      updateScore();
+
+      if (isCorrect) {
+        resultMessage.textContent = "◎ 正解です！ とても良いです。";
+        resultMessage.className = "result-message ok";
+      } else {
+        resultMessage.textContent = "× 惜しいです。模範仕訳を確認してみましょう。";
+        resultMessage.className = "result-message ng";
+      }
+
+      // 模範解答表示
+      answerJa.textContent = q.journalJa;
+      answerEn.textContent = q.journalEn;
+      answerPanel.style.display = "block";
+    }
+
+    // イベント登録
+    langJaBtn.addEventListener("click", () => {
+      currentLang = "ja";
+      renderQuestion();
     });
-
-    // ▼ 模範仕訳の開閉（答え部分クリックでトグル）
-    answerBoxEl.addEventListener("click", () => {
-      answerBoxEl.classList.toggle("collapsed");
+    langEnBtn.addEventListener("click", () => {
+      currentLang = "en";
+      renderQuestion();
     });
+    randomModeCheckbox.addEventListener("change", (e) => {
+      randomMode = e.target.checked;
+      renderQuestion();
+    });
+    nextBtn.addEventListener("click", goNextQuestion);
+    prevBtn.addEventListener("click", goPrevQuestion);
+    checkBtn.addEventListener("click", checkAnswer);
 
-    // ▼ 言語ボタン
-    btnLangJa.addEventListener("click", () => updateLanguage("ja"));
-    btnLangEn.addEventListener("click", () => updateLanguage("en"));
-
-    // 初期表示
-    renderQuestion(currentIndex);
-    updateLanguage("ja");
+    // 初期化
+    initAccountSelects();
+    renderQuestion();
+    updateScore();
   </script>
 </body>
 </html>
+
