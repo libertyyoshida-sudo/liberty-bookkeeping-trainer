@@ -1,1 +1,146 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>学習履歴 - Liberty Bookkeeping Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+    h1 {
+      font-size: 1.3rem;
+      margin-bottom: 4px;
+    }
+    a { color: #005bac; text-decoration: none; }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-top: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.03);
+    }
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .log-table th,
+    .log-table td {
+      border-bottom: 1px solid #e5e8f0;
+      padding: 6px 4px;
+      text-align: left;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: #e2eef9;
+      color: #005bac;
+    }
+    .ok { color: #28a745; }
+    .ng { color: #d9534f; }
+    .auth-info {
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 8px;
+    }
+  </style>
+  <script>
+    const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
+
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const authLabel = document.getElementById('auth-label');
+      const tbody = document.getElementById('logs-body');
+
+      const { data: authData } = await supabaseClient.auth.getUser();
+      const user = authData.user;
+      if (!user) {
+        authLabel.textContent = '未ログインです。履歴を表示するには、トップページでログインしてください。';
+        return;
+      }
+      authLabel.textContent = `ログイン中: ${user.email}`;
+
+      const { data, error } = await supabaseClient
+        .from('study_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (error) {
+        console.error('study_logs select error', error);
+        tbody.innerHTML = `<tr><td colspan="5">履歴取得でエラーが発生しました。</td></tr>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5">まだ履歴がありません。</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = '';
+      for (const row of data) {
+        const tr = document.createElement('tr');
+        const created = new Date(row.created_at).toLocaleString();
+        const type = row.content_type;
+        let typeLabel = type;
+        if (type === 'quiz') typeLabel = '問題';
+        if (type === 'slide') typeLabel = 'スライド';
+        if (type === 'youtube') typeLabel = '動画';
+
+        const action = row.action;
+        const isCorrect = row.is_correct;
+        const resultText = (isCorrect === true) ? '正解' : (isCorrect === false ? '不正解' : '');
+
+        tr.innerHTML = `
+          <td>${created}</td>
+          <td><span class="badge">${typeLabel}</span></td>
+          <td>${row.content_id}</td>
+          <td>${action}</td>
+          <td>${resultText ? `<span class="${isCorrect ? 'ok':'ng'}">${resultText}</span>` : ''}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class="page">
+    <h1>学習履歴</h1>
+    <p><a href="index.html">← トップ（問題）へ戻る</a></p>
+    <div class="card">
+      <p id="auth-label" class="auth-info"></p>
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>日時</th>
+            <th>種別</th>
+            <th>コンテンツID</th>
+            <th>アクション</th>
+            <th>結果</th>
+          </tr>
+        </thead>
+        <tbody id="logs-body">
+          <tr><td colspan="5">読み込み中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
 
