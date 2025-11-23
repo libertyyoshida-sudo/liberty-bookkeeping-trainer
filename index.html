@@ -1392,7 +1392,7 @@ if (error) {
       <section class="card">
         <div class="card-header">
           <div class="card-title">
-            <span class="card-title-pill">Practice</span>
+            <span class="card-title-pill" data-i18n="practice-pill">Practice</span>
             <span id="question-label">問題 0 / 0</span>
           </div>
           <div class="lang-toggle">
@@ -1403,11 +1403,11 @@ if (error) {
 
         <!-- 出題条件 -->
         <div class="filter-row">
-          <span>カテゴリ:</span>
+          <span data-i18n="filter-category">カテゴリ:</span>
           <select id="category-filter"></select>
-          <span>問題数:</span>
+          <span data-i18n="filter-count">問題数:</span>
           <select id="question-count"></select>
-          <button id="btn-start-session">出題開始</button>
+          <button id="btn-start-session" data-i18n="filter-start">出題開始</button>
         </div>
 
         <div class="question-meta">
@@ -1424,10 +1424,10 @@ if (error) {
         </div>
 
         <div class="toggle-row">
-          <span>借方・貸方の科目と金額を入力してください。</span>
+          <span data-i18n="toggle-main">借方・貸方の科目と金額を入力してください。</span>
           <label>
             <input type="checkbox" id="random-mode" />
-            ランダム出題
+            <span data-i18n="toggle-random">ランダム出題</span>
           </label>
         </div>
 
@@ -1439,11 +1439,11 @@ if (error) {
         <!-- 仕訳入力テーブル -->
         <div class="entry-table">
           <div class="entry-header-row">
-            <span>行</span>
-            <span>借方勘定科目</span>
-            <span>金額</span>
-            <span>貸方勘定科目</span>
-            <span>金額</span>
+            <span data-i18n="entry-col-row">行</span>
+            <span data-i18n="entry-col-debit">借方勘定科目</span>
+            <span data-i18n="entry-col-debit-amount">金額</span>
+            <span data-i18n="entry-col-credit">貸方勘定科目</span>
+            <span data-i18n="entry-col-credit-amount">金額</span>
           </div>
 
           <!-- 3行分用意 -->
@@ -1473,24 +1473,24 @@ if (error) {
         </div>
 
         <div class="button-row">
-          <button id="prev-question" class="btn btn-secondary">⏮ 前の問題へ</button>
-          <button id="check-answer" class="btn btn-primary">✔ 答え合わせ</button>
-          <button id="next-question" class="btn btn-outline">⏭ 次の問題へ</button>
+          <button id="prev-question" class="btn btn-secondary" data-i18n="btn-prev">⏮ 前の問題へ</button>
+          <button id="check-answer" class="btn btn-primary" data-i18n="btn-check">✔ 答え合わせ</button>
+          <button id="next-question" class="btn btn-outline" data-i18n="btn-next">⏭ 次の問題へ</button>
         </div>
 
         <div id="result-message" class="result-message"></div>
 
         <div class="answer-panel" id="answer-panel" style="display:none;">
-          <h3>模範仕訳 / Model Answer</h3>
+          <h3 data-i18n="answer-title">模範仕訳 / Model Answer</h3>
           <pre id="answer-ja"></pre>
           <pre id="answer-en"></pre>
-          <small>※ 科目名と金額が合致していれば正解です（行の順番は問いません）。</small>
+          <small data-i18n="answer-note">※ 科目名と金額が合致していれば正解です（行の順番は問いません）。</small>
         </div>
       </section>
 
       <!-- 右：進捗＆履歴 -->
       <aside class="card">
-        <div class="side-card-title">進捗 / Progress</div>
+        <div class="side-card-title" data-i18n="progress-title">進捗 / Progress</div>
         <div class="score-box">
           <div class="score-pill" id="score-pill">正解 0 / 0</div>
         </div>
