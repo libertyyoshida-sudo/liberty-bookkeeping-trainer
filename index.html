@@ -972,6 +972,7 @@
       return remaining.length === 0;
     }
 
+    
     // 学習ログ保存（ログイン時のみ）
     async function logStudyResult(q, isCorrect) {
       if (!window.sessionUser) return;
@@ -999,6 +1000,53 @@
       }
     }
 
+    // 片側比較
+    function compareSide(userList, correctList) {
+      if (!Array.isArray(correctList)) return false;
+      if (userList.length !== correctList.length) return false;
+
+      const remaining = correctList.map((e) => ({ ...e })); // コピー
+
+      for (const u of userList) {
+        const index = remaining.findIndex(
+          (c) => c.account === u.account && Number(c.amount) === Number(u.amount)
+        );
+        if (index === -1) {
+          return false;
+        }
+        remaining.splice(index, 1);
+      }
+      return remaining.length === 0;
+    }
+
+    // ← この下に追加
+    // Supabase の solution JSON を { debit: [...], credit: [...] } 形式にそろえる
+    function normalizeSolution(raw) {
+      if (!raw) return { debit: [], credit: [] };
+
+      let debits = [];
+      let credits = [];
+
+      // パターン1: {debits: [...], credits: [...]}
+      if (Array.isArray(raw.debits)) debits = raw.debits;
+      if (Array.isArray(raw.credits)) credits = raw.credits;
+
+      // パターン2: {debit: [...], credit: [...]}（ハードコード問題用）
+      if (debits.length === 0 && Array.isArray(raw.debit)) debits = raw.debit;
+      if (credits.length === 0 && Array.isArray(raw.credit)) credits = raw.credit;
+
+      const normalizeSide = (list) =>
+        (list || []).map((e) => ({
+          account: (e.account || "").trim(),
+          amount: Number(e.amount)
+        })).filter(e => e.account && !Number.isNaN(e.amount));
+
+      return {
+        debit: normalizeSide(debits),
+        credit: normalizeSide(credits)
+      };
+    }
+   
     // 答え合わせ
     async function checkAnswer() {
       if (!questions || questions.length === 0) {
