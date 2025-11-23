@@ -388,8 +388,14 @@
     const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
 
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { createClient } = supabase;
+　　const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // 使用時:
+　　const { data, error } = await supabaseClient
+  .from('quiz_questions')
+  .select('*');
+    
     window.addEventListener('DOMContentLoaded', async () => {
       const { data, error } = await supabase
         .from('quiz_questions')
@@ -526,8 +532,11 @@
   </div>
 
   <script>
-    // 仕訳のマスターデータ（今はハードコード。将来 Supabase から取得も可能）
-    const questions = [
+    // 仕訳のマスターデータ（Supabaseから取得または初期データを使用）
+　　let questions = []; // 最初は空にする
+    
+    // ハードコードされた初期問題（フォールバック用）
+    const hardcodedQuestions = [
       {
         id: "2-1",
         categoryJa: "日々の仕訳",
