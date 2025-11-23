@@ -924,7 +924,33 @@ const i18n = {
       updateScore();
       renderQuestion();
     }
+    
+//言語適用関数 applyLanguage を作る
+function applyLanguage() {
+  const t = i18n[currentLang];
 
+  // data-i18n 付き要素の共通処理
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    const value = t[key];
+    if (!value) return;
+
+    // 改行を <br> にしたい要素もあるので少し分岐
+    if (el.id === 'hint-text') {
+      el.innerHTML = value.replace(/\n/g, '<br>');
+    } else {
+      el.textContent = value;
+    }
+  });
+
+  // スコア表示
+  if (scorePill) {
+    scorePill.textContent = t.score(totalCorrect, totalAnswered);
+  }
+
+  // 履歴エリア（ログインしていないときのメッセージなど）は loadMyHistory 内で t を使う形でもOK
+}
+    
     // 画面へ問題を反映
     function renderQuestion() {
       if (!questions || questions.length === 0) {
