@@ -1074,12 +1074,6 @@
 
       const okDebit = compareSide(user.debit, norm.debit);
       const okCredit = compareSide(user.credit, norm.credit);
-
-      // Supabase / ハードコード両対応の模範解答を取得
-      const norm = normalizeSolution(q.solution);
-
-      const okDebit = compareSide(user.debit, norm.debit);
-      const okCredit = compareSide(user.credit, norm.credit);
       const isCorrect = okDebit && okCredit;
 
       totalAnswered++;
