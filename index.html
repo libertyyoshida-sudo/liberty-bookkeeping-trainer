@@ -20,9 +20,7 @@
       --radius-xl: 18px;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -41,8 +39,15 @@
     header {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+    }
+
+    header .left-block {
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
 
     header img.logo {
@@ -68,15 +73,62 @@
       color: var(--text-muted);
     }
 
+    /* Auth area */
+    .auth-box {
+      background: var(--bg-card);
+      border-radius: 999px;
+      padding: 6px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: var(--shadow-soft);
+      font-size: 0.75rem;
+    }
+    .auth-box input {
+      font-size: 0.75rem;
+      padding: 3px 6px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      outline: none;
+      min-width: 120px;
+    }
+    .auth-box button {
+      border-radius: 999px;
+      border: none;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .auth-small-btn {
+      background: #e2e7f3;
+    }
+    .auth-primary-btn {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+    }
+    .auth-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
     .layout {
       display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.4fr);
       gap: 18px;
     }
 
     @media (max-width: 900px) {
       .layout {
         grid-template-columns: 1fr;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .auth-box {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
       }
     }
 
@@ -163,13 +215,8 @@
       font-size: 0.9rem;
     }
 
-    .question-text p {
-      margin: 0 0 4px;
-    }
-
-    .question-text p:last-child {
-      margin-bottom: 0;
-    }
+    .question-text p { margin: 0 0 4px; }
+    .question-text p:last-child { margin-bottom: 0; }
 
     .toggle-row {
       display: flex;
@@ -188,11 +235,8 @@
       color: var(--text-muted);
     }
 
-    .toggle-row input[type="checkbox"] {
-      accent-color: var(--primary);
-    }
+    .toggle-row input[type="checkbox"] { accent-color: var(--primary); }
 
-    /* 仕訳入力テーブル */
     .entry-table {
       margin: 6px 0 10px;
       border-radius: 10px;
@@ -224,9 +268,7 @@
       background: #fff;
     }
 
-    .entry-row:nth-child(even) {
-      background: #fdfdff;
-    }
+    .entry-row:nth-child(even) { background: #fdfdff; }
 
     .entry-row span.row-label {
       text-align: center;
@@ -316,13 +358,8 @@
       font-weight: 600;
     }
 
-    .result-message.ok {
-      color: var(--success);
-    }
-
-    .result-message.ng {
-      color: var(--danger);
-    }
+    .result-message.ok { color: var(--success); }
+    .result-message.ng { color: var(--danger); }
 
     .answer-panel {
       margin-top: 8px;
@@ -375,11 +412,48 @@
       font-size: 0.8rem;
     }
 
+    .side-links {
+      margin-top: 10px;
+      font-size: 0.8rem;
+    }
+    .side-links a {
+      display: inline-block;
+      margin-right: 8px;
+      text-decoration: none;
+      color: var(--primary);
+    }
+
     footer {
       margin-top: 18px;
       font-size: 0.7rem;
       color: var(--text-muted);
       text-align: center;
+    }
+
+    /* 出題設定カード */
+    .settings-card {
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: #f0f4ff;
+      border: 1px solid rgba(0,91,172,0.1);
+      font-size: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      align-items: center;
+    }
+    .settings-card label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .settings-card select,
+    .settings-card input[type="number"] {
+      font-size: 0.75rem;
+      padding: 2px 4px;
+      border-radius: 6px;
+      border: 1px solid var(--border-soft);
     }
   </style>
   
@@ -390,41 +464,96 @@
 
     const { createClient } = supabase;
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-   
-    window.addEventListener('DOMContentLoaded', async () => {
-      const { data, error } = await supabaseClient
-        .from('quiz_questions')
-        .select('*');
-      
-      if (error) {
-        console.error('Supabase error:', error);
-        questions = hardcodedQuestions;  // エラー時はハードコード使用
-        } else if (data && data.length > 0) {
-          questions = data;  // 取得したデータを使用
-          console.log('取得したデータ:', data); 
-      } else {
-        console.log('取得したデータ:', data);
-        questions = hardcodedQuestions;  // データが空の場合もハードコード使用
-      }
 
-      // ★ ここで初期表示を実行する
-      initAccountSelects();
-      renderQuestion();
-      updateScore();
-      
+    // Supabase から問題取得＆ユーザー状態取得
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // 認証状態取得
+        const { data: authData } = await supabaseClient.auth.getUser();
+        window.sessionUser = authData.user || null;
+        if (typeof updateAuthUI === 'function') {
+          updateAuthUI();
+        }
+
+        // 問題読み込み
+        const { data, error } = await supabaseClient
+          .from('quiz_questions')
+          .select('*');
+
+        if (error) {
+          console.error('Supabase error:', error);
+          window.allQuestions = window.hardcodedQuestions;
+        } else if (data && data.length > 0) {
+          console.log('取得したクイズ件数:', data.length);
+          window.allQuestions = data;
+        } else {
+          console.log('Supabase quiz_questions が空のためハードコード問題を使用します');
+          window.allQuestions = window.hardcodedQuestions;
+        }
+
+        // 出題条件UIを初期化して最初のセッション開始
+        if (typeof setupCategoryFilterOptions === 'function') {
+          setupCategoryFilterOptions(window.allQuestions);
+        }
+        if (typeof startNewSessionFromUI === 'function') {
+          startNewSessionFromUI();
+        }
+      } catch (e) {
+        console.error('初期処理エラー:', e);
+        window.allQuestions = window.hardcodedQuestions;
+        if (typeof startNewSessionFromUI === 'function') {
+          startNewSessionFromUI();
+        }
+      }
     });
   </script>
 </head>
 <body>
   <div class="page">
     <header>
-      <!-- Liberty ロゴ -->
-      <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
-      <div class="title-block">
-        <h1>Liberty Bookkeeping Trainer</h1>
-        <span>留学生・実務家向け 簿記仕訳トレーニング 2.0</span>
+      <div class="left-block">
+        <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
+        <div class="title-block">
+          <h1>Liberty Bookkeeping Trainer</h1>
+          <span>留学生・実務家向け 簿記仕訳トレーニング 2.0</span>
+        </div>
+      </div>
+      <div class="auth-box">
+        <div id="auth-when-logged-out">
+          <input type="email" id="auth-email" placeholder="メールアドレス" />
+          <input type="password" id="auth-password" placeholder="パスワード" />
+          <input type="text" id="auth-nationality" placeholder="国籍（任意）" />
+          <button class="auth-small-btn" id="btn-signup">新規登録</button>
+          <button class="auth-primary-btn" id="btn-login">ログイン</button>
+        </div>
+        <div id="auth-when-logged-in" style="display:none;">
+          <span id="auth-user-label" class="auth-status"></span>
+          <button class="auth-small-btn" id="btn-logout">ログアウト</button>
+        </div>
       </div>
     </header>
+
+    <!-- 出題設定 -->
+    <section class="settings-card">
+      <label>
+        カテゴリ:
+        <select id="filter-category">
+          <option value="">すべて</option>
+        </select>
+      </label>
+      <label>
+        問題数:
+        <input type="number" id="question-count" min="1" max="200" value="10" />
+      </label>
+      <label>
+        <input type="checkbox" id="random-mode-toggle" />
+        ランダム
+      </label>
+      <button id="start-session" class="btn btn-secondary" style="padding:4px 10px; font-size:0.75rem;">
+        この条件で出題する
+      </button>
+      <span style="color:var(--text-muted);">※ ログインしていない場合、履歴は保存されません。</span>
+    </section>
 
     <div class="layout">
       <!-- 左：問題＆入力 -->
@@ -432,7 +561,7 @@
         <div class="card-header">
           <div class="card-title">
             <span class="card-title-pill">Practice</span>
-            <span id="question-label">問題 1 / 4</span>
+            <span id="question-label">問題 0 / 0</span>
           </div>
           <div class="lang-toggle">
             <button id="lang-ja" class="active">日本語</button>
@@ -441,23 +570,19 @@
         </div>
 
         <div class="question-meta">
-          <span class="badge" id="category-label">日々の仕訳</span>
-          <span id="id-label">ID: 2-1</span>
+          <span class="badge" id="category-label">-</span>
+          <span id="id-label">ID: -</span>
           <span id="random-label"></span>
         </div>
 
-        <div class="question-text" id="question-text-ja">
-          <!-- 日本語問題文 -->
-        </div>
-        <div class="question-text" id="question-text-en" style="display:none;">
-          <!-- English question -->
-        </div>
+        <div class="question-text" id="question-text-ja"></div>
+        <div class="question-text" id="question-text-en" style="display:none;"></div>
 
         <div class="toggle-row">
           <span>借方・貸方の科目と金額を入力してください。</span>
           <label>
             <input type="checkbox" id="random-mode" />
-            ランダム出題
+            ランダム出題（次へボタン用）
           </label>
         </div>
 
@@ -466,7 +591,6 @@
           不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。
         </p>
 
-        <!-- 仕訳入力テーブル -->
         <div class="entry-table">
           <div class="entry-header-row">
             <span>行</span>
@@ -476,7 +600,6 @@
             <span>金額</span>
           </div>
 
-          <!-- 3行分用意 -->
           <div class="entry-row">
             <span class="row-label">1</span>
             <select class="account-select" id="debit-account-1"></select>
@@ -526,9 +649,14 @@
         </div>
         <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0;">
           ・「答え合わせ」で自動判定します。<br>
-          ・ランダム出題をONにすると、順番をシャッフルします。<br>
-          ・日本語 / 英語はいつでも切り替え可能です。
+          ・上部の「出題設定」でカテゴリや問題数、ランダム出題を選べます。<br>
+          ・ログインしている場合のみ、回答履歴が保存されます。
         </p>
+        <div class="side-links">
+          <a href="history.html">📊 学習履歴を見る</a>
+          <a href="contents.html">📚 スライド・動画</a>
+          <a href="admin.html">🛠 管理者ページ</a>
+        </div>
       </aside>
     </div>
 
@@ -538,11 +666,14 @@
   </div>
 
   <script>
-    // 仕訳のマスターデータ（Supabaseから取得または初期データを使用）
-　　let questions = []; // 最初は空にする
-    
-    // ハードコードされた初期問題（フォールバック用）
+    // ---------------------------
+    // グローバル状態
+    // ---------------------------
+    window.sessionUser = null;
+    let allQuestions = [];    // Supabase 全問題
+    let questions = [];       // 今回の出題セット
     const hardcodedQuestions = [
+      // フォールバック用：最低限の問題
       {
         id: "2-1",
         categoryJa: "日々の仕訳",
@@ -564,73 +695,9 @@
         },
         journalJa: "借方：売掛金 100　現金 1,000　/　貸方：売上 1,100",
         journalEn: "Debit: Accounts Receivable 100, Cash 1,000 / Credit: Sales 1,100"
-      },
-      {
-        id: "2-2",
-        categoryJa: "日々の仕訳",
-        categoryEn: "Daily entries",
-        titleJa: "2-2 売上（売掛）",
-        titleEn: "2-2 Sales on credit",
-        questionJa:
-          "商品を 2,000円で販売し、代金は後日銀行振込で頂くこととなった。",
-        questionEn:
-          "Goods were sold for 2,000 yen. The payment will be received later by bank transfer.",
-        solution: {
-          debit: [
-            { account: "売掛金", amount: 2000 }
-          ],
-          credit: [
-            { account: "売上", amount: 2000 }
-          ]
-        },
-        journalJa: "借方：売掛金 2,000　/　貸方：売上 2,000",
-        journalEn: "Debit: Accounts Receivable 2,000 / Credit: Sales 2,000"
-      },
-      {
-        id: "2-3",
-        categoryJa: "日々の仕訳",
-        categoryEn: "Daily entries",
-        titleJa: "2-3 商品の仕入（現金）",
-        titleEn: "2-3 Purchase of merchandise (cash)",
-        questionJa:
-          "販売するための商品を購入し、その代金 10,000円を現金で支払った。",
-        questionEn:
-          "Merchandise for resale was purchased and 10,000 yen was paid in cash.",
-        solution: {
-          debit: [
-            { account: "仕入", amount: 10000 }
-          ],
-          credit: [
-            { account: "現金", amount: 10000 }
-          ]
-        },
-        journalJa: "借方：仕入 10,000　/　貸方：現金 10,000",
-        journalEn: "Debit: Purchases 10,000 / Credit: Cash 10,000"
-      },
-      {
-        id: "2-5",
-        categoryJa: "日々の仕訳",
-        categoryEn: "Daily entries",
-        titleJa: "2-5 消耗品の購入（未払金）",
-        titleEn: "2-5 Purchase of supplies (accounts payable)",
-        questionJa:
-          "店内で使用するゴミ箱を購入し、その代金 10,000円は後日銀行振込とした。",
-        questionEn:
-          "A trash bin for in-store use was purchased and the 10,000 yen payment will be made later by bank transfer.",
-        solution: {
-          debit: [
-            { account: "消耗品費", amount: 10000 }
-          ],
-          credit: [
-            { account: "未払金", amount: 10000 }
-          ]
-        },
-        journalJa: "借方：消耗品費 10,000　/　貸方：未払金 10,000",
-        journalEn: "Debit: Supplies Expense 10,000 / Credit: Accounts Payable 10,000"
       }
     ];
 
-    // プルダウンに表示する勘定科目マスター
     const accountMaster = [
       "",
       "現金",
@@ -643,11 +710,10 @@
       "消耗品費"
     ];
 
-    // 状態
     let currentIndex = 0;
     let currentLang = "ja";
     let randomMode = false;
-    let historyStack = []; // 戻る用にインデックスを積む
+    let historyStack = [];
     let totalAnswered = 0;
     let totalCorrect = 0;
 
@@ -670,7 +736,160 @@
     const answerEn = document.getElementById("answer-en");
     const scorePill = document.getElementById("score-pill");
 
+    const filterCategorySelect = document.getElementById("filter-category");
+    const questionCountInput = document.getElementById("question-count");
+    const randomModeToggle = document.getElementById("random-mode-toggle");
+    const startSessionBtn = document.getElementById("start-session");
+
+    // Auth UI
+    const authLoggedOut = document.getElementById('auth-when-logged-out');
+    const authLoggedIn = document.getElementById('auth-when-logged-in');
+    const authUserLabel = document.getElementById('auth-user-label');
+    const emailInput = document.getElementById('auth-email');
+    const passwordInput = document.getElementById('auth-password');
+    const nationalityInput = document.getElementById('auth-nationality');
+    const btnSignup = document.getElementById('btn-signup');
+    const btnLogin = document.getElementById('btn-login');
+    const btnLogout = document.getElementById('btn-logout');
+
+    // ---------------------------
+    // Auth 関連
+    // ---------------------------
+    function updateAuthUI() {
+      if (window.sessionUser) {
+        authLoggedOut.style.display = 'none';
+        authLoggedIn.style.display = 'flex';
+        authUserLabel.textContent = `ログイン中: ${window.sessionUser.email}`;
+      } else {
+        authLoggedOut.style.display = 'flex';
+        authLoggedIn.style.display = 'none';
+      }
+    }
+
+    async function signUp() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const nationality = nationalityInput.value.trim();
+      if (!email || !password) {
+        alert('メールアドレスとパスワードを入力してください。');
+        return;
+      }
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { nationality }
+        }
+      });
+      if (error) {
+        console.error('signUp error', error);
+        alert('登録に失敗しました: ' + error.message);
+        return;
+      }
+      const user = data.user;
+      if (user) {
+        // profiles にも作成
+        await supabaseClient.from('profiles').insert({
+          id: user.id,
+          email: user.email,
+          nationality,
+          role: 'user'
+        }).catch(e => console.error('profiles insert error', e));
+      }
+      alert('登録しました。確認メールが届いている場合は確認してください。');
+    }
+
+    async function signIn() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      if (!email || !password) {
+        alert('メールアドレスとパスワードを入力してください。');
+        return;
+      }
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) {
+        console.error('signIn error', error);
+        alert('ログインに失敗しました: ' + error.message);
+        return;
+      }
+      window.sessionUser = data.user;
+      updateAuthUI();
+      alert('ログインしました');
+    }
+
+    async function signOut() {
+      await supabaseClient.auth.signOut();
+      window.sessionUser = null;
+      updateAuthUI();
+      alert('ログアウトしました');
+    }
+
+    btnSignup.addEventListener('click', signUp);
+    btnLogin.addEventListener('click', signIn);
+    btnLogout.addEventListener('click', signOut);
+
+    // ---------------------------
+    // 出題セット作成
+    // ---------------------------
+    function setupCategoryFilterOptions(all) {
+      // categoryJa があるものからユニークに
+      const cats = Array.from(
+        new Set(
+          all
+            .map(q => q.categoryJa)
+            .filter(x => typeof x === 'string' && x.length > 0)
+        )
+      ).sort();
+      filterCategorySelect.innerHTML = '<option value="">すべて</option>';
+      cats.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        filterCategorySelect.appendChild(opt);
+      });
+    }
+
+    function createQuestionSetFromUI() {
+      let list = allQuestions || [];
+      const selCat = filterCategorySelect.value;
+      const count = Number(questionCountInput.value || '10');
+      const randomFlag = randomModeToggle.checked;
+
+      if (selCat) {
+        list = list.filter(q => q.categoryJa === selCat);
+      }
+
+      if (randomFlag) {
+        list = [...list].sort(() => Math.random() - 0.5);
+      } else {
+        list = [...list];
+      }
+
+      questions = list.slice(0, Math.max(1, count));
+      currentIndex = 0;
+      historyStack = [];
+      totalAnswered = 0;
+      totalCorrect = 0;
+      randomMode = randomModeCheckbox.checked;
+      updateScore();
+    }
+
+    function startNewSessionFromUI() {
+      createQuestionSetFromUI();
+      initAccountSelects();
+      renderQuestion();
+    }
+
+    startSessionBtn.addEventListener('click', () => {
+      startNewSessionFromUI();
+    });
+
+    // ---------------------------
     // 勘定科目プルダウン初期化
+    // ---------------------------
     function initAccountSelects() {
       const selects = document.querySelectorAll(".account-select");
       selects.forEach((sel) => {
@@ -684,7 +903,6 @@
       });
     }
 
-    // 入力をクリア
     function clearEntryInputs() {
       for (let i = 1; i <= 3; i++) {
         document.getElementById("debit-account-" + i).value = "";
@@ -697,16 +915,24 @@
       answerPanel.style.display = "none";
     }
 
-    // 画面へ問題を反映
     function renderQuestion() {
+      if (!questions || questions.length === 0) {
+        questionLabel.textContent = "問題 0 / 0";
+        categoryLabel.textContent = "-";
+        idLabel.textContent = "ID: -";
+        questionTextJa.textContent = "問題がありません。";
+        questionTextEn.textContent = "No questions.";
+        return;
+      }
       const q = questions[currentIndex];
       questionLabel.textContent = `問題 ${currentIndex + 1} / ${questions.length}`;
-      categoryLabel.textContent = currentLang === "ja" ? q.categoryJa : q.categoryEn;
+      categoryLabel.textContent = currentLang === "ja" ? (q.categoryJa || "-") : (q.categoryEn || "-");
       idLabel.textContent = `ID: ${q.id}`;
-      randomLabel.textContent = randomMode ? "（ランダム出題中）" : "";
+      const sourceLabel = (allQuestions === hardcodedQuestions) ? "［ローカル問題］" : "［DBから読込］";
+      randomLabel.textContent = sourceLabel + (randomMode ? "（ランダム出題中）" : "");
 
-      questionTextJa.textContent = q.questionJa;
-      questionTextEn.textContent = q.questionEn;
+      questionTextJa.textContent = q.questionJa || "";
+      questionTextEn.textContent = q.questionEn || "";
 
       if (currentLang === "ja") {
         questionTextJa.style.display = "block";
@@ -716,26 +942,20 @@
         questionTextEn.style.display = "block";
       }
 
-      // ボタン状態
       langJaBtn.classList.toggle("active", currentLang === "ja");
       langEnBtn.classList.toggle("active", currentLang === "en");
       randomModeCheckbox.checked = randomMode;
 
-      // 入力クリア
       clearEntryInputs();
     }
 
-    // スコア表示更新
     function updateScore() {
       scorePill.textContent = `正解 ${totalCorrect} / ${totalAnswered}`;
     }
 
-    // 次の問題へ
     function goNextQuestion() {
-      historyStack.push(currentIndex); // 戻る用に積む
-
+      historyStack.push(currentIndex);
       if (randomMode) {
-        // 現在と違うランダム問題
         let next;
         if (questions.length === 1) {
           next = 0;
@@ -751,21 +971,16 @@
       renderQuestion();
     }
 
-    // 前の問題へ
     function goPrevQuestion() {
-      if (historyStack.length === 0) {
-        return;
-      }
+      if (historyStack.length === 0) return;
       const prevIndex = historyStack.pop();
       currentIndex = prevIndex;
       renderQuestion();
     }
 
-    // 入力から仕訳を取得
     function getUserEntries() {
       const debit = [];
       const credit = [];
-
       for (let i = 1; i <= 3; i++) {
         const dAcc = document.getElementById("debit-account-" + i).value.trim();
         const dAmtStr = document.getElementById("debit-amount-" + i).value.trim();
@@ -785,40 +1000,55 @@
           }
         }
       }
-
       return { debit, credit };
     }
 
-    // 両側の合計が一致しているか（借方合計 = 貸方合計）
     function isBalanced(entries) {
       const sum = (list) => list.reduce((acc, e) => acc + e.amount, 0);
       return sum(entries.debit) === sum(entries.credit);
     }
 
-    // 片側（debit or credit）の比較：勘定科目＋金額の組み合わせが一致するか（順番は問わない）
     function compareSide(userList, correctList) {
+      if (!Array.isArray(correctList)) return false;
       if (userList.length !== correctList.length) return false;
 
-      const remaining = correctList.map((e) => ({ ...e })); // コピー
-
+      const remaining = correctList.map((e) => ({ ...e }));
       for (const u of userList) {
         const index = remaining.findIndex(
           (c) => c.account === u.account && Number(c.amount) === Number(u.amount)
         );
-        if (index === -1) {
-          return false;
-        }
+        if (index === -1) return false;
         remaining.splice(index, 1);
       }
       return remaining.length === 0;
     }
 
-    // 答え合わせ
-    function checkAnswer() {
+    async function saveQuizLog(q, userEntries, isCorrect) {
+      const { data: authData } = await supabaseClient.auth.getUser();
+      const user = authData.user;
+      if (!user) {
+        return; // 未ログイン → 保存しない
+      }
+      const payload = {
+        user_id: user.id,
+        content_type: 'quiz',
+        content_id: q.id,
+        action: 'answer',
+        is_correct: isCorrect,
+        answer_json: userEntries,
+        created_at: new Date().toISOString()
+      };
+      const { error } = await supabaseClient.from('study_logs').insert(payload);
+      if (error) {
+        console.error('study_logs insert error', error);
+      }
+    }
+
+    async function checkAnswer() {
+      if (!questions || questions.length === 0) return;
       const q = questions[currentIndex];
       const user = getUserEntries();
 
-      // 入力が 1 行もない場合
       if (user.debit.length === 0 && user.credit.length === 0) {
         resultMessage.textContent = "科目と金額を入力してください。";
         resultMessage.className = "result-message ng";
@@ -826,23 +1056,20 @@
         return;
       }
 
-      // 借方・貸方の合計チェック（任意）
       if (!isBalanced(user)) {
         resultMessage.textContent = "借方合計と貸方合計が一致していません。もう一度確認してください。";
         resultMessage.className = "result-message ng";
-        // ここではまだ模範解答は出さない
         answerPanel.style.display = "none";
         return;
       }
 
-      const okDebit = compareSide(user.debit, q.solution.debit);
-      const okCredit = compareSide(user.credit, q.solution.credit);
+      const solution = q.solution || { debit: [], credit: [] };
+      const okDebit = compareSide(user.debit, solution.debit || []);
+      const okCredit = compareSide(user.credit, solution.credit || []);
       const isCorrect = okDebit && okCredit;
 
       totalAnswered++;
-      if (isCorrect) {
-        totalCorrect++;
-      }
+      if (isCorrect) totalCorrect++;
       updateScore();
 
       if (isCorrect) {
@@ -853,10 +1080,12 @@
         resultMessage.className = "result-message ng";
       }
 
-      // 模範解答表示
-      answerJa.textContent = q.journalJa;
-      answerEn.textContent = q.journalEn;
+      answerJa.textContent = q.journalJa || "";
+      answerEn.textContent = q.journalEn || "";
       answerPanel.style.display = "block";
+
+      // 履歴保存
+      await saveQuizLog(q, user, isCorrect);
     }
 
     // イベント登録
@@ -875,12 +1104,8 @@
     nextBtn.addEventListener("click", goNextQuestion);
     prevBtn.addEventListener("click", goPrevQuestion);
     checkBtn.addEventListener("click", checkAnswer);
-
-    // 初期化
-    // initAccountSelects();
-    // renderQuestion();
-    // updateScore();
   </script>
 </body>
 </html>
+
 
