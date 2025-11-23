@@ -43,7 +43,7 @@
       flex-wrap: wrap;
       align-items: center;
       gap: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
 
     header img.logo {
@@ -114,6 +114,38 @@
     .auth-status {
       font-size: 0.75rem;
       color: var(--text-muted);
+    }
+
+    /* 追加: 上部ナビボタン */
+    .top-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .top-nav a {
+      text-decoration: none;
+    }
+
+    .top-nav-btn {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      background: #ffffff;
+      color: var(--primary);
+      border: 1px solid rgba(0, 91, 172, 0.25);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+    }
+
+    .top-nav-btn span.icon {
+      font-size: 0.9rem;
     }
 
     .layout {
@@ -1201,6 +1233,22 @@
       </div>
     </header>
 
+    <!-- 追加: 動画・スライド / 履歴ページへのボタン -->
+    <div class="top-nav">
+      <a href="contens.html">
+        <button class="top-nav-btn">
+          <span class="icon">🎥</span>
+          <span>動画・スライドを見る</span>
+        </button>
+      </a>
+      <a href="history.html">
+        <button class="top-nav-btn">
+          <span class="icon">📊</span>
+          <span>学習履歴ページへ</span>
+        </button>
+      </a>
+    </div>
+
     <div class="layout">
       <!-- 左：問題＆入力 -->
       <section class="card">
@@ -1328,6 +1376,4 @@
   </div>
 </body>
 </html>
-
-
 
