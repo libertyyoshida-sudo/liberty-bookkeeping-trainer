@@ -950,7 +950,7 @@ function applyLanguage() {
     if (!value) return;
 
     // 改行を <br> にしたい要素もあるので少し分岐
-    if (el.id === 'hint-text') {
+    if (el.id === 'hint-text' || el.id === 'progress-help') {
       el.innerHTML = value.replace(/\n/g, '<br>');
     } else {
       el.textContent = value;
