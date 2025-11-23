@@ -1,230 +1,540 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Liberty仕訳トレーニング</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <title>Liberty Bookkeeping Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      font-family: 'Noto Sans JP', 'Inter', sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 0;
-      color: #333;
+    :root {
+      --liberty-blue: #005bac;
+      --liberty-blue-light: #e9f3ff;
+      --liberty-gray: #f5f5f5;
+      --liberty-text: #333333;
+      --accent: #ff9800;
+      --border-radius-lg: 18px;
+      --border-radius-md: 12px;
     }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP",
+        "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      background: linear-gradient(135deg, #f7f9fc, #e6edf7);
+      color: var(--liberty-text);
+    }
+
+    a {
+      color: var(--liberty-blue);
+      text-decoration: none;
+    }
+
+    /* HEADER */
+
     header {
       background: #ffffff;
-      border-bottom: 2px solid #005bac22;
+      border-bottom: 1px solid #dde5f0;
       padding: 10px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-inner {
+      max-width: 1080px;
+      margin: 0 auto;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
     }
-    header img {
+
+    .header-logo {
       height: 40px;
     }
-    header h1 {
-      font-size: 20px;
-      color: #005BAC;
-      font-weight: 700;
-      margin: 0;
+
+    .header-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--liberty-blue);
     }
-    .container {
-      max-width: 900px;
-      margin: 40px auto;
-      background: #ffffff;
-      padding: 20px 30px;
-      border-radius: 6px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.04);
+
+    .header-sub {
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: #666666;
     }
-    .toolbar {
+
+    /* MAIN LAYOUT */
+
+    main {
+      max-width: 1080px;
+      margin: 24px auto 40px;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 800px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* INTRO PANEL */
+
+    .intro-card {
+      background: #ffffffcc;
+      border-radius: var(--border-radius-lg);
+      padding: 20px 22px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+      border: 1px solid #dde5f0;
+    }
+
+    .intro-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--liberty-blue);
+      margin-bottom: 4px;
+    }
+
+    .intro-tagline {
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 12px;
+    }
+
+    .intro-list {
+      font-size: 0.9rem;
+      padding-left: 1.1rem;
+      margin: 8px 0 0;
+    }
+
+    .intro-badge-row {
       display: flex;
-      gap: 10px;
       flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
-    button {
-      background: #005BAC;
-      color: #ffffff;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button:hover {
-      background: #004b96;
-    }
-    .entry {
+      gap: 8px;
       margin-top: 10px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
+
+    .badge {
+      font-size: 0.78rem;
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: var(--liberty-blue-light);
+      color: var(--liberty-blue);
+      border: 1px solid #c2d6f2;
     }
-    th, td {
-      border: 1px solid #dddddd;
-      padding: 8px;
+
+    /* QUIZ PANEL */
+
+    .quiz-card {
+      background: #ffffff;
+      border-radius: var(--border-radius-lg);
+      padding: 20px 18px 18px;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.06);
+      border: 1px solid #d7e1f2;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
-    th {
-      background: #005bac22;
+
+    .quiz-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .quiz-title {
+      font-size: 1rem;
       font-weight: 600;
+      color: var(--liberty-blue);
     }
-    .meta {
-      font-size: 13px;
-      color: #666666;
-      margin-bottom: 6px;
+
+    .quiz-meta {
+      font-size: 0.78rem;
+      color: #777;
     }
-    h2 {
+
+    .lang-toggle {
+      display: inline-flex;
+      border-radius: 999px;
+      border: 1px solid #ccd6ea;
+      overflow: hidden;
+      font-size: 0.78rem;
+    }
+
+    .lang-toggle button {
+      border: none;
+      padding: 5px 10px;
+      background: transparent;
+      cursor: pointer;
+      min-width: 70px;
+    }
+
+    .lang-toggle button.active {
+      background: var(--liberty-blue);
+      color: #ffffff;
+    }
+
+    .question-body {
+      background: var(--liberty-blue-light);
+      border-radius: var(--border-radius-md);
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .question-id {
+      font-size: 0.78rem;
+      color: #777;
+      margin-bottom: 4px;
+    }
+
+    .question-text {
+      margin: 0;
+    }
+
+    .question-text.en {
+      display: none;
+    }
+
+    .question-text.show {
+      display: block;
+    }
+
+    .answer-box {
+      background: #fafbff;
+      border-radius: var(--border-radius-md);
+      border: 1px dashed #ccd6ea;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+    }
+
+    .answer-box-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .answer-box-title {
+      font-weight: 600;
+      color: #555;
+      font-size: 0.85rem;
+    }
+
+    .pill {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid #dde5f0;
+      color: #777;
+    }
+
+    .journal-text {
+      white-space: pre-line;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+      color: #333;
+    }
+
+    .answer-box.collapsed .journal-text {
+      display: none;
+    }
+
+    .answer-box.collapsed .toggle-answer-label::after {
+      content: "（クリックで表示）";
+      font-weight: normal;
+      color: #777;
+      margin-left: 4px;
+    }
+
+    .toggle-answer-label::after {
+      content: "（クリックで非表示）";
+      font-weight: normal;
+      color: #777;
+      margin-left: 4px;
+    }
+
+    .answer-box-header button {
+      border: none;
+      background: none;
+      padding: 0;
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: var(--liberty-blue);
+      text-decoration: underline;
+    }
+
+    .quiz-footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
       margin-top: 4px;
-      color: #005BAC;
-      font-weight: 700;
+      align-items: center;
     }
-    .counter {
-      margin-left: auto;
-      color: #555555;
-      font-size: 13px;
-      align-self: center;
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--liberty-blue);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: var(--liberty-blue);
+      border: 1px solid #ccd6ea;
+    }
+
+    .btn-secondary:hover {
+      background: #f3f7ff;
+    }
+
+    .small-note {
+      font-size: 0.75rem;
+      color: #777;
     }
   </style>
 </head>
 <body>
+  <header>
+    <div class="header-inner">
+      <img
+        src="https://liberty-system.co.jp/common/img/logo.png"
+        alt="Liberty Co., Ltd."
+        class="header-logo"
+      />
+      <div>
+        <div class="header-title">Liberty Bookkeeping Trainer</div>
+        <div class="header-sub">簿記3級レベル ｜ 社内・クライアント学習用</div>
+      </div>
+      <div class="header-sub">ver 0.1（GitHub Pages）</div>
+    </div>
+  </header>
 
-<header>
-  <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty ロゴ" />
-  <h1>Liberty 仕訳トレーニング</h1>
-</header>
+  <main>
+    <!-- LEFT: INTRO / 説明 -->
+    <section class="intro-card">
+      <h1 class="intro-title">簿記入門 2.0 トレーニング</h1>
+      <p class="intro-tagline">
+        リバティーが社内・クライアント向けに提供する「仕訳トレーニング」ページです。
+      </p>
+      <ul class="intro-list">
+        <li>日本語／英語の表示をボタンで切り替え</li>
+        <li>「次の問題へ」で順番に演習</li>
+        <li>「ランダム出題」でシャッフル練習</li>
+        <li>模範仕訳はワンクリックで表示／非表示</li>
+      </ul>
+      <div class="intro-badge-row">
+        <span class="badge">日商簿記3級レベル</span>
+        <span class="badge">会計を「共通言語」に</span>
+        <span class="badge">Liberty Official Style</span>
+      </div>
+    </section>
 
-<div class="container">
-  <div class="toolbar">
-    <button onclick="setLang('ja')">日本語</button>
-    <button onclick="setLang('en')">English</button>
-    <button onclick="nextEntry()">次の問題へ</button>
-    <button onclick="randomEntry()">ランダム出題</button>
-    <div class="counter" id="counter"></div>
-  </div>
+    <!-- RIGHT: QUIZ -->
+    <section class="quiz-card">
+      <div class="quiz-header-row">
+        <div>
+          <div class="quiz-title" id="quiz-title">仕訳トレーニング</div>
+          <div class="quiz-meta" id="quiz-meta">第 1 問 / 全 3 問</div>
+        </div>
+        <div class="lang-toggle" aria-label="言語切り替え">
+          <button id="btn-lang-ja" class="active" type="button">日本語</button>
+          <button id="btn-lang-en" type="button">English</button>
+        </div>
+      </div>
 
-  <div id="entry" class="entry"></div>
-</div>
+      <div class="question-body">
+        <div class="question-id" id="question-id">2-1 売上（現金）</div>
+        <p class="question-text ja show" id="question-text-ja">
+          商品を 1,100円で販売し、その代金のうち 100円をポイント利用、残り 1,000円を現金で受け取った。
+          100円のポイントは他社が発行するポイントで後日入金される。
+        </p>
+        <p class="question-text en" id="question-text-en">
+          Goods were sold for ¥1,100. Of this amount, ¥100 was paid using points issued by another
+          company (to be received later in cash), and the remaining ¥1,000 was received in cash.
+        </p>
+      </div>
 
-<script>
-  // ひとまずハードコードの問題（後でSupabaseに置き換え）
-  const entries = [
-    {
-      id: "1-8",
-      section: { ja: "1 仕訳の基本", en: "1. Basics of Journal Entries" },
-      title:   { ja: "現金売上", en: "Cash Sales" },
-      problem: {
-        ja: "商品を1,000円で販売し、その代金を現金で受け取った。",
-        en: "Goods were sold for 1,000 yen, and the amount was received in cash."
+      <div class="answer-box collapsed" id="answer-box">
+        <div class="answer-box-header">
+          <div class="answer-box-title">
+            <span class="toggle-answer-label">模範仕訳</span>
+          </div>
+          <span class="pill">解答を確認して自己採点してください</span>
+        </div>
+        <div class="journal-text" id="journal-text">
+借方　売掛金　100
+借方　現金　1,000
+貸方　売上　1,100
+
+Debit  Accounts Receivable 100
+Debit  Cash                1,000
+Credit Sales              1,100
+        </div>
+      </div>
+
+      <div class="quiz-footer">
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-next" type="button">
+            ▶ 次の問題へ
+          </button>
+          <button class="btn btn-secondary" id="btn-random" type="button">
+            🔀 ランダム出題
+          </button>
+        </div>
+        <div class="small-note">
+          ※ ブラウザを更新しても動作します。問題数の追加はコード内 <code>questions</code> を編集してください。
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ▼ ここに問題マスタを定義します（あとからいくらでも増やせます）
+    const questions = [
+      {
+        id: "2-1 売上（現金）",
+        section: "日々の仕訳例",
+        ja: "商品を 1,100円で販売し、その代金のうち 100円をポイント利用、残り 1,000円を現金で受け取った。100円のポイントは他社が発行するポイントで後日入金される。",
+        en: "Goods were sold for ¥1,100. Of this amount, ¥100 was paid using points issued by another company (to be received later in cash), and the remaining ¥1,000 was received in cash.",
+        journalJa:
+"借方　売掛金　100\n借方　現金　1,000\n貸方　売上　1,100",
+        journalEn:
+"Debit  Accounts Receivable   100\nDebit  Cash                1,000\nCredit Sales               1,100"
       },
-      debit: [
-        { account: { ja: "現金", en: "Cash" }, amount: 1000 }
-      ],
-      credit: [
-        { account: { ja: "売上", en: "Sales" }, amount: 1000 }
-      ]
-    },
-    {
-      id: "2-1",
-      section: { ja: "2 日々の仕訳例", en: "2. Daily Journal Entry Examples" },
-      title:   { ja: "売上（現金＋ポイント）", en: "Sales (Cash + Points)" },
-      problem: {
-        ja: "商品を1,100円で販売し、その代金のうち100円をポイント利用、残り1,000円を現金で受け取った。100円のポイントは他社が発行するポイントで後日入金される。",
-        en: "Goods were sold for 1,100 yen. Of the amount, 100 yen was paid by points issued by another company (to be collected later) and 1,000 yen was received in cash."
+      {
+        id: "2-2 売上（売掛）",
+        section: "日々の仕訳例",
+        ja: "商品を 2,000円で販売し、代金は後日銀行振込で頂くこととなった。",
+        en: "Goods were sold for ¥2,000. The payment will be received later by bank transfer.",
+        journalJa:
+"借方　売掛金　2,000\n貸方　売上　2,000",
+        journalEn:
+"Debit  Accounts Receivable 2,000\nCredit Sales              2,000"
       },
-      debit: [
-        { account: { ja: "売掛金", en: "Accounts Receivable" }, amount: 100 },
-        { account: { ja: "現金", en: "Cash" }, amount: 1000 }
-      ],
-      credit: [
-        { account: { ja: "売上", en: "Sales" }, amount: 1100 }
-      ]
-    },
-    {
-      id: "2-3",
-      section: { ja: "2 日々の仕訳例", en: "2. Daily Journal Entry Examples" },
-      title:   { ja: "商品仕入（現金）", en: "Merchandise Purchase (Cash)" },
-      problem: {
-        ja: "販売するための商品を購入し、その代金10,000円を現金で支払った。",
-        en: "Merchandise for resale was purchased and 10,000 yen was paid in cash."
-      },
-      debit: [
-        { account: { ja: "仕入", en: "Purchases" }, amount: 10000 }
-      ],
-      credit: [
-        { account: { ja: "現金", en: "Cash" }, amount: 10000 }
-      ]
+      {
+        id: "2-3 商品の仕入（現金）",
+        section: "日々の仕訳例",
+        ja: "販売するための商品を購入し、その代金 10,000円を現金で支払った。",
+        en: "Merchandise for resale was purchased and ¥10,000 was paid in cash.",
+        journalJa:
+"借方　仕入　10,000\n貸方　現金　10,000",
+        journalEn:
+"Debit  Purchases 10,000\nCredit Cash      10,000"
+      }
+      // ★ ここに 2-4, 2-5... など、どんどん追加していけます
+    ];
+
+    // ▼ 状態管理
+    let currentIndex = 0;
+    let currentLang = "ja"; // "ja" or "en"
+
+    // ▼ DOM 要素取得
+    const quizMetaEl = document.getElementById("quiz-meta");
+    const questionIdEl = document.getElementById("question-id");
+    const questionJaEl = document.getElementById("question-text-ja");
+    const questionEnEl = document.getElementById("question-text-en");
+    const journalTextEl = document.getElementById("journal-text");
+    const answerBoxEl = document.getElementById("answer-box");
+
+    const btnNext = document.getElementById("btn-next");
+    const btnRandom = document.getElementById("btn-random");
+    const btnLangJa = document.getElementById("btn-lang-ja");
+    const btnLangEn = document.getElementById("btn-lang-en");
+
+    // ▼ 問題表示関数
+    function renderQuestion(index) {
+      const q = questions[index];
+      if (!q) return;
+
+      quizMetaEl.textContent = `第 ${index + 1} 問 / 全 ${questions.length} 問`;
+      questionIdEl.textContent = q.id;
+      questionJaEl.textContent = q.ja;
+      questionEnEl.textContent = q.en;
+
+      // 日本語・英語の模範仕訳を両方まとめて表示
+      journalTextEl.textContent = q.journalJa + "\n\n" + q.journalEn;
+
+      // 答えは毎回いったん畳んでおく
+      answerBoxEl.classList.add("collapsed");
     }
-  ];
 
-  let currentLang = "ja";
-  let currentIndex = 0;
-
-  function setLang(lang) {
-    currentLang = lang;
-    renderEntry();
-  }
-
-  function nextEntry() {
-    currentIndex = (currentIndex + 1) % entries.length;
-    renderEntry();
-  }
-
-  function randomEntry() {
-    const next = Math.floor(Math.random() * entries.length);
-    currentIndex = next;
-    renderEntry();
-  }
-
-  function renderEntry() {
-    if (!entries.length) {
-      document.getElementById("entry").innerHTML = "<p>問題データがありません。</p>";
-      document.getElementById("counter").textContent = "";
-      return;
+    // ▼ 言語切り替え
+    function updateLanguage(lang) {
+      currentLang = lang;
+      if (lang === "ja") {
+        questionJaEl.classList.add("show");
+        questionEnEl.classList.remove("show");
+        btnLangJa.classList.add("active");
+        btnLangEn.classList.remove("active");
+      } else {
+        questionJaEl.classList.remove("show");
+        questionEnEl.classList.add("show");
+        btnLangJa.classList.remove("active");
+        btnLangEn.classList.add("active");
+      }
     }
 
-    const e = entries[currentIndex];
-    const entry = document.getElementById("entry");
-    const counter = document.getElementById("counter");
+    // ▼ 「次の問題へ」
+    btnNext.addEventListener("click", () => {
+      currentIndex = (currentIndex + 1) % questions.length;
+      renderQuestion(currentIndex);
+    });
 
-    const debitRows = e.debit.map(d => `
-      <tr>
-        <td>借方 / Debit</td>
-        <td>${d.account[currentLang]}</td>
-        <td style="text-align:right;">${d.amount.toLocaleString()}</td>
-      </tr>
-    `).join("");
+    // ▼ 「ランダム出題」
+    btnRandom.addEventListener("click", () => {
+      if (questions.length <= 1) return;
+      let newIndex = currentIndex;
+      while (newIndex === currentIndex) {
+        newIndex = Math.floor(Math.random() * questions.length);
+      }
+      currentIndex = newIndex;
+      renderQuestion(currentIndex);
+    });
 
-    const creditRows = e.credit.map(c => `
-      <tr>
-        <td>貸方 / Credit</td>
-        <td>${c.account[currentLang]}</td>
-        <td style="text-align:right;">${c.amount.toLocaleString()}</td>
-      </tr>
-    `).join("");
+    // ▼ 模範仕訳の開閉（答え部分クリックでトグル）
+    answerBoxEl.addEventListener("click", () => {
+      answerBoxEl.classList.toggle("collapsed");
+    });
 
-    entry.innerHTML = `
-      <div class="meta">ID: ${e.id} ｜ ${e.section[currentLang]}</div>
-      <h2>${e.title[currentLang]}</h2>
-      <p>${e.problem[currentLang]}</p>
-      <table>
-        <tr>
-          <th>区分</th>
-          <th>勘定科目 / Account</th>
-          <th>金額</th>
-        </tr>
-        ${debitRows}
-        ${creditRows}
-      </table>
-    `;
+    // ▼ 言語ボタン
+    btnLangJa.addEventListener("click", () => updateLanguage("ja"));
+    btnLangEn.addEventListener("click", () => updateLanguage("en"));
 
-    counter.textContent = \`問題 \${currentIndex + 1} / \${entries.length}\`;
-  }
-
-  renderEntry();
-</script>
-
+    // 初期表示
+    renderQuestion(currentIndex);
+    updateLanguage("ja");
+  </script>
 </body>
 </html>
