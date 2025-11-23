@@ -116,7 +116,7 @@
       color: var(--text-muted);
     }
 
-    /* 追加: 上部ナビボタン */
+    /* 上部ナビボタン */
     .top-nav {
       display: flex;
       flex-wrap: wrap;
@@ -577,74 +577,13 @@
           ]
         },
         journalJa: "借方：売掛金 100　現金 1,000　/　貸方：売上 1,100",
-        journalEn: "Debit: Accounts Receivable 100, Cash 1,000 / Credit: Sales 1,100"
-      },
-      {
-        id: "2-2",
-        categoryJa: "日々の仕訳",
-        categoryEn: "Daily entries",
-        titleJa: "2-2 売上（売掛）",
-        titleEn: "2-2 Sales on credit",
-        questionJa:
-          "商品を 2,000円で販売し、代金は後日銀行振込で頂くこととなった。",
-        questionEn:
-          "Goods were sold for 2,000 yen. The payment will be received later by bank transfer.",
-        solution: {
-          debit: [
-            { account: "売掛金", amount: 2000 }
-          ],
-          credit: [
-            { account: "売上", amount: 2000 }
-          ]
-        },
-        journalJa: "借方：売掛金 2,000　/　貸方：売上 2,000",
-        journalEn: "Debit: Accounts Receivable 2,000 / Credit: Sales 2,000"
-      },
-      {
-        id: "2-3",
-        categoryJa: "日々の仕訳",
-        categoryEn: "Daily entries",
-        titleJa: "2-3 商品の仕入（現金）",
-        titleEn: "2-3 Purchase of merchandise (cash)",
-        questionJa:
-          "販売するための商品を購入し、その代金 10,000円を現金で支払った。",
-        questionEn:
-          "Merchandise for resale was purchased and 10,000 yen was paid in cash.",
-        solution: {
-          debit: [
-            { account: "仕入", amount: 10000 }
-          ],
-          credit: [
-            { account: "現金", amount: 10000 }
-          ]
-        },
-        journalJa: "借方：仕入 10,000　/　貸方：現金 10,000",
-        journalEn: "Debit: Purchases 10,000 / Credit: Cash 10,000"
-      },
-      {
-        id: "2-5",
-        categoryJa: "日々の仕訳",
-        categoryEn: "Daily entries",
-        titleJa: "2-5 消耗品の購入（未払金）",
-        titleEn: "2-5 Purchase of supplies (accounts payable)",
-        questionJa:
-          "店内で使用するゴミ箱を購入し、その代金 10,000円は後日銀行振込とした。",
-        questionEn:
-          "A trash bin for in-store use was purchased and the 10,000 yen payment will be made later by bank transfer.",
-        solution: {
-          debit: [
-            { account: "消耗品費", amount: 10000 }
-          ],
-          credit: [
-            { account: "未払金", amount: 10000 }
-          ]
-        },
-        journalJa: "借方：消耗品費 10,000　/　貸方：未払金 10,000",
-        journalEn: "Debit: Supplies Expense 10,000 / Credit: Accounts Payable 10,000"
+        journalEn: "Debit: Accounts Receivable 100, Cash 1,000 / Credit: Sales 1,100",
+        account_options: "現金,売掛金,売上"
       }
+      // …必要なら他のハードコード問題にも account_options を追加
     ];
 
-    // プルダウンに表示する勘定科目マスター
+    // デフォルトの勘定科目マスター（account_options 未設定の問題用）
     const accountMaster = [
       "",
       "現金",
@@ -733,19 +672,64 @@
     }
 
     // ---------------------------
-    // 勘定科目プルダウン初期化
+    // 勘定科目プルダウン関連
     // ---------------------------
-    function initAccountSelects() {
+
+    // 問題レコードから「この問題で使える勘定科目リスト」を生成
+    function buildAccountListFromQuestion(q) {
+      let list = [];
+
+      if (q && q.account_options) {
+        if (Array.isArray(q.account_options)) {
+          // account_options が JSON 配列の場合
+          list = q.account_options;
+        } else if (typeof q.account_options === 'string') {
+          // カンマ区切り文字列の場合
+          list = q.account_options
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+        }
+      }
+
+      // account_options が空ならデフォルトマスターを使用
+      if (!list || list.length === 0) {
+        list = accountMaster.slice(1); // 空欄以外をベースに
+      }
+
+      // 重複除去
+      const unique = Array.from(new Set(list));
+
+      // 先頭に「空欄」を追加
+      unique.unshift("");
+
+      return unique;
+    }
+
+    // 渡された勘定科目リストで、全てのセレクトボックスを再構築
+    function setAccountSelectOptions(accountList) {
       const selects = document.querySelectorAll(".account-select");
       selects.forEach((sel) => {
+        const currentValue = sel.value; // 一応退避
+
         sel.innerHTML = "";
-        accountMaster.forEach((name) => {
+        accountList.forEach((name) => {
           const opt = document.createElement("option");
           opt.value = name;
           opt.textContent = name === "" ? "（空欄）" : name;
           sel.appendChild(opt);
         });
+
+        // もし元の値がまだリストに存在するなら、復元してもよい
+        if (accountList.includes(currentValue)) {
+          sel.value = currentValue;
+        }
       });
+    }
+
+    // 初期化用（最初に何も問題がない状態で呼ぶ）
+    function initAccountSelects() {
+      setAccountSelectOptions(accountMaster);
     }
 
     // 入力をクリア
@@ -858,6 +842,7 @@
         categoryLabel.textContent = '';
         idLabel.textContent = '';
         randomLabel.textContent = '';
+        initAccountSelects();
         clearEntryInputs();
         return;
       }
@@ -890,6 +875,10 @@
         questionTextEn.style.display = "block";
       }
 
+      // この問題専用の勘定科目リストをセット
+      const accountList = buildAccountListFromQuestion(q);
+      setAccountSelectOptions(accountList);
+
       // ボタン状態
       langJaBtn.classList.toggle("active", currentLang === "ja");
       langEnBtn.classList.toggle("active", currentLang === "en");
@@ -905,7 +894,6 @@
       historyStack.push(currentIndex); // 戻る用に積む
 
       if (randomMode) {
-        // 現在と違うランダム問題
         let next;
         if (questions.length === 1) {
           next = 0;
@@ -959,13 +947,13 @@
       return { debit, credit };
     }
 
-    // 両側の合計が一致しているか（借方合計 = 貸方合計）
+    // 両側の合計が一致しているか
     function isBalanced(entries) {
       const sum = (list) => list.reduce((acc, e) => acc + e.amount, 0);
       return sum(entries.debit) === sum(entries.credit);
     }
 
-    // 片側（debit or credit）の比較：勘定科目＋金額の組み合わせが一致するか（順番は問わない）
+    // 片側比較
     function compareSide(userList, correctList) {
       if (!Array.isArray(correctList)) return false;
       if (userList.length !== correctList.length) return false;
@@ -986,7 +974,7 @@
 
     // 学習ログ保存（ログイン時のみ）
     async function logStudyResult(q, isCorrect) {
-      if (!window.sessionUser) return; // ログインしていない場合は何もしない
+      if (!window.sessionUser) return;
 
       try {
         const payload = {
@@ -1004,7 +992,6 @@
         if (error) {
           console.error('study_logs insert error', error);
         } else {
-          // 再読み込み
           loadMyHistory();
         }
       } catch (e) {
@@ -1020,7 +1007,6 @@
       const q = questions[currentIndex];
       const user = getUserEntries();
 
-      // 入力が 1 行もない場合
       if (user.debit.length === 0 && user.credit.length === 0) {
         resultMessage.textContent = "科目と金額を入力してください。";
         resultMessage.className = "result-message ng";
@@ -1028,7 +1014,6 @@
         return;
       }
 
-      // 借方・貸方の合計チェック（任意）
       if (!isBalanced(user)) {
         resultMessage.textContent = "借方合計と貸方合計が一致していません。もう一度確認してください。";
         resultMessage.className = "result-message ng";
@@ -1054,12 +1039,10 @@
         resultMessage.className = "result-message ng";
       }
 
-      // 模範解答表示
       answerJa.textContent = q.journalJa || '';
       answerEn.textContent = q.journalEn || '';
       answerPanel.style.display = "block";
 
-      // 学習ログ
       await logStudyResult(q, isCorrect);
     }
 
@@ -1155,7 +1138,7 @@
       if (btnLogout) btnLogout.addEventListener('click', signOut);
       if (btnStart) btnStart.addEventListener('click', startNewSessionFromUI);
 
-      // 仕訳勘定科目プルダウン
+      // とりあえず初期のセレクトを作っておく
       initAccountSelects();
 
       // イベント登録（言語切り替えなど）
@@ -1181,7 +1164,7 @@
         window.sessionUser = authData.user || null;
         updateAuthUI();
 
-        // quiz_questions 取得
+        // quiz_questions 取得（account_options カラムも一緒に返ってくる）
         const { data, error } = await supabaseClient
           .from('quiz_questions')
           .select('*');
@@ -1233,7 +1216,7 @@
       </div>
     </header>
 
-    <!-- 追加: 動画・スライド / 履歴ページへのボタン -->
+    <!-- 動画・スライド / 履歴ページへのボタン -->
     <div class="top-nav">
       <a href="contents.html">
         <button class="top-nav-btn">
@@ -1376,4 +1359,5 @@
   </div>
 </body>
 </html>
+
 
