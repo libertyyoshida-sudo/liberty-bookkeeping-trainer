@@ -1153,21 +1153,25 @@ function applyLanguage() {
       }
       const q = questions[currentIndex];
       const user = getUserEntries();
+      const t = i18n[currentLang];   // ★ 翻訳テーブルを参照
 
+      // 入力なし
       if (user.debit.length === 0 && user.credit.length === 0) {
-        resultMessage.textContent = "科目と金額を入力してください。";
+        resultMessage.textContent = t['msg-input-required'];
         resultMessage.className = "result-message ng";
         answerPanel.style.display = "none";
         return;
       }
 
+      // 借方・貸方が一致していない
       if (!isBalanced(user)) {
-        resultMessage.textContent = "借方合計と貸方合計が一致していません。もう一度確認してください。";
+        resultMessage.textContent = t['msg-not-balanced'];
         resultMessage.className = "result-message ng";
         answerPanel.style.display = "none";
         return;
       }
 
+      // 採点
       // Supabase / ハードコード両対応の模範解答を取得
       const norm = normalizeSolution(q.solution);
 
@@ -1181,11 +1185,12 @@ function applyLanguage() {
       }
       updateScore();
 
+      // 正解 / 不正解のメッセージ
       if (isCorrect) {
-        resultMessage.textContent = "◎ 正解です！ とても良いです。";
+        resultMessage.textContent = t['msg-correct'];
         resultMessage.className = "result-message ok";
       } else {
-        resultMessage.textContent = "× 惜しいです。模範仕訳を確認してみましょう。";
+        resultMessage.textContent = t['msg-wrong'];
         resultMessage.className = "result-message ng";
       }
 
