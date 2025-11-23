@@ -573,6 +573,13 @@ const i18n = {
     'history-not-logged-in': 'ログインすると直近の解答履歴が表示されます。',
     'history-none': 'まだ履歴がありません。',
     'footer': '© Liberty Co., Ltd. Bookkeeping Trainer 2.0',
+    'progress-title': '進捗 / Progress',
+    'progress-help':
+      '・「出題開始」で選択した条件の問題セットを開始します。\n' +
+      '・「答え合わせ」で自動判定します。\n' +
+      '・ランダム出題をONにすると、順番をシャッフルします。\n' +
+      '・日本語 / 英語はいつでも切り替え可能です。',
+    'history-title': '直近の学習履歴',
 
     // メッセージ系
     'msg-input-required': '科目と金額を入力してください。',
@@ -608,6 +615,13 @@ const i18n = {
     'history-not-logged-in': 'Log in to see your recent answer history.',
     'history-none': 'No history yet.',
     'footer': '© Liberty Co., Ltd. Bookkeeping Trainer 2.0',
+    'progress-title': 'Progress',
+    'progress-help':
+      '・Click "Start" to begin questions with the selected conditions.\n' +
+      '・Click "Check answer" to auto-grade your entry.\n' +
+      '・Turn on "Random order" to shuffle questions.\n' +
+      '・You can switch between Japanese / English at any time.',
+    'history-title': 'Recent study history',
 
     'msg-input-required': 'Please enter both account names and amounts.',
     'msg-not-balanced': 'Debit total and credit total do not match. Please check again.',
@@ -1530,14 +1544,17 @@ if (error) {
         <div class="score-box">
           <div class="score-pill" id="score-pill">正解 0 / 0</div>
         </div>
-        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0;">
+        
+        <p id="progress-help"
+          data-i18n="progress-help"
+          style="font-size:0.8rem; color:var(--text-muted); margin-top:0;">
           ・「出題開始」で選択した条件の問題セットを開始します。<br>
           ・「答え合わせ」で自動判定します。<br>
           ・ランダム出題をONにすると、順番をシャッフルします。<br>
           ・日本語 / 英語はいつでも切り替え可能です。
         </p>
 
-        <div class="history-box-title">直近の学習履歴</div>
+        <div class="history-box-title" data-i18n="history-title">直近の学習履歴</div>
         <div id="history-list" class="history-list">
           <!-- 履歴が入る -->
         </div>
