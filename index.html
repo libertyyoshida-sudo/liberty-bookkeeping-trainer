@@ -390,22 +390,27 @@
 
     const { createClient } = supabase;
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // 使用時:
-　　const { data, error } = await supabaseClient
-  .from('quiz_questions')
-  .select('*');
-    
+   
     window.addEventListener('DOMContentLoaded', async () => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('quiz_questions')
         .select('*');
+      
       if (error) {
         console.error('Supabase error:', error);
+        questions = hardcodedQuestions;  // エラー時はハードコード使用
+        } else if (data && data.length > 0) {
+          questions = data;  // 取得したデータを使用
+          console.log('取得したデータ:', data); 
       } else {
         console.log('取得したデータ:', data);
-        // 例： questions = data; など画面表示用に使います
+        questions = hardcodedQuestions;  // データが空の場合もハードコード使用
       }
+
+      // ここで初期化を実行
+      initAccountSelects();
+      renderQuestion();
+      updateScore();      
     });
   </script>
 </head>
