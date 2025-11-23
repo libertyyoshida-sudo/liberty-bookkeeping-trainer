@@ -544,6 +544,79 @@
     const { createClient } = supabase;
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// 画面文言の多言語対応
+const i18n = {
+  ja: {
+    'app-title': 'Liberty Bookkeeping Trainer',
+    'app-subtitle': '留学生・実務家向け 簿記仕訳トレーニング 2.0',
+    'practice-pill': 'Practice',
+    'question-label-prefix': '問題',       // 「問題 1 / 10」の「問題」部分
+    'filter-category': 'カテゴリ:',
+    'filter-count': '問題数:',
+    'filter-start': '出題開始',
+    'toggle-main': '借方・貸方の科目と金額を入力してください。',
+    'toggle-random': 'ランダム出題',
+    'hint-text':
+      '行ごとに「借方勘定科目・金額」「貸方勘定科目・金額」を入力します。\n不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。',
+    'entry-col-row': '行',
+    'entry-col-debit': '借方勘定科目',
+    'entry-col-debit-amount': '金額',
+    'entry-col-credit': '貸方勘定科目',
+    'entry-col-credit-amount': '金額',
+    'btn-prev': '⏮ 前の問題へ',
+    'btn-check': '✔ 答え合わせ',
+    'btn-next': '⏭ 次の問題へ',
+    'answer-title': '模範仕訳 / Model Answer',
+    'answer-note': '※ 科目名と金額が合致していれば正解です（行の順番は問いません）。',
+    'progress-title': '進捗 / Progress',
+    'history-title': '直近の学習履歴',
+    'history-not-logged-in': 'ログインすると直近の解答履歴が表示されます。',
+    'history-none': 'まだ履歴がありません。',
+    'footer': '© Liberty Co., Ltd. Bookkeeping Trainer 2.0',
+
+    // メッセージ系
+    'msg-input-required': '科目と金額を入力してください。',
+    'msg-not-balanced': '借方合計と貸方合計が一致していません。もう一度確認してください。',
+    'msg-correct': '◎ 正解です！ とても良いです。',
+    'msg-wrong': '× 惜しいです。模範仕訳を確認してみましょう。',
+    'score': (correct, total) => `正解 ${correct} / ${total}`
+  },
+  en: {
+    'app-title': 'Liberty Bookkeeping Trainer',
+    'app-subtitle': 'Bookkeeping Journal Entry Trainer for International Students & Practitioners',
+    'practice-pill': 'Practice',
+    'question-label-prefix': 'Question',
+    'filter-category': 'Category:',
+    'filter-count': 'Number of questions:',
+    'filter-start': 'Start',
+    'toggle-main': 'Enter the accounts and amounts for debit and credit.',
+    'toggle-random': 'Random order',
+    'hint-text':
+      'For each row, enter “debit account / amount” and “credit account / amount”.\nIf a row is not needed, leave both the account and amount blank.',
+    'entry-col-row': 'Row',
+    'entry-col-debit': 'Debit account',
+    'entry-col-debit-amount': 'Amount',
+    'entry-col-credit': 'Credit account',
+    'entry-col-credit-amount': 'Amount',
+    'btn-prev': '⏮ Previous',
+    'btn-check': '✔ Check answer',
+    'btn-next': '⏭ Next',
+    'answer-title': 'Model Answer',
+    'answer-note': 'If both account names and amounts match, it is correct (row order does not matter).',
+    'progress-title': 'Progress',
+    'history-title': 'Recent study history',
+    'history-not-logged-in': 'Log in to see your recent answer history.',
+    'history-none': 'No history yet.',
+    'footer': '© Liberty Co., Ltd. Bookkeeping Trainer 2.0',
+
+    'msg-input-required': 'Please enter both account names and amounts.',
+    'msg-not-balanced': 'Debit total and credit total do not match. Please check again.',
+    'msg-correct': '◎ Correct! Well done.',
+    'msg-wrong': '× Almost. Check the model journal entry.',
+    'score': (correct, total) => `Correct ${correct} / ${total}`
+  }
+};
+    
     // ---------------------------
     // グローバル状態
     // ---------------------------
