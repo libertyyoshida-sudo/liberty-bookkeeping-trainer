@@ -1,1 +1,123 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>コンテンツ一覧 - Liberty Bookkeeping Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+    h1 { font-size: 1.3rem; margin-bottom: 4px; }
+    a { color: #005bac; text-decoration: none; }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-top: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.03);
+    }
+    .content-list li {
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    .auth-info {
+      font-size: 0.8rem;
+      color: #666;
+    }
+  </style>
+  <script>
+    const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function saveViewLog(contentType, contentId) {
+      const { data: authData } = await supabaseClient.auth.getUser();
+      const user = authData.user;
+      if (!user) {
+        console.log('未ログインのため視聴ログは保存しません');
+        return;
+      }
+      const payload = {
+        user_id: user.id,
+        content_type: contentType,
+        content_id: contentId,
+        action: 'view',
+        created_at: new Date().toISOString()
+      };
+      const { error } = await supabaseClient.from('study_logs').insert(payload);
+      if (error) {
+        console.error('study_logs insert error', error);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const authLabel = document.getElementById('auth-label');
+      const { data: authData } = await supabaseClient.auth.getUser();
+      const user = authData.user;
+      if (user) {
+        authLabel.textContent = `ログイン中: ${user.email}（視聴ログが保存されます）`;
+      } else {
+        authLabel.textContent = '未ログインです。視聴ログは保存されません。';
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class="page">
+    <h1>スライド・動画</h1>
+    <p><a href="index.html">← トップ（問題）へ戻る</a></p>
+    <p class="auth-info" id="auth-label"></p>
+
+    <div class="card">
+      <h2 style="font-size:1rem;">スライド</h2>
+      <ul class="content-list">
+        <li>
+          <a href="slides/slide1.html" target="_blank"
+             onclick="saveViewLog('slide','slide-1')">
+            第1回：簿記の基本
+          </a>
+        </li>
+        <li>
+          <a href="slides/slide2.html" target="_blank"
+             onclick="saveViewLog('slide','slide-2')">
+            第2回：仕訳の考え方
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:1rem;">YouTube</h2>
+      <ul class="content-list">
+        <li>
+          <a href="https://www.youtube.com/watch?v=XXXXXXXX"
+             target="_blank"
+             onclick="saveViewLog('youtube','yt-XXXXXXXX')">
+            解説動画①：基本的な仕訳
+          </a>
+        </li>
+        <li>
+          <a href="https://www.youtube.com/watch?v=YYYYYYYY"
+             target="_blank"
+             onclick="saveViewLog('youtube','yt-YYYYYYYY')">
+            解説動画②：売上・仕入
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
 
