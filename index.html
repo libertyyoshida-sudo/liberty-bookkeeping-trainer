@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Liberty仕訳トレーニング</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Noto Sans JP', 'Inter', sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      background: #ffffff;
+      border-bottom: 2px solid #005bac22;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header img {
+      height: 40px;
+    }
+    header h1 {
+      font-size: 20px;
+      color: #005BAC;
+      font-weight: 700;
+      margin: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background: #ffffff;
+      padding: 20px 30px;
+      border-radius: 6px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.04);
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    button {
+      background: #005BAC;
+      color: #ffffff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #004b96;
+    }
+    .entry {
+      margin-top: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      border: 1px solid #dddddd;
+      padding: 8px;
+    }
+    th {
+      background: #005bac22;
+      font-weight: 600;
+    }
+    .meta {
+      font-size: 13px;
+      color: #666666;
+      margin-bottom: 6px;
+    }
+    h2 {
+      margin-top: 4px;
+      color: #005BAC;
+      font-weight: 700;
+    }
+    .counter {
+      margin-left: auto;
+      color: #555555;
+      font-size: 13px;
+      align-self: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty ロゴ" />
+  <h1>Liberty 仕訳トレーニング</h1>
+</header>
+
+<div class="container">
+  <div class="toolbar">
+    <button onclick="setLang('ja')">日本語</button>
+    <button onclick="setLang('en')">English</button>
+    <button onclick="nextEntry()">次の問題へ</button>
+    <button onclick="randomEntry()">ランダム出題</button>
+    <div class="counter" id="counter"></div>
+  </div>
+
+  <div id="entry" class="entry"></div>
+</div>
+
+<script>
+  // ひとまずハードコードの問題（後でSupabaseに置き換え）
+  const entries = [
+    {
+      id: "1-8",
+      section: { ja: "1 仕訳の基本", en: "1. Basics of Journal Entries" },
+      title:   { ja: "現金売上", en: "Cash Sales" },
+      problem: {
+        ja: "商品を1,000円で販売し、その代金を現金で受け取った。",
+        en: "Goods were sold for 1,000 yen, and the amount was received in cash."
+      },
+      debit: [
+        { account: { ja: "現金", en: "Cash" }, amount: 1000 }
+      ],
+      credit: [
+        { account: { ja: "売上", en: "Sales" }, amount: 1000 }
+      ]
+    },
+    {
+      id: "2-1",
+      section: { ja: "2 日々の仕訳例", en: "2. Daily Journal Entry Examples" },
+      title:   { ja: "売上（現金＋ポイント）", en: "Sales (Cash + Points)" },
+      problem: {
+        ja: "商品を1,100円で販売し、その代金のうち100円をポイント利用、残り1,000円を現金で受け取った。100円のポイントは他社が発行するポイントで後日入金される。",
+        en: "Goods were sold for 1,100 yen. Of the amount, 100 yen was paid by points issued by another company (to be collected later) and 1,000 yen was received in cash."
+      },
+      debit: [
+        { account: { ja: "売掛金", en: "Accounts Receivable" }, amount: 100 },
+        { account: { ja: "現金", en: "Cash" }, amount: 1000 }
+      ],
+      credit: [
+        { account: { ja: "売上", en: "Sales" }, amount: 1100 }
+      ]
+    },
+    {
+      id: "2-3",
+      section: { ja: "2 日々の仕訳例", en: "2. Daily Journal Entry Examples" },
+      title:   { ja: "商品仕入（現金）", en: "Merchandise Purchase (Cash)" },
+      problem: {
+        ja: "販売するための商品を購入し、その代金10,000円を現金で支払った。",
+        en: "Merchandise for resale was purchased and 10,000 yen was paid in cash."
+      },
+      debit: [
+        { account: { ja: "仕入", en: "Purchases" }, amount: 10000 }
+      ],
+      credit: [
+        { account: { ja: "現金", en: "Cash" }, amount: 10000 }
+      ]
+    }
+  ];
+
+  let currentLang = "ja";
+  let currentIndex = 0;
+
+  function setLang(lang) {
+    currentLang = lang;
+    renderEntry();
+  }
+
+  function nextEntry() {
+    currentIndex = (currentIndex + 1) % entries.length;
+    renderEntry();
+  }
+
+  function randomEntry() {
+    const next = Math.floor(Math.random() * entries.length);
+    currentIndex = next;
+    renderEntry();
+  }
+
+  function renderEntry() {
+    if (!entries.length) {
+      document.getElementById("entry").innerHTML = "<p>問題データがありません。</p>";
+      document.getElementById("counter").textContent = "";
+      return;
+    }
+
+    const e = entries[currentIndex];
+    const entry = document.getElementById("entry");
+    const counter = document.getElementById("counter");
+
+    const debitRows = e.debit.map(d => `
+      <tr>
+        <td>借方 / Debit</td>
+        <td>${d.account[currentLang]}</td>
+        <td style="text-align:right;">${d.amount.toLocaleString()}</td>
+      </tr>
+    `).join("");
+
+    const creditRows = e.credit.map(c => `
+      <tr>
+        <td>貸方 / Credit</td>
+        <td>${c.account[currentLang]}</td>
+        <td style="text-align:right;">${c.amount.toLocaleString()}</td>
+      </tr>
+    `).join("");
+
+    entry.innerHTML = `
+      <div class="meta">ID: ${e.id} ｜ ${e.section[currentLang]}</div>
+      <h2>${e.title[currentLang]}</h2>
+      <p>${e.problem[currentLang]}</p>
+      <table>
+        <tr>
+          <th>区分</th>
+          <th>勘定科目 / Account</th>
+          <th>金額</th>
+        </tr>
+        ${debitRows}
+        ${creditRows}
+      </table>
+    `;
+
+    counter.textContent = \`問題 \${currentIndex + 1} / \${entries.length}\`;
+  }
+
+  renderEntry();
+</script>
+
+</body>
+</html>
