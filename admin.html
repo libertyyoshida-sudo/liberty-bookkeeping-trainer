@@ -1,1 +1,231 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>管理者ページ - Liberty Bookkeeping Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .page {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+    h1 { font-size:1.3rem; margin-bottom:4px; }
+    a { color:#005bac; text-decoration:none; }
+    .card {
+      background:#fff;
+      border-radius:14px;
+      padding:14px 16px;
+      margin-top:12px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.06);
+      border:1px solid rgba(0,0,0,0.03);
+    }
+    .flex {
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+    }
+    .flex-col { flex:1; }
+    .user-list {
+      max-height:300px;
+      overflow-y:auto;
+      font-size:0.85rem;
+    }
+    .user-item {
+      padding:4px 6px;
+      border-bottom:1px solid #eceff5;
+      cursor:pointer;
+    }
+    .user-item:hover {
+      background:#f0f4ff;
+    }
+    .user-item.active {
+      background:#d9e5ff;
+    }
+    .log-table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:0.8rem;
+    }
+    .log-table th, .log-table td {
+      border-bottom:1px solid #e5e8f0;
+      padding:4px 3px;
+      text-align:left;
+    }
+    .warn {
+      color:#d9534f;
+      font-size:0.85rem;
+    }
+  </style>
+  <script>
+    const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let profiles = [];
+    let selectedUserId = null;
+
+    async function checkAdmin() {
+      const { data: authData } = await supabaseClient.auth.getUser();
+      const user = authData.user;
+      const infoLabel = document.getElementById('info-label');
+
+      if (!user) {
+        infoLabel.textContent = '未ログインです。管理者ページは利用できません。';
+        return false;
+      }
+
+      const { data: profs, error } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error || !profs) {
+        infoLabel.textContent = 'プロフィール取得に失敗しました。';
+        console.error(error);
+        return false;
+      }
+
+      if (profs.role !== 'admin') {
+        infoLabel.textContent = '管理者権限がありません。';
+        return false;
+      }
+
+      infoLabel.textContent = `管理者としてログイン中: ${profs.email}`;
+      return true;
+    }
+
+    async function loadProfiles() {
+      const list = document.getElementById('user-list');
+      const { data, error } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('profiles select error', error);
+        list.innerHTML = '<div>プロフィール取得エラー</div>';
+        return;
+      }
+      profiles = data || [];
+      list.innerHTML = '';
+      profiles.forEach((p) => {
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        div.dataset.userId = p.id;
+        div.textContent = `${p.email} (${p.role || 'user'})`;
+        div.addEventListener('click', () => {
+          document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
+          div.classList.add('active');
+          selectedUserId = p.id;
+          loadLogsForUser(p.id);
+        });
+        list.appendChild(div);
+      });
+    }
+
+    async function loadLogsForUser(userId) {
+      const tbody = document.getElementById('logs-body');
+      tbody.innerHTML = '<tr><td colspan="5">読み込み中...</td></tr>';
+
+      const { data, error } = await supabaseClient
+        .from('study_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (error) {
+        console.error('study_logs select error', error);
+        tbody.innerHTML = '<tr><td colspan="5">取得エラー</td></tr>';
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">ログがありません。</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        const created = new Date(row.created_at).toLocaleString();
+        let typeLabel = row.content_type;
+        if (typeLabel === 'quiz') typeLabel = '問題';
+        if (typeLabel === 'slide') typeLabel = 'スライド';
+        if (typeLabel === 'youtube') typeLabel = '動画';
+        const resultText = row.is_correct === true ? '正解' : (row.is_correct === false ? '不正解' : '');
+        tr.innerHTML = `
+          <td>${created}</td>
+          <td>${typeLabel}</td>
+          <td>${row.content_id}</td>
+          <td>${row.action}</td>
+          <td>${resultText}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const ok = await checkAdmin();
+      if (!ok) {
+        document.getElementById('admin-main').style.display = 'none';
+        document.getElementById('warn').style.display = 'block';
+        return;
+      }
+      document.getElementById('warn').style.display = 'none';
+      document.getElementById('admin-main').style.display = 'block';
+      loadProfiles();
+    });
+  </script>
+</head>
+<body>
+  <div class="page">
+    <h1>管理者ページ</h1>
+    <p><a href="index.html">← トップ（問題）へ戻る</a></p>
+    <p id="info-label" class="warn"></p>
+    <p id="warn" class="warn">管理者権限が必要です。</p>
+
+    <div id="admin-main" style="display:none;">
+      <div class="card flex">
+        <div class="flex-col">
+          <h2 style="font-size:1rem;">ユーザー一覧</h2>
+          <div id="user-list" class="user-list">
+            読み込み中...
+          </div>
+        </div>
+        <div class="flex-col">
+          <h2 style="font-size:1rem;">選択ユーザーのログ</h2>
+          <table class="log-table">
+            <thead>
+              <tr>
+                <th>日時</th>
+                <th>種別</th>
+                <th>コンテンツID</th>
+                <th>アクション</th>
+                <th>結果</th>
+              </tr>
+            </thead>
+            <tbody id="logs-body">
+              <tr><td colspan="5">ユーザーを選択してください。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="warn">
+        ※ このページが正常に動くには、Supabase 側で「admin ロールのユーザーは profiles / study_logs を全件参照できる」RLS ポリシーを追加しておく必要があります。
+      </p>
+    </div>
+  </div>
+</body>
+</html>
 
