@@ -1164,21 +1164,52 @@
         window.sessionUser = authData.user || null;
         updateAuthUI();
 
-        // quiz_questions 取得（account_options カラムも一緒に返ってくる）
-        const { data, error } = await supabaseClient
-          .from('quiz_questions')
-          .select('*');
+// quiz_questions 取得（account_options カラムも一緒に返ってくる）
+const { data, error } = await supabaseClient
+  .from('quiz_questions')
+  .select('*');
 
-        if (error) {
-          console.error('Supabase quiz_questions error:', error);
-          allQuestions = hardcodedQuestions;
-        } else if (data && data.length > 0) {
-          console.log('取得したクイズ件数:', data.length);
-          allQuestions = data;
-        } else {
-          console.log('Supabase quiz_questions が空のためハードコード問題を使用します');
-          allQuestions = hardcodedQuestions;
-        }
+if (error) {
+  console.error('Supabase quiz_questions error:', error);
+  allQuestions = hardcodedQuestions;
+} else if (data && data.length > 0) {
+  console.log('取得したクイズ件数:', data.length);
+
+  // ★ ここで solution をオブジェクトに直しておく
+  allQuestions = data.map((row) => {
+    let solution = row.solution;
+
+    // solution が文字列なら JSON としてパース
+    if (typeof solution === 'string') {
+      try {
+        solution = JSON.parse(solution);
+      } catch (e) {
+        console.error('solution JSON parse error for id =', row.id, solution, e);
+        solution = null;  // 壊れている場合は一旦 null
+      }
+    }
+
+    // 必要に応じて account_options を配列化（既に文字列で扱えているので必須ではない）
+    let account_options = row.account_options;
+    if (typeof account_options === 'string') {
+      account_options = account_options
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+
+    return {
+      ...row,
+      solution,
+      account_options,
+    };
+  });
+
+} else {
+  console.log('Supabase quiz_questions が空のためハードコード問題を使用します');
+  allQuestions = hardcodedQuestions;
+}
+
 
         setupCategoryFilterOptions(allQuestions);
         startNewSessionFromUI();
