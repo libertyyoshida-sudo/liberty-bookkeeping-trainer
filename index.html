@@ -73,15 +73,51 @@
 
     .auth-box {
       background: #fff;
-      border-radius: 999px;
-      padding: 6px 10px;
+      border-radius: 16px; /* 999px だと縦長ボックスがちょっと変なので少し小さめに */
+      padding: 8px 10px;
       box-shadow: 0 6px 18px rgba(0,0,0,0.06);
       display: flex;
-      align-items: center;
+      flex-direction: column;        /* ★縦並びに変更 */
+      align-items: stretch;          /* ★中身を幅いっぱいに */
       gap: 6px;
       font-size: 0.75rem;
-      flex-wrap: wrap;
+       max-width: 320px;              /* ★スマホでのはみ出し防止 */
     }
+
+    /* メールアドレス・パスワードを縦に並べる */
+    .auth-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+　　}
+
+    /* ログインボタン＆リンクたち */
+   .auth-actions {
+     display: flex;
+     flex-direction: column;
+     gap: 4px;
+    } 
+
+   /* auth-box内の入力・ボタンは幅100%に */
+   .auth-box input,
+   .auth-box button {
+     width: 100%;
+     box-sizing: border-box;
+    }
+
+   /* 新規登録/パスワードリセットのリンク */
+   .auth-link {
+     display: block;
+     width: 100%;
+     text-align: left;
+     font-size: 0.75rem;
+     color: var(--primary);
+     text-decoration: none;
+   }
+
+   .auth-link:hover {
+     text-decoration: underline;
+   }
 
     .auth-box input {
       border-radius: 999px;
@@ -1411,18 +1447,23 @@ if (error) {
       </div>
 
       <div class="auth-box">
+         <!-- ログアウト状態 --> 
         <div id="auth-when-logged-out">
           <input type="email" id="auth-email" placeholder="メールアドレス" />
           <input type="password" id="auth-password" placeholder="パスワード" />
+         </div>
+
+         <div class="auth-actions">   
           <button class="auth-primary-btn" id="btn-login">ログイン</button>
           <a href="signup.html" style="font-size:0.75rem; margin-left:4px;">新規登録</a>
+          <a href="forgot-password.html" class="auth-link">パスワードをお忘れの方はこちら</a>
+          </div>
         </div>
+
+        <!-- ログイン状態 -->
         <div id="auth-when-logged-in" style="display:none;">
           <span id="auth-user-label" class="auth-status"></span>
           <button class="auth-small-btn" id="btn-logout">ログアウト</button>
-        </div>
-        <div class="footer-link">
-          パスワードをお忘れの方は <a href="forgot-password.html">こちら</a>
         </div>
       </div>
     </header>
