@@ -258,7 +258,6 @@
             .from('profiles')
             .insert({
               id: user.id,
-              user_id: user.id,      // user_id カラムがある場合
               email: email,
               nationality: nationality || null,
               role: 'user'
