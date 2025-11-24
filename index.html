@@ -639,6 +639,9 @@ const i18n = {
     // Supabase から取得する全問題
     let allQuestions = [];
 
+    // 仕訳入力の行数（将来 5 行、6 行にしたければここを変える）
+    const ENTRY_ROW_COUNT = 4;   // 今は 4 行にしたい
+
     // 今回の出題セット
     let questions = [];
 
@@ -821,7 +824,7 @@ const i18n = {
 
     // 入力をクリア
     function clearEntryInputs() {
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i <= ENTRY_ROW_COUNT; i++) {
         document.getElementById("debit-account-" + i).value = "";
         document.getElementById("debit-amount-" + i).value = "";
         document.getElementById("credit-account-" + i).value = "";
@@ -1037,7 +1040,7 @@ function applyLanguage() {
       const debit = [];
       const credit = [];
 
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i <= ENTRY_ROW_COUNT; i++) {
         const dAcc = document.getElementById("debit-account-" + i).value.trim();
         const dAmtStr = document.getElementById("debit-amount-" + i).value.trim();
         const cAcc = document.getElementById("credit-account-" + i).value.trim();
@@ -1496,13 +1499,21 @@ if (error) {
             <span data-i18n="entry-col-credit-amount">金額</span>
           </div>
 
-          <!-- 3行分用意 -->
+          <!-- 4行分用意 -->
           <div class="entry-row">
             <span class="row-label">1</span>
             <select class="account-select" id="debit-account-1"></select>
             <input type="number" id="debit-amount-1" min="0" inputmode="numeric" />
             <select class="account-select" id="credit-account-1"></select>
             <input type="number" id="credit-amount-1" min="0" inputmode="numeric" />
+          </div>
+
+          <div class="entry-row">
+            <span class="row-label">2</span>
+            <select class="account-select" id="debit-account-2"></select>
+            <input type="number" id="debit-amount-2" min="0" inputmode="numeric" />
+            <select class="account-select" id="credit-account-2"></select>
+            <input type="number" id="credit-amount-2" min="0" inputmode="numeric" />
           </div>
 
           <div class="entry-row">
