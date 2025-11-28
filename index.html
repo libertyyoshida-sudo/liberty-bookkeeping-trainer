@@ -1247,8 +1247,8 @@ function applyLanguage() {
         resultMessage.className = "result-message ng";
       }
 
-      answerJa.textContent = q.journalJa || '';
-      answerEn.textContent = q.journalEn || '';
+      answerJa.textContent = (q.journalJa || '').replace(/<br\s*\/?>/gi, '\n');
+      answerEn.textContent = (q.journalEn || '').replace(/<br\s*\/?>/gi, '\n');
       answerPanel.style.display = "block";
 
       await logStudyResult(q, isCorrect);
