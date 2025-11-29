@@ -74,7 +74,10 @@
     let selectedUserId = null;
 
     async function checkAdmin() {
-      const { data: authData } = await supabaseClient.auth.getUser();
+      const { data: authData, error: authError } = await supabaseClient.auth.getUser();
+      console.log('authError', authError);
+      console.log('authData', authData);
+      
       const user = authData.user;
       const infoLabel = document.getElementById('info-label');
 
@@ -83,20 +86,30 @@
         return false;
       }
 
+      console.log('ログイン中ユーザーID', user.id, 'メール', user.email);
+
       const { data: profs, error } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
+      console.log('profiles error', error);
+      console.log('profiles data', profs);
+        
       if (error || !profs) {
-        infoLabel.textContent = 'プロフィール取得に失敗しました。';
+        infoLabel.textContent = 'プロフィール取得に失敗しました。(errorあり)';
         console.error(error);
         return false;
       }
 
+      if (!profs) {
+        infoLabel.textContent = 'プロフィールが登録されていません。';
+        return false;
+      }      
+
       if (profs.role !== 'admin') {
-        infoLabel.textContent = '管理者権限がありません。';
+        infoLabel.textContent = '管理者権限がありません。(role=' + profs.role + ')';
         return false;
       }
 
