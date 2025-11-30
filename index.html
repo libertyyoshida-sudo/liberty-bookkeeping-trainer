@@ -1262,14 +1262,15 @@ function applyLanguage() {
       if (!historyListEl) return;
 
       if (!window.sessionUser) {
-        historyListEl.innerHTML = '<div style="font-size:0.75rem;color:#666;">ログインすると直近の解答履歴が表示されます。</div>';
+        historyListEl.innerHTML =
+          '<div style="font-size:0.75rem;color:#666;">ログインすると直近の解答履歴が表示されます。</div>';
         return;
       }
 
       try {
         const { data, error } = await supabaseClient
           .from('study_logs')
-          .select('id,question_id,is_correct,answered_at')
+          .select('id, content_id, is_correct, completed_at, created_at')
           .eq('user_id', window.sessionUser.id)
           .order('answered_at', { ascending: false })
           .limit(20);
