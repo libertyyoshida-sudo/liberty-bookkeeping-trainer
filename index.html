@@ -1132,16 +1132,19 @@ function applyLanguage() {
       try {
         const payload = {
           user_id: window.sessionUser.id,
-          question_id: q.id,
+          content_type: 'quiz',       // ← 種別
+          content_id: q.id,           // ← 問題ID
           is_correct: isCorrect,
-          answered_at: new Date().toISOString(),
-          category_ja: q.categoryJa || null,
-          category_en: q.categoryEn || null,
-          source_type: 'quiz'
+          // answer_json や meta を使いたければここで追加
+          // answer_json: getUserEntries(), みたいに入れてもOK（json型）
+          completed_at: new Date().toISOString()  // or created_at に任せてもOK        
+
         };
+        
         const { error } = await supabaseClient
           .from('study_logs')
           .insert(payload);
+        
         if (error) {
           console.error('study_logs insert error', error);
         } else {
