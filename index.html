@@ -573,6 +573,8 @@
   </style>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
+  <script src="https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
   <script>
     const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
@@ -1501,6 +1503,12 @@ if (error) {
             <button id="lang-ja" class="active">日本語</button>
             <button id="lang-en">English</button>
           </div>
+
+          <!-- ルビ表示切替ボタン -->
+          <button id="toggle-ruby" class="auth-small-btn" style="margin-left:8px;">
+            ルビ表示：OFF
+          </button>
+          
         </div>
 
         <!-- 出題条件 -->
@@ -1533,7 +1541,7 @@ if (error) {
           </label>
         </div>
 
-        <p class="hint-text">
+        <p class="hint-text" id="hint-text" data-furigana-target>
           行ごとに「借方勘定科目・金額」「貸方勘定科目・金額」を入力します。<br>
           不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。
         </p>
