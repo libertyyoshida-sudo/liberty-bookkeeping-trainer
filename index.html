@@ -1299,8 +1299,9 @@ function applyLanguage() {
           flag.textContent = row.is_correct ? '◯' : '×';
           flag.className = row.is_correct ? 'correct' : 'wrong';
           const dt = document.createElement('span');
-          const d = new Date(row.answered_at);
-          dt.textContent = d.toLocaleString();
+          const ts = row.completed_at || row.created_at;
+          const d = ts ? new Date(ts) : null;        
+          dt.textContent = d ? d.toLocaleString() : '';
 
           right.appendChild(flag);
           right.appendChild(document.createTextNode(' '));
