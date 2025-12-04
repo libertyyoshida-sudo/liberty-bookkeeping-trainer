@@ -752,66 +752,49 @@ const i18n = {
     let totalCorrect = 0;
 
     // ルビ表示用
-    let rubyEnabled = false;
-    let kuroshiro = null;
-    let kuroshiroReady = false;
-    
-    // Kuroshiro 初期化（Promise 版）
-    function initKuroshiro() {
-      // すでに初期化済みならそのまま使う
-      if (kuroshiroReady) {
-        return Promise.resolve();
-      }
+let rubyEnabled = false;
+let kuroshiro = null;
+let kuroshiroReady = false;
 
-      // グローバルに載っているか確認（デバッグログ付き）
-      console.log("window.Kuroshiro =", window.Kuroshiro);
-      console.log("window.KuromojiAnalyzer =", window.KuromojiAnalyzer);
-      console.log("window.KuroshiroAnalyzerKuromoji =", window.KuroshiroAnalyzerKuromoji);
+// Kuroshiro 初期化（Promise 版）
+function initKuroshiro() {
+  // すでに初期化済みならそのまま使う
+  if (kuroshiroReady && kuroshiro) {
+    return Promise.resolve();
+  }
 
-      // グローバルに載っているものを拾う
-      const kuroshiroModule = window.Kuroshiro;
-      const analyzerModule =
-        window.KuromojiAnalyzer || window.KuroshiroAnalyzerKuromoji;
-      
-      // ライブラリが読み込めているかチェック
-     if (!kuroshiroModule || !analyzerModule) {
-       console.error("Kuroshiro または KuromojiAnalyzer が読み込まれていません。");
-       return Promise.reject(new Error("Kuroshiro not loaded"));
-     }
+  // ▼ CDN で読み込んだ UMD の前提で、global から default を取る
+  const KuroshiroClass =
+    (window.Kuroshiro && window.Kuroshiro.default) || window.Kuroshiro;
 
-      // ★ ここがポイント：default を見る
-         const KuroshiroClass =
-           typeof kuroshiroModule === "function"
-           ? kuroshiroModule
-           : kuroshiroModule.default;
-      
-         const AnalyzerClass =
-           typeof analyzerModule === "function"
-           ? analyzerModule
-           : analyzerModule.default;
-      
-      // どちらかがコンストラクタでない場合の防御
-        if (typeof KuroshiroClass !== "function" || typeof AnalyzerClass !== "function") {
-          console.error("Kuroshiro または Analyzer がコンストラクタではありません。", {
-            KuroshiroClass,
-            AnalyzerClass
-        });
-          return Promise.reject(new Error("Kuroshiro not loaded"));
-        }
+  const KuromojiAnalyzerClass =
+    (window.KuromojiAnalyzerKuromoji && window.KuromojiAnalyzerKuromoji.default) ||
+    window.KuromojiAnalyzerKuromoji ||
+    (window.KuromojiAnalyzer && window.KuromojiAnalyzer.default) ||
+    window.KuromojiAnalyzer;
 
-      // ここまで来たら初期化
-      kuroshiro = new KuroshiroClass();
-        const analyzer = new AnalyzerClass({
-           // dictPath は kuromoji 本体の dict を指定
-        dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/"
-        });        
+  if (!KuroshiroClass || !KuromojiAnalyzerClass) {
+    console.error("Kuroshiro または KuromojiAnalyzer が読み込まれていません。", {
+      Kuroshiro: window.Kuroshiro,
+      KuromojiAnalyzerKuromoji: window.KuromojiAnalyzerKuromoji,
+      KuromojiAnalyzer: window.KuromojiAnalyzer,
+    });
+    return Promise.reject(new Error("Kuroshiro not loaded"));
+  }
 
-      
-      return kuroshiro.init(analyzer).then(() => {
-        kuroshiroReady = true;
-        console.log("Kuroshiro initialized");
-      });
-    }
+  // インスタンス生成
+  kuroshiro = new KuroshiroClass();
+  const analyzer = new KuromojiAnalyzerClass({
+    // kuromoji の辞書
+    dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/"
+  });
+
+  return kuroshiro.init(analyzer).then(() => {
+    kuroshiroReady = true;
+    console.log("Kuroshiro initialized");
+  });
+}
+
 
     // DOM 取得（後で埋まるので let で宣言だけしておく）
     let questionLabel, categoryLabel, idLabel, randomLabel;
