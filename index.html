@@ -570,6 +570,16 @@
       color: var(--text-muted);
       text-align: center;
     }
+
+    ruby {
+  ruby-position: over;   /* 横書きで上に表示する指定 */
+}
+
+rt {
+  font-size: 0.6em;      /* ルビを小さめに */
+  line-height: 1;
+}
+    
   </style>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1437,6 +1447,29 @@ function renderQuestion() {
       prevBtn.addEventListener("click", goPrevQuestion);
       checkBtn.addEventListener("click", checkAnswer);
 
+      // ルビON/OFFボタン
+      const toggleRubyBtn = document.getElementById("toggle-ruby");
+      if (toggleRubyBtn) {
+        toggleRubyBtn.addEventListener("click", async () => {
+          rubyEnabled = !rubyEnabled;
+          toggleRubyBtn.textContent = rubyEnabled ? "ルビ表示：ON" : "ルビ表示：OFF";
+
+          // 初回ONのときだけ Kuroshiro を初期化
+          if (rubyEnabled && !kuroshiroInitialized) {
+            try {
+              await initKuroshiro();
+            } catch (e) {
+              console.error("Kuroshiro init error", e);
+              rubyEnabled = false;
+              toggleRubyBtn.textContent = "ルビ表示：OFF";
+              return;
+            }
+          }
+
+          renderQuestion();
+        });
+      }
+      
       try {
         // 認証状態取得
         const { data: authData } = await supabaseClient.auth.getUser();
