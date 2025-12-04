@@ -893,15 +893,15 @@ const i18n = {
       if (!categoryFilterSelect || !questionCountSelect) return;
 
     // まずカテゴリ一覧を重複なしで収集
-  const catsSet = new Set();
-  all.forEach(q => {
-    if (q.categoryJa) catsSet.add(q.categoryJa);
-  });
+    const catsSet = new Set();
+      all.forEach(q => {
+        if (q.categoryJa) catsSet.add(q.categoryJa);
+      });
 
   // ★ 自分で決めた順番でソート
-  const cats = [...catsSet].sort((a, b) => {
-    const ia = CATEGORY_ORDER.indexOf(a);
-    const ib = CATEGORY_ORDER.indexOf(b);
+    const cats = [...catsSet].sort((a, b) => {
+      const ia = CATEGORY_ORDER.indexOf(a);
+      const ib = CATEGORY_ORDER.indexOf(b);
 
     // CATEGORY_ORDER に載ってないものは後ろに回す
     if (ia === -1 && ib === -1) {
@@ -927,42 +927,7 @@ const i18n = {
     categoryFilterSelect.appendChild(opt);
   });
 
-  // 問題数のほうはそのままでOK
-  questionCountSelect.innerHTML = '';
-  [5, 10, 20, 50].forEach(n => {
-    const opt = document.createElement('option');
-    opt.value = String(n);
-    opt.textContent = `最大 ${n}問`;
-    questionCountSelect.appendChild(opt);
-  });
-  const optAllQ = document.createElement('option');
-  optAllQ.value = 'all';
-  optAllQ.textContent = '全件';
-  questionCountSelect.appendChild(optAllQ);
-
-  questionCountSelect.value = '10';
-}
-      
-      // カテゴリ
-      const cats = new Set();
-      all.forEach(q => {
-        if (q.categoryJa) cats.add(q.categoryJa);
-      });
-
-      categoryFilterSelect.innerHTML = '';
-      const optAll = document.createElement('option');
-      optAll.value = '';
-      optAll.textContent = 'すべてのカテゴリ';
-      categoryFilterSelect.appendChild(optAll);
-
-      [...cats].sort().forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        categoryFilterSelect.appendChild(opt);
-      });
-
-      // 問題数
+   // 問題数
       questionCountSelect.innerHTML = '';
       [5, 10, 20, 50].forEach(n => {
         const opt = document.createElement('option');
