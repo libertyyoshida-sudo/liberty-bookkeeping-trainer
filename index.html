@@ -765,23 +765,31 @@ const i18n = {
 
     // グローバルに載っているか確認（デバッグログ付き）
       console.log("typeof Kuroshiro:", typeof window.Kuroshiro);
-      console.log("typeof KuromojiAnalyzer:", typeof window.KuromojiAnalyzer);
+      console.log("window.KuroshiroAnalyzerKuromoji =", window.KuroshiroAnalyzerKuromoji);
       
       // ライブラリが読み込めているかチェック
-      if (typeof window.Kuroshiro === "undefined" || typeof window.KuromojiAnalyzer === "undefined") {
-        console.error("Kuroshiro または KuromojiAnalyzer が読み込まれていません。");
+      if (typeof window.Kuroshiro === "undefined" ||
+          typeof window.KuroshiroAnalyzerKuromoji === "undefined") {
+        console.error("Kuroshiro または KuroshiroAnalyzerKuromoji が読み込まれていません。");
         return Promise.reject(new Error("Kuroshiro not loaded"));
-      }
-    
-      // ここまで来ればライブラリは存在する
-      kuroshiro = new window.Kuroshiro();
 
-      const analyzer = new window.KuromojiAnalyzer({
-        // kuromoji の辞書ファイルの置き場所
-        // 今は unpkg の公開ディレクトリを指定
-        dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/"
-      });
-            
+      // ★ ここがポイント：default を見る
+        const KuroshiroClass =
+          window.Kuroshiro.default || window.Kuroshiro;
+        const AnalyzerClass =
+          window.KuroshiroAnalyzerKuromoji.default || window.KuroshiroAnalyzerKuromoji;
+
+      // どちらかがコンストラクタでない場合の防御
+        if (typeof KuroshiroClass !== "function" || typeof AnalyzerClass !== "function") {
+          console.error("Kuroshiro または Analyzer がコンストラクタではありません。");
+          return Promise.reject(new Error("Kuroshiro not loaded"));
+        } 
+
+      kuroshiro = new KuroshiroClass();
+        const analyzer = new AnalyzerClass({
+          dictPath: "https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/dict"
+        });        
+              
       return kuroshiro.init(analyzer).then(() => {
         kuroshiroReady = true;
         console.log("Kuroshiro initialized");
