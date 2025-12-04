@@ -724,6 +724,15 @@ const i18n = {
       "消耗品費"
     ];
 
+        // ★ カテゴリの表示順をここで定義（グローバル）
+    const CATEGORY_ORDER = [
+      "日々の仕訳",
+      "月次の仕訳",
+      "定期仕訳",
+      "決算仕訳",
+      "その他"
+    ];
+
     // 状態
     let currentIndex = 0;
     let currentLang = "ja";
@@ -883,6 +892,57 @@ const i18n = {
     function setupCategoryFilterOptions(all) {
       if (!categoryFilterSelect || !questionCountSelect) return;
 
+    // まずカテゴリ一覧を重複なしで収集
+  const catsSet = new Set();
+  all.forEach(q => {
+    if (q.categoryJa) catsSet.add(q.categoryJa);
+  });
+
+  // ★ 自分で決めた順番でソート
+  const cats = [...catsSet].sort((a, b) => {
+    const ia = CATEGORY_ORDER.indexOf(a);
+    const ib = CATEGORY_ORDER.indexOf(b);
+
+    // CATEGORY_ORDER に載ってないものは後ろに回す
+    if (ia === -1 && ib === -1) {
+      // 両方とも未定義なら一応五十音で
+      return a.localeCompare(b, "ja");
+    }
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  // セレクト生成
+  categoryFilterSelect.innerHTML = '';
+  const optAll = document.createElement('option');
+  optAll.value = '';
+  optAll.textContent = 'すべてのカテゴリ';
+  categoryFilterSelect.appendChild(optAll);
+
+  cats.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    categoryFilterSelect.appendChild(opt);
+  });
+
+  // 問題数のほうはそのままでOK
+  questionCountSelect.innerHTML = '';
+  [5, 10, 20, 50].forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = String(n);
+    opt.textContent = `最大 ${n}問`;
+    questionCountSelect.appendChild(opt);
+  });
+  const optAllQ = document.createElement('option');
+  optAllQ.value = 'all';
+  optAllQ.textContent = '全件';
+  questionCountSelect.appendChild(optAllQ);
+
+  questionCountSelect.value = '10';
+}
+      
       // カテゴリ
       const cats = new Set();
       all.forEach(q => {
