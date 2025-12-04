@@ -762,6 +762,9 @@ const i18n = {
       if (kuroshiroReady) {
         return Promise.resolve();
       }
+
+      console.log("window.Kuroshiro =", window.Kuroshiro);
+      console.log("window.KuromojiAnalyzer =", window.KuromojiAnalyzer);
       
       // ライブラリが読み込めているかチェック
       if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
