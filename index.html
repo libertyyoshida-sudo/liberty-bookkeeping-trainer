@@ -744,14 +744,14 @@ const i18n = {
     ];
 
     // 状態
-    let currentIndex = 0;
-    let currentLang = "ja";
-    let randomMode = false;
-    let historyStack = []; // 戻る用にインデックスを積む
-    let totalAnswered = 0;
-    let totalCorrect = 0;
+let currentIndex = 0;
+let currentLang = "ja";
+let randomMode = false;
+let historyStack = []; // 戻る用にインデックスを積む
+let totalAnswered = 0;
+let totalCorrect = 0;
 
-    // ルビ表示用
+// ルビ表示用
 let rubyEnabled = false;
 let kuroshiro = null;
 let kuroshiroReady = false;
@@ -763,33 +763,28 @@ function initKuroshiro() {
     return Promise.resolve();
   }
 
-  // ▼ CDN で読み込んだグローバルをそのまま使う
-  if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
-    alert("Kuroshiro または KuromojiAnalyzer が読み込まれていません。");
+  // CDN のグローバルがあるか確認
+  if (typeof window.Kuroshiro === "undefined" || typeof window.KuromojiAnalyzer === "undefined") {
+    alert("ルビ用ライブラリが読み込めていません。\nネット接続と <script> の URL を確認してください。");
     return Promise.reject(new Error("Kuroshiro not loaded"));
   }
 
   try {
-    kuroshiro = new Kuroshiro();
-    const analyzer = new KuromojiAnalyzer({
+    kuroshiro = new window.Kuroshiro();
+    const analyzer = new window.KuromojiAnalyzer({
       // kuromoji の辞書
       dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/"
     });
 
     return kuroshiro.init(analyzer).then(() => {
       kuroshiroReady = true;
-      alert("Kuroshiro initialized ✅");
-    }).catch((e) => {
-      alert("Kuroshiro init 失敗: " + e.message);
-      throw e;
+      console.log("Kuroshiro initialized");
     });
   } catch (e) {
-    alert("Kuroshiro init 中に例外: " + e.message);
+    alert("ルビ初期化でエラーが発生しました: " + e.message);
     return Promise.reject(e);
   }
 }
-
-
 
     // DOM 取得（後で埋まるので let で宣言だけしておく）
     let questionLabel, categoryLabel, idLabel, randomLabel;
