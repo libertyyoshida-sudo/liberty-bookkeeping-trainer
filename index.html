@@ -758,42 +758,37 @@ let kuroshiroReady = false;
 
 // Kuroshiro 初期化（Promise 版）
 function initKuroshiro() {
-  // すでに初期化済みならそのまま使う
+  // すでに初期化済みならそのまま
   if (kuroshiroReady && kuroshiro) {
     return Promise.resolve();
   }
 
-  // ▼ CDN で読み込んだ UMD の前提で、global から default を取る
-  const KuroshiroClass =
-    (window.Kuroshiro && window.Kuroshiro.default) || window.Kuroshiro;
-
-  const KuromojiAnalyzerClass =
-    (window.KuromojiAnalyzerKuromoji && window.KuromojiAnalyzerKuromoji.default) ||
-    window.KuromojiAnalyzerKuromoji ||
-    (window.KuromojiAnalyzer && window.KuromojiAnalyzer.default) ||
-    window.KuromojiAnalyzer;
-
-  if (!KuroshiroClass || !KuromojiAnalyzerClass) {
-    console.error("Kuroshiro または KuromojiAnalyzer が読み込まれていません。", {
-      Kuroshiro: window.Kuroshiro,
-      KuromojiAnalyzerKuromoji: window.KuromojiAnalyzerKuromoji,
-      KuromojiAnalyzer: window.KuromojiAnalyzer,
-    });
+  // ▼ CDN で読み込んだグローバルをそのまま使う
+  if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
+    alert("Kuroshiro または KuromojiAnalyzer が読み込まれていません。");
     return Promise.reject(new Error("Kuroshiro not loaded"));
   }
 
-  // インスタンス生成
-  kuroshiro = new KuroshiroClass();
-  const analyzer = new KuromojiAnalyzerClass({
-    // kuromoji の辞書
-    dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/"
-  });
+  try {
+    kuroshiro = new Kuroshiro();
+    const analyzer = new KuromojiAnalyzer({
+      // kuromoji の辞書
+      dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/"
+    });
 
-  return kuroshiro.init(analyzer).then(() => {
-    kuroshiroReady = true;
-    console.log("Kuroshiro initialized");
-  });
+    return kuroshiro.init(analyzer).then(() => {
+      kuroshiroReady = true;
+      alert("Kuroshiro initialized ✅");
+    }).catch((e) => {
+      alert("Kuroshiro init 失敗: " + e.message);
+      throw e;
+    });
+  } catch (e) {
+    alert("Kuroshiro init 中に例外: " + e.message);
+    return Promise.reject(e);
+  }
 }
+
 
 
     // DOM 取得（後で埋まるので let で宣言だけしておく）
