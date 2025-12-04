@@ -741,6 +741,22 @@ const i18n = {
     let totalAnswered = 0;
     let totalCorrect = 0;
 
+    // ルビ表示用
+    let rubyEnabled = false;
+    let kuroshiro = null;
+    let kuroshiroInitialized = false;
+    
+    // Kuroshiro 初期化
+    async function initKuroshiro() { 
+      if (kuroshiroInitialized) return;
+      kuroshiro = new Kuroshiro();
+      const analyzer = new KuromojiAnalyzer({
+        dictPath: "https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/dict"
+      });
+      await kuroshiro.init(analyzer);
+      kuroshiroInitialized = true;
+    }
+
     // DOM 取得（後で埋まるので let で宣言だけしておく）
     let questionLabel, categoryLabel, idLabel, randomLabel;
     let questionTextJa, questionTextEn;
@@ -1031,41 +1047,59 @@ function applyLanguage() {
   // 履歴エリア（ログインしていないときのメッセージなど）は loadMyHistory 内で t を使う形でもOK
 }
     
-    // 画面へ問題を反映
-    function renderQuestion() {
-      if (!questions || questions.length === 0) {
-        questionLabel.textContent = '問題がありません。';
-        return;
-      }
-      const q = questions[currentIndex];
-      questionLabel.textContent = `問題 ${currentIndex + 1} / ${questions.length}`;
-      categoryLabel.textContent = currentLang === "ja" ? (q.categoryJa || '') : (q.categoryEn || '');
-      idLabel.textContent = `ID: ${q.id || ''}`;
-      randomLabel.textContent = randomMode ? "（ランダム出題中）" : "";
+// 画面へ問題を反映
+function renderQuestion() {
+  if (!questions || questions.length === 0) {
+    questionLabel.textContent = '問題がありません。';
+    return;
+  }
+  const q = questions[currentIndex];
+  questionLabel.textContent = `問題 ${currentIndex + 1} / ${questions.length}`;
+  categoryLabel.textContent = currentLang === "ja" ? (q.categoryJa || '') : (q.categoryEn || '');
+  idLabel.textContent = `ID: ${q.id || ''}`;
+  randomLabel.textContent = randomMode ? "（ランダム出題中）" : "";
 
-      questionTextJa.textContent = q.questionJa || '';
-      questionTextEn.textContent = q.questionEn || '';
+  if (currentLang === "ja") {
+    questionTextEn.style.display = "none";
+    questionTextJa.style.display = "block";
 
-      if (currentLang === "ja") {
-        questionTextJa.style.display = "block";
-        questionTextEn.style.display = "none";
-      } else {
-        questionTextJa.style.display = "none";
-        questionTextEn.style.display = "block";
-      }
+    const text = q.questionJa || "";
 
-      // この問題専用の勘定科目リストをセット
-      const accountList = buildAccountListFromQuestion(q);
-      setAccountSelectOptions(accountList);
-
-      // ボタン状態
-      langJaBtn.classList.toggle("active", currentLang === "ja");
-      langEnBtn.classList.toggle("active", currentLang === "en");
-      randomModeCheckbox.checked = randomMode;
-
-      // 入力クリア
-      clearEntryInputs();
+    // ルビONかつ Kuroshiro 初期化済みなら <ruby> に変換
+    if (rubyEnabled && kuroshiroInitialized && kuroshiro) {
+      kuroshiro.convert(text, {
+        to: "hiragana",
+        mode: "furigana"   // <ruby><rt>形式
+      }).then((html) => {
+        questionTextJa.innerHTML = html;
+      }).catch(() => {
+        // 失敗したら普通のテキストを表示
+        questionTextJa.textContent = text;
+      });
+    } else {
+      questionTextJa.textContent = text;
     }
+
+  } else {
+    // 英語表示
+    questionTextJa.style.display = "none";
+    questionTextEn.style.display = "block";
+    questionTextEn.textContent = q.questionEn || '';
+  }
+
+  // この問題専用の勘定科目リストをセット
+  const accountList = buildAccountListFromQuestion(q);
+  setAccountSelectOptions(accountList);
+
+  // ボタン状態
+  langJaBtn.classList.toggle("active", currentLang === "ja");
+  langEnBtn.classList.toggle("active", currentLang === "en");
+  randomModeCheckbox.checked = randomMode;
+
+  // 入力クリア
+  clearEntryInputs();
+}
+
 
     // 次の問題へ
     function goNextQuestion() {
