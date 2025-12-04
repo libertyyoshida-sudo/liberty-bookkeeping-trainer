@@ -763,28 +763,46 @@ function initKuroshiro() {
     return Promise.resolve();
   }
 
-  // CDN のグローバルがあるか確認
-  if (typeof window.Kuroshiro === "undefined" || typeof window.KuromojiAnalyzer === "undefined") {
-    alert("ルビ用ライブラリが読み込めていません。\nネット接続と <script> の URL を確認してください。");
-    return Promise.reject(new Error("Kuroshiro not loaded"));
+  // CDN で読み込んだ UMD / ESModule どちらにも対応するように constructor を取り出す
+  const kuroMod = window.Kuroshiro;          // <script src="...kuroshiro.min.js">
+  const anaMod  = window.KuromojiAnalyzer;   // <script src="...kuroshiro-analyzer-kuromoji.min.js">
+
+  console.log("kuroMod =", kuroMod);
+  console.log("anaMod  =", anaMod);
+
+  // default に本体が入っている場合と、直にクラスが入っている場合の両方をケア
+  const KuroshiroClass =
+    (kuroMod && (kuroMod.default || kuroMod)) || null;
+  const AnalyzerClass =
+    (anaMod && (anaMod.default || anaMod)) || null;
+
+  if (typeof KuroshiroClass !== "function" || typeof AnalyzerClass !== "function") {
+    console.error("Kuroshiro または Analyzer がコンストラクタではありません。", {
+      KuroshiroClass,
+      AnalyzerClass,
+    });
+    alert("ルビ用ライブラリの読み込み形式が想定と違うようです。\nブラウザのコンソールでエラー内容を確認してください。");
+    return Promise.reject(new Error("Kuroshiro not constructor"));
   }
 
   try {
-    kuroshiro = new window.Kuroshiro();
-    const analyzer = new window.KuromojiAnalyzer({
+    kuroshiro = new KuroshiroClass();
+    const analyzer = new AnalyzerClass({
       // kuromoji の辞書
-      dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/"
+      dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/",
     });
 
     return kuroshiro.init(analyzer).then(() => {
       kuroshiroReady = true;
-      console.log("Kuroshiro initialized");
+      console.log("Kuroshiro initialized ✅");
     });
   } catch (e) {
+    console.error("Kuroshiro init 中に例外", e);
     alert("ルビ初期化でエラーが発生しました: " + e.message);
     return Promise.reject(e);
   }
 }
+
 
     // DOM 取得（後で埋まるので let で宣言だけしておく）
     let questionLabel, categoryLabel, idLabel, randomLabel;
