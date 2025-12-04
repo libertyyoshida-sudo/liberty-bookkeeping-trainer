@@ -764,13 +764,13 @@ const i18n = {
       }
       
       // ライブラリが読み込めているかチェック
-      if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
-        console.error("Kuroshiro または KuromojiAnalyzer が読み込まれていません。");
+      if (typeof Kuroshiro === "undefined" || typeof KuroshiroAnalyzerKuromoji === "undefined") {
+        console.error("Kuroshiro または KuroshiroAnalyzerKuromoji が読み込まれていません。");
         return Promise.reject(new Error("Kuroshiro not loaded"));
       }
       
       kuroshiro = new Kuroshiro();
-      const analyzer = new KuromojiAnalyzer({
+      const analyzer = new KuroshiroAnalyzerKuromoji({
         dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/"
       });
       
