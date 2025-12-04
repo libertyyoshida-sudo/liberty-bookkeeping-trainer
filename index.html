@@ -754,17 +754,30 @@ const i18n = {
     // ルビ表示用
     let rubyEnabled = false;
     let kuroshiro = null;
-    let kuroshiroInitialized = false;
+    let kuroshiroReady = false;
     
-    // Kuroshiro 初期化
-    async function initKuroshiro() { 
-      if (kuroshiroInitialized) return;
+    // Kuroshiro 初期化（Promise 版）
+    function initKuroshiro() {
+      // すでに初期化済みならそのまま使う
+      if (kuroshiroReady) {
+        return Promise.resolve();
+      }
+      
+      // ライブラリが読み込めているかチェック
+      if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
+        console.error("Kuroshiro または KuromojiAnalyzer が読み込まれていません。");
+        return Promise.reject(new Error("Kuroshiro not loaded"));
+      }
+      
       kuroshiro = new Kuroshiro();
       const analyzer = new KuromojiAnalyzer({
         dictPath: "https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/dict"
       });
-      await kuroshiro.init(analyzer);
-      kuroshiroInitialized = true;
+      
+      return kuroshiro.init(analyzer).then(() => {
+        kuroshiroReady = true;
+        console.log("Kuroshiro initialized");
+      });
     }
 
     // DOM 取得（後で埋まるので let で宣言だけしておく）
@@ -1076,13 +1089,14 @@ function renderQuestion() {
     const text = q.questionJa || "";
 
     // ルビONかつ Kuroshiro 初期化済みなら <ruby> に変換
-    if (rubyEnabled && kuroshiroInitialized && kuroshiro) {
+    if (rubyEnabled && kuroshiroReady && kuroshiro) {
       kuroshiro.convert(text, {
         to: "hiragana",
         mode: "furigana"   // <ruby><rt>形式
       }).then((html) => {
         questionTextJa.innerHTML = html;
-      }).catch(() => {
+      }).catch((e) => {
+        console.error("convert error", e);
         // 失敗したら普通のテキストを表示
         questionTextJa.textContent = text;
       });
@@ -1446,27 +1460,30 @@ function renderQuestion() {
       nextBtn.addEventListener("click", goNextQuestion);
       prevBtn.addEventListener("click", goPrevQuestion);
       checkBtn.addEventListener("click", checkAnswer);
-
+      
       // ルビON/OFFボタン
       const toggleRubyBtn = document.getElementById("toggle-ruby");
       if (toggleRubyBtn) {
-        toggleRubyBtn.addEventListener("click", async () => {
-          rubyEnabled = !rubyEnabled;
-          toggleRubyBtn.textContent = rubyEnabled ? "ルビ表示：ON" : "ルビ表示：OFF";
-
-          // 初回ONのときだけ Kuroshiro を初期化
-          if (rubyEnabled && !kuroshiroInitialized) {
-            try {
-              await initKuroshiro();
-            } catch (e) {
-              console.error("Kuroshiro init error", e);
-              rubyEnabled = false;
-              toggleRubyBtn.textContent = "ルビ表示：OFF";
-              return;
-            }
+        toggleRubyBtn.addEventListener("click", () => {
+          if (!rubyEnabled) {
+            // これから ON にする → まず Kuroshiro を初期化
+            initKuroshiro()
+              .then(() => {
+                rubyEnabled = true;
+                toggleRubyBtn.textContent = "ルビ表示：ON";
+                renderQuestion();
+              })
+              .catch((e) => {
+                console.error("Kuroshiro init error", e);
+                alert("ルビ機能の初期化に失敗しました（コンソールのエラーを確認してください）。");
+                // rubyEnabled はそのまま false にしておく
+              });
+          } else {
+            // OFF にするだけ
+            rubyEnabled = false;
+            toggleRubyBtn.textContent = "ルビ表示：OFF";
+            renderQuestion();
           }
-
-          renderQuestion();
         });
       }
       
