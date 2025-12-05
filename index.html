@@ -582,9 +582,11 @@ rt {
     
   </style>
   
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- スクリプト読み込み部分を修正 -->
   <script src="https://unpkg.com/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
   <script src="https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
+  <!-- 必要に応じて kuromoji も明示的に読み込む -->
+  <script src="https://unpkg.com/kuromoji@0.1.2/dist/kuromoji.min.js"></script>
   <script>
     const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
@@ -756,45 +758,40 @@ let rubyEnabled = false;
 let kuroshiro = null;
 let kuroshiroReady = false;
 
-// Kuroshiro 初期化（Promise 版）
+// Kuroshiro 初期化（Promise 版） - 修正後
 function initKuroshiro() {
   // すでに初期化済みならそのまま
   if (kuroshiroReady && kuroshiro) {
     return Promise.resolve();
   }
 
-  // CDN で読み込んだ UMD / ESModule どちらにも対応するように constructor を取り出す
-  const kuroMod = window.Kuroshiro;          // <script src="...kuroshiro.min.js">
-  const anaMod  = window.KuromojiAnalyzer;   // <script src="...kuroshiro-analyzer-kuromoji.min.js">
-
-  console.log("kuroMod =", kuroMod);
-  console.log("anaMod  =", anaMod);
-
-  // default に本体が入っている場合と、直にクラスが入っている場合の両方をケア
-  const KuroshiroClass =
-    (kuroMod && (kuroMod.default || kuroMod)) || null;
-  const AnalyzerClass =
-    (anaMod && (anaMod.default || anaMod)) || null;
-
-  if (typeof KuroshiroClass !== "function" || typeof AnalyzerClass !== "function") {
-    console.error("Kuroshiro または Analyzer がコンストラクタではありません。", {
-      KuroshiroClass,
-      AnalyzerClass,
-    });
-    alert("ルビ用ライブラリの読み込み形式が想定と違うようです。\nブラウザのコンソールでエラー内容を確認してください。");
-    return Promise.reject(new Error("Kuroshiro not constructor"));
-  }
-
   try {
-    kuroshiro = new KuroshiroClass();
-    const analyzer = new AnalyzerClass({
-      // kuromoji の辞書
+    // windowオブジェクトから直接クラスを取得
+    const KuroshiroClass = window.Kuroshiro;
+    const AnalyzerClass = window.KuromojiAnalyzer;
+    
+    console.log("KuroshiroClass =", KuroshiroClass);
+    console.log("AnalyzerClass =", AnalyzerClass);
+    
+    if (!KuroshiroClass || !AnalyzerClass) {
+      console.error("Kuroshiro または Analyzer が読み込まれていません。");
+      alert("ルビ用ライブラリの読み込みに失敗しました。ページをリロードしてください。");
+      return Promise.reject(new Error("Kuroshiro not loaded"));
+    }
+    
+    // デフォルトプロパティがある場合はそちらを使用
+    const Kuroshiro = KuroshiroClass.default || KuroshiroClass;
+    const KuromojiAnalyzer = AnalyzerClass.default || AnalyzerClass;
+    
+    kuroshiro = new Kuroshiro();
+    const analyzer = new KuromojiAnalyzer({
       dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/",
     });
 
     return kuroshiro.init(analyzer).then(() => {
       kuroshiroReady = true;
       console.log("Kuroshiro initialized ✅");
+      return true;
     });
   } catch (e) {
     console.error("Kuroshiro init 中に例外", e);
@@ -1094,12 +1091,13 @@ function applyLanguage() {
   // 履歴エリア（ログインしていないときのメッセージなど）は loadMyHistory 内で t を使う形でもOK
 }
     
-// 画面へ問題を反映
+// 画面へ問題を反映 - 修正後
 function renderQuestion() {
   if (!questions || questions.length === 0) {
     questionLabel.textContent = '問題がありません。';
     return;
   }
+  
   const q = questions[currentIndex];
   questionLabel.textContent = `問題 ${currentIndex + 1} / ${questions.length}`;
   categoryLabel.textContent = currentLang === "ja" ? (q.categoryJa || '') : (q.categoryEn || '');
@@ -1114,11 +1112,18 @@ function renderQuestion() {
 
     // ルビONかつ Kuroshiro 初期化済みなら <ruby> に変換
     if (rubyEnabled && kuroshiroReady && kuroshiro) {
+      // まず一時的にテキストを表示
+      questionTextJa.textContent = text;
+      
+      // 非同期でルビ変換を適用
       kuroshiro.convert(text, {
         to: "hiragana",
-        mode: "furigana"   // <ruby><rt>形式
+        mode: "furigana"
       }).then((html) => {
-        questionTextJa.innerHTML = html;
+        // 現在表示されている問題が変わっていないことを確認
+        if (questions[currentIndex] === q) {
+          questionTextJa.innerHTML = html;
+        }
       }).catch((e) => {
         console.error("convert error", e);
         // 失敗したら普通のテキストを表示
@@ -1147,7 +1152,6 @@ function renderQuestion() {
   // 入力クリア
   clearEntryInputs();
 }
-
 
     // 次の問題へ
     function goNextQuestion() {
@@ -1485,31 +1489,36 @@ function renderQuestion() {
       prevBtn.addEventListener("click", goPrevQuestion);
       checkBtn.addEventListener("click", checkAnswer);
       
-      // ルビON/OFFボタン
-      const toggleRubyBtn = document.getElementById("toggle-ruby");
-      if (toggleRubyBtn) {
-        toggleRubyBtn.addEventListener("click", () => {
-          if (!rubyEnabled) {
-            // これから ON にする → まず Kuroshiro を初期化
-            initKuroshiro()
-              .then(() => {
-                rubyEnabled = true;
-                toggleRubyBtn.textContent = "ルビ表示：ON";
-                renderQuestion();
-              })
-              .catch((e) => {
-                console.error("Kuroshiro init error", e);
-                alert("ルビ機能の初期化に失敗しました（コンソールのエラーを確認してください）。");
-                // rubyEnabled はそのまま false にしておく
-              });
-          } else {
-            // OFF にするだけ
-            rubyEnabled = false;
-            toggleRubyBtn.textContent = "ルビ表示：OFF";
-            renderQuestion();
-          }
-        });
+// ルビON/OFFボタン - 修正後
+const toggleRubyBtn = document.getElementById("toggle-ruby");
+if (toggleRubyBtn) {
+  // 初期状態を設定
+  toggleRubyBtn.textContent = rubyEnabled ? "ルビ表示：ON" : "ルビ表示：OFF";
+  
+  toggleRubyBtn.addEventListener("click", async () => {
+    if (!rubyEnabled) {
+      // これから ON にする → まず Kuroshiro を初期化
+      try {
+        await initKuroshiro();
+        rubyEnabled = true;
+        toggleRubyBtn.textContent = "ルビ表示：ON";
+        console.log("ルビ機能を有効化しました");
+        renderQuestion();
+      } catch (e) {
+        console.error("Kuroshiro init error", e);
+        alert("ルビ機能の初期化に失敗しました。ページをリロードして再試行してください。");
+        rubyEnabled = false;
+        toggleRubyBtn.textContent = "ルビ表示：OFF";
       }
+    } else {
+      // OFF にするだけ
+      rubyEnabled = false;
+      toggleRubyBtn.textContent = "ルビ表示：OFF";
+      console.log("ルビ機能を無効化しました");
+      renderQuestion();
+    }
+  });
+}
       
       try {
         // 認証状態取得
