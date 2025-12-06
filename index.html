@@ -764,47 +764,45 @@ let rubyEnabled = false;
 let kuroshiro = null;
 let kuroshiroReady = false;
 
-// Kuroshiro 初期化（Promise 版） - 修正後
+// Kuroshiro 初期化（シンプル版）
 function initKuroshiro() {
   // すでに初期化済みならそのまま
   if (kuroshiroReady && kuroshiro) {
     return Promise.resolve();
   }
 
-  try {
-    // windowオブジェクトから直接クラスを取得
-    const KuroshiroClass = window.Kuroshiro;
-    const AnalyzerClass = window.KuromojiAnalyzer;
-    
-    console.log("KuroshiroClass =", KuroshiroClass);
-    console.log("AnalyzerClass =", AnalyzerClass);
-    
-    if (!KuroshiroClass || !AnalyzerClass) {
-      console.error("Kuroshiro または Analyzer が読み込まれていません。");
+  return new Promise((resolve, reject) => {
+    // グローバルの Kuroshiro / KuromojiAnalyzer を確認
+    if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
+      console.error("Kuroshiro または KuromojiAnalyzer が見つかりません。");
       alert("ルビ用ライブラリの読み込みに失敗しました。ページをリロードしてください。");
-      return Promise.reject(new Error("Kuroshiro not loaded"));
+      reject(new Error("Kuroshiro not loaded"));
+      return;
     }
-    
-    // デフォルトプロパティがある場合はそちらを使用
-    const Kuroshiro = KuroshiroClass.default || KuroshiroClass;
-    const KuromojiAnalyzer = AnalyzerClass.default || AnalyzerClass;
-    
-    kuroshiro = new Kuroshiro();
-    const analyzer = new KuromojiAnalyzer({
-      dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/",
-    });
 
-    return kuroshiro.init(analyzer).then(() => {
-      kuroshiroReady = true;
-      console.log("Kuroshiro initialized ✅");
-      return true;
-    });
-  } catch (e) {
-    console.error("Kuroshiro init 中に例外", e);
-    alert("ルビ初期化でエラーが発生しました: " + e.message);
-    return Promise.reject(e);
-  }
+    try {
+      kuroshiro = new Kuroshiro();
+      const analyzer = new KuromojiAnalyzer({
+        dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/",
+      });
+
+      kuroshiro.init(analyzer).then(() => {
+        kuroshiroReady = true;
+        console.log("Kuroshiro initialized ✅");
+        resolve(true);
+      }).catch((e) => {
+        console.error("Kuroshiro init error:", e);
+        alert("ルビ初期化でエラーが発生しました: " + e.message);
+        reject(e);
+      });
+    } catch (e) {
+      console.error("Kuroshiro init 中に例外:", e);
+      alert("ルビ初期化でエラーが発生しました: " + e.message);
+      reject(e);
+    }
+  });
 }
+
 
 
     // DOM 取得（後で埋まるので let で宣言だけしておく）
