@@ -587,14 +587,17 @@ rt {
   <script src="https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
   <!-- 必要に応じて kuromoji も明示的に読み込む -->
   <script src="https://unpkg.com/kuromoji@0.1.2/dist/kuromoji.min.js"></script>
+
+  <!-- ⭐ Supabase を「外で」読み込む（ここがポイント） -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <script>
     const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    const { createClient } = supabase;
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+    // CDN版 supabase-js v2 は window.supabase にぶら下がる
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
 // 画面文言の多言語対応
 const i18n = {
   ja: {
