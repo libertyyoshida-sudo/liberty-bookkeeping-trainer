@@ -572,13 +572,15 @@
     }
 
     ruby {
-  ruby-position: over;   /* 横書きで上に表示する指定 */
-}
+      ruby-position: over;   /* 横書きで上に表示する指定 */
+      -webkit-ruby-position: before; /* for older Chrome */
+    }
 
-rt {
-  font-size: 0.6em;      /* ルビを小さめに */
-  line-height: 1;
-}
+    rt {
+      font-size: 0.6em;      /* ルビを小さめに */
+      line-height: 1;
+      text-align: center;
+    }
     
   </style>
   
@@ -1124,6 +1126,7 @@ function renderQuestion() {
         to: "hiragana",
         mode: "furigana"
       }).then((html) => {
+        console.log('変換結果のHTML:', html); // 追加
         // 現在表示されている問題が変わっていないことを確認
         if (questions[currentIndex] === q) {
           questionTextJa.innerHTML = html;
