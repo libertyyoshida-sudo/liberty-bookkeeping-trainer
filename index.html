@@ -591,6 +591,7 @@ rt {
     const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     const { createClient } = supabase;
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -1268,24 +1269,6 @@ function renderQuestion() {
       }
     }
 
-    // 片側比較
-    function compareSide(userList, correctList) {
-      if (!Array.isArray(correctList)) return false;
-      if (userList.length !== correctList.length) return false;
-
-      const remaining = correctList.map((e) => ({ ...e })); // コピー
-
-      for (const u of userList) {
-        const index = remaining.findIndex(
-          (c) => c.account === u.account && Number(c.amount) === Number(u.amount)
-        );
-        if (index === -1) {
-          return false;
-        }
-        remaining.splice(index, 1);
-      }
-      return remaining.length === 0;
-    }
 
     // ← この下に追加
     // Supabase の solution JSON を { debit: [...], credit: [...] } 形式にそろえる
@@ -1385,7 +1368,7 @@ function renderQuestion() {
           .from('study_logs')
           .select('id, content_id, is_correct, completed_at, created_at')
           .eq('user_id', window.sessionUser.id)
-          .order('answered_at', { ascending: false })
+          .order('completed_at', { ascending: false })
           .limit(20);
 
         if (error) {
@@ -1405,7 +1388,7 @@ function renderQuestion() {
           div.className = 'history-item';
 
           const left = document.createElement('span');
-          left.textContent = `Q:${row.question_id}`;
+          left.textContent = `Q:${row.content_id}`;
 
           const right = document.createElement('span');
           const flag = document.createElement('span');
