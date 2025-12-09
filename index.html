@@ -764,37 +764,74 @@ let rubyEnabled = false;
 let kuroshiro = null;
 let kuroshiroReady = false;
 
-// Kuroshiro 初期化（シンプル版）
 function initKuroshiro() {
-  // すでに初期化済みならそのまま
   if (kuroshiroReady && kuroshiro) {
     return Promise.resolve();
   }
 
   return new Promise((resolve, reject) => {
     // グローバルの Kuroshiro / KuromojiAnalyzer を確認
-    if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
-      console.error("Kuroshiro または KuromojiAnalyzer が見つかりません。");
+    if (typeof Kuroshiro === "undefined") {
+      console.error("Kuroshiro が見つかりません。");
       alert("ルビ用ライブラリの読み込みに失敗しました。ページをリロードしてください。");
       reject(new Error("Kuroshiro not loaded"));
       return;
     }
+    if (typeof KuromojiAnalyzer === "undefined") {
+      console.error("KuromojiAnalyzer が見つかりません。");
+      alert("ルビ用アナライザの読み込みに失敗しました。ページをリロードしてください。");
+      reject(new Error("KuromojiAnalyzer not loaded"));
+      return;
+    }
 
     try {
-      kuroshiro = new Kuroshiro();
-      const analyzer = new KuromojiAnalyzer({
+      // ★ ここがポイント：default にも対応
+      const KuroClass =
+        typeof Kuroshiro === "function"
+          ? Kuroshiro
+          : (Kuroshiro && typeof Kuroshiro.default === "function"
+              ? Kuroshiro.default
+              : null);
+
+      if (!KuroClass) {
+        console.error("Kuroshiro がコンストラクタではありません:", Kuroshiro);
+        alert("Kuroshiro の読み込み形式が想定と異なります。");
+        reject(new Error("Kuroshiro is not a constructor"));
+        return;
+      }
+
+      // KuromojiAnalyzer 側も default を持っているケースをケア
+      const AnalyzerClass =
+        typeof KuromojiAnalyzer === "function"
+          ? KuromojiAnalyzer
+          : (KuromojiAnalyzer && typeof KuromojiAnalyzer.default === "function"
+              ? KuromojiAnalyzer.default
+              : null);
+
+      if (!AnalyzerClass) {
+        console.error("KuromojiAnalyzer がコンストラクタではありません:", KuromojiAnalyzer);
+        alert("KuromojiAnalyzer の読み込み形式が想定と異なります。");
+        reject(new Error("KuromojiAnalyzer is not a constructor"));
+        return;
+      }
+
+      kuroshiro = new KuroClass();
+      const analyzer = new AnalyzerClass({
         dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/",
       });
 
-      kuroshiro.init(analyzer).then(() => {
-        kuroshiroReady = true;
-        console.log("Kuroshiro initialized ✅");
-        resolve(true);
-      }).catch((e) => {
-        console.error("Kuroshiro init error:", e);
-        alert("ルビ初期化でエラーが発生しました: " + e.message);
-        reject(e);
-      });
+      kuroshiro
+        .init(analyzer)
+        .then(() => {
+          kuroshiroReady = true;
+          console.log("Kuroshiro initialized ✅");
+          resolve(true);
+        })
+        .catch((e) => {
+          console.error("Kuroshiro init error:", e);
+          alert("ルビ初期化でエラーが発生しました: " + e.message);
+          reject(e);
+        });
     } catch (e) {
       console.error("Kuroshiro init 中に例外:", e);
       alert("ルビ初期化でエラーが発生しました: " + e.message);
@@ -802,6 +839,7 @@ function initKuroshiro() {
     }
   });
 }
+
 
 
 
