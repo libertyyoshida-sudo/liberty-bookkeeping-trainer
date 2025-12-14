@@ -763,51 +763,51 @@ let kuroshiro = null;
 let kuroshiroReady = false;
 
 function initKuroshiro() {
-      if (kuroshiroReady && kuroshiro) {
-        return Promise.resolve();
-      }
+  // すでに初期化済みならそのまま返す
+  if (kuroshiroReady && kuroshiro) {
+    return Promise.resolve();
+  }
 
-      return new Promise((resolve, reject) => {
-        // グローバルの Kuroshiro / KuromojiAnalyzer を確認
-        // CDN版では window.Kuroshiro, window.KuromojiAnalyzer として露出することが一般的です
-        const KuroClass = window.Kuroshiro;
-        const AnalyzerClass = window.KuromojiAnalyzer;
+  return new Promise((resolve, reject) => {
+    // グローバルに読み込まれているか確認
+    if (typeof Kuroshiro === "undefined") {
+      console.error("Kuroshiro が見つかりません。");
+      alert("ルビ用ライブラリ(Kuroshiro)の読み込みに失敗しました。");
+      reject(new Error("Kuroshiro not loaded"));
+      return;
+    }
+    if (typeof KuromojiAnalyzer === "undefined") {
+      console.error("KuromojiAnalyzer が見つかりません。");
+      alert("ルビ用アナライザ(KuromojiAnalyzer)の読み込みに失敗しました。");
+      reject(new Error("KuromojiAnalyzer not loaded"));
+      return;
+    }
 
-        if (!KuroClass || !AnalyzerClass) {
-          const errMsg = "ライブラリが正しく読み込まれていません。\nインターネット接続を確認するか、ブラウザの広告ブロック機能をOFFにしてみてください。";
-          console.error("Library missing:", { Kuroshiro: !!KuroClass, KuromojiAnalyzer: !!AnalyzerClass });
-          alert(errMsg);
-          reject(new Error(errMsg));
-          return;
-        }
-
-        try {
-          kuroshiro = new KuroClass();
-          
-          // 辞書パスの設定
-          const analyzer = new AnalyzerClass({
-            // 末尾のスラッシュは必須です
-            dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/", 
-          });
-
-          kuroshiro.init(analyzer)
-            .then(() => {
-              kuroshiroReady = true;
-              console.log("Kuroshiro initialized ✅");
-              resolve(true);
-            })
-            .catch((e) => {
-              console.error("Kuroshiro init error details:", e);
-              // よくあるエラー：辞書ファイルがCORSでブロックされる、または見つからない
-              alert("辞書データの読み込みに失敗しました。\nローカルファイル(file://)で開いている場合は動作しないことがあります。\nVSCodeのLive Serverなどを使用してください。");
-              reject(e);
-            });
-        } catch (e) {
-          console.error("Kuroshiro init exception:", e);
-          alert("ルビ初期化中に予期せぬエラーが発生しました: " + e.message);
-          reject(e);
-        }
+    try {
+      // ★ 公式ドキュメント通り、素直に new する
+      kuroshiro = new Kuroshiro();
+      const analyzer = new KuromojiAnalyzer({
+        dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/",
       });
+
+      kuroshiro
+        .init(analyzer)
+        .then(() => {
+          kuroshiroReady = true;
+          console.log("Kuroshiro initialized ✅");
+          resolve(true);
+        })
+        .catch((e) => {
+          console.error("Kuroshiro init error:", e);
+          alert("ルビ初期化でエラーが発生しました: " + e.message);
+          reject(e);
+        });
+    } catch (e) {
+      console.error("Kuroshiro init 中に例外:", e);
+      alert("ルビ初期化でエラーが発生しました: " + e.message);
+      reject(e);
+    }
+  });
 }
 
 // Kuroshiro の furigana 出力「漢(かん)字」を <ruby>漢<rt>かん</rt>字</ruby> に変換
