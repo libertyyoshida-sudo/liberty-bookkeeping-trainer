@@ -584,12 +584,10 @@
     
   </style>
   
-  <!-- スクリプト読み込み部分を修正 -->
+  <script src="https://unpkg.com/kuromoji@0.1.2/dist/kuromoji.min.js"></script>
   <script src="https://unpkg.com/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
   <script src="https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
-  <!-- 必要に応じて kuromoji も明示的に読み込む -->
-  <script src="https://unpkg.com/kuromoji@0.1.2/dist/kuromoji.min.js"></script>
-
+ 
   <!-- ⭐ Supabase を「外で」読み込む（ここがポイント） -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
@@ -765,83 +763,61 @@ let kuroshiro = null;
 let kuroshiroReady = false;
 
 function initKuroshiro() {
-  if (kuroshiroReady && kuroshiro) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve, reject) => {
-    // グローバルの Kuroshiro / KuromojiAnalyzer を確認
-    if (typeof Kuroshiro === "undefined") {
-      console.error("Kuroshiro が見つかりません。");
-      alert("ルビ用ライブラリの読み込みに失敗しました。ページをリロードしてください。");
-      reject(new Error("Kuroshiro not loaded"));
-      return;
-    }
-    if (typeof KuromojiAnalyzer === "undefined") {
-      console.error("KuromojiAnalyzer が見つかりません。");
-      alert("ルビ用アナライザの読み込みに失敗しました。ページをリロードしてください。");
-      reject(new Error("KuromojiAnalyzer not loaded"));
-      return;
-    }
-
-    try {
-      // ★ ここがポイント：default にも対応
-      const KuroClass =
-        typeof Kuroshiro === "function"
-          ? Kuroshiro
-          : (Kuroshiro && typeof Kuroshiro.default === "function"
-              ? Kuroshiro.default
-              : null);
-
-      if (!KuroClass) {
-        console.error("Kuroshiro がコンストラクタではありません:", Kuroshiro);
-        alert("Kuroshiro の読み込み形式が想定と異なります。");
-        reject(new Error("Kuroshiro is not a constructor"));
-        return;
+      if (kuroshiroReady && kuroshiro) {
+        return Promise.resolve();
       }
 
-      // KuromojiAnalyzer 側も default を持っているケースをケア
-      const AnalyzerClass =
-        typeof KuromojiAnalyzer === "function"
-          ? KuromojiAnalyzer
-          : (KuromojiAnalyzer && typeof KuromojiAnalyzer.default === "function"
-              ? KuromojiAnalyzer.default
-              : null);
+      return new Promise((resolve, reject) => {
+        // グローバルの Kuroshiro / KuromojiAnalyzer を確認
+        // CDN版では window.Kuroshiro, window.KuromojiAnalyzer として露出することが一般的です
+        const KuroClass = window.Kuroshiro;
+        const AnalyzerClass = window.KuromojiAnalyzer;
 
-      if (!AnalyzerClass) {
-        console.error("KuromojiAnalyzer がコンストラクタではありません:", KuromojiAnalyzer);
-        alert("KuromojiAnalyzer の読み込み形式が想定と異なります。");
-        reject(new Error("KuromojiAnalyzer is not a constructor"));
-        return;
-      }
+        if (!KuroClass || !AnalyzerClass) {
+          const errMsg = "ライブラリが正しく読み込まれていません。\nインターネット接続を確認するか、ブラウザの広告ブロック機能をOFFにしてみてください。";
+          console.error("Library missing:", { Kuroshiro: !!KuroClass, KuromojiAnalyzer: !!AnalyzerClass });
+          alert(errMsg);
+          reject(new Error(errMsg));
+          return;
+        }
 
-      kuroshiro = new KuroClass();
-      const analyzer = new AnalyzerClass({
-        dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/",
-      });
+        try {
+          kuroshiro = new KuroClass();
+          
+          // 辞書パスの設定
+          const analyzer = new AnalyzerClass({
+            // 末尾のスラッシュは必須です
+            dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/", 
+          });
 
-      kuroshiro
-        .init(analyzer)
-        .then(() => {
-          kuroshiroReady = true;
-          console.log("Kuroshiro initialized ✅");
-          resolve(true);
-        })
-        .catch((e) => {
-          console.error("Kuroshiro init error:", e);
-          alert("ルビ初期化でエラーが発生しました: " + e.message);
+          kuroshiro.init(analyzer)
+            .then(() => {
+              kuroshiroReady = true;
+              console.log("Kuroshiro initialized ✅");
+              resolve(true);
+            })
+            .catch((e) => {
+              console.error("Kuroshiro init error details:", e);
+              // よくあるエラー：辞書ファイルがCORSでブロックされる、または見つからない
+              alert("辞書データの読み込みに失敗しました。\nローカルファイル(file://)で開いている場合は動作しないことがあります。\nVSCodeのLive Serverなどを使用してください。");
+              reject(e);
+            });
+        } catch (e) {
+          console.error("Kuroshiro init exception:", e);
+          alert("ルビ初期化中に予期せぬエラーが発生しました: " + e.message);
           reject(e);
-        });
-    } catch (e) {
-      console.error("Kuroshiro init 中に例外:", e);
-      alert("ルビ初期化でエラーが発生しました: " + e.message);
-      reject(e);
-    }
-  });
+        }
+      });
 }
 
-
-
+// Kuroshiro の furigana 出力「漢(かん)字」を <ruby>漢<rt>かん</rt>字</ruby> に変換
+function furiganaTextToRubyHtml(str) {
+  // 例: 商品(しょうひん)を → <ruby>商品<rt>しょうひん</rt></ruby>を
+  return str.replace(
+    /([一-龠々〆ヵヶ]+)\(([^)]+)\)/g,
+    "<ruby>$1<rt>$2</rt></ruby>"
+  );
+}
 
     // DOM 取得（後で埋まるので let で宣言だけしておく）
     let questionLabel, categoryLabel, idLabel, randomLabel;
@@ -1161,23 +1137,24 @@ function renderQuestion() {
       kuroshiro.convert(text, {
         to: "hiragana",
         mode: "furigana"
-      }).then((html) => {
-        console.log('変換結果のHTML:', html); // 追加
-        // 現在表示されている問題が変わっていないことを確認
-        if (questions[currentIndex] === q) {
-          questionTextJa.innerHTML = html;
-        }
-      }).catch((e) => {
-        console.error("convert error", e);
-        // 失敗したら普通のテキストを表示
-        questionTextJa.textContent = text;
-      });
-    } else {
+     }).then((furiganaText) => {
+      console.log("変換結果(raw):", furiganaText);
+        
+        // まだ同じ問題を表示しているか確認
+      if (questions[currentIndex] === q) {
+        const rubyHtml = furiganaTextToRubyHtml(furiganaText);
+        questionTextJa.innerHTML = rubyHtml;
+      }
+    }).catch((e) => {
+      console.error("convert error", e);
       questionTextJa.textContent = text;
-    }
-
+    });
   } else {
-    // 英語表示
+    // ルビOFFなら普通にテキスト
+    questionTextJa.textContent = text;
+  }
+} else {
+  // 英語表示
     questionTextJa.style.display = "none";
     questionTextEn.style.display = "block";
     questionTextEn.textContent = q.questionEn || '';
