@@ -790,6 +790,25 @@ function initKuroshiro() {
 
   // ★修正②：dictPath を自分の Pages の dict にする
   const dictPath = new URL("./dict/", location.href).toString();
+  console.log("dictPath =", dictPath);
+
+  const testFiles = [
+  "base.dat.gz","check.dat.gz","tid.dat.gz","tid_map.dat.gz","tid_pos.dat.gz",
+  "unk.dat.gz","unk_map.dat.gz","unk_pos.dat.gz"
+  ];
+
+  // 先に辞書ファイルが取れるかだけ確認（軽い）
+Promise.all(testFiles.map(async (f) => {
+  try {
+    const r = await fetch(dictPath + f, { cache: "no-store" });
+    return { file: f, ok: r.ok, status: r.status };
+  } catch (e) {
+    return { file: f, ok: false, status: "FETCH_ERROR" };
+  }
+})).then(results => {
+  console.table(results);
+}); 
+    
   const analyzer = new KuromojiAnalyzer({ dictPath });
 
   kuroshiro
@@ -1503,6 +1522,8 @@ if (toggleRubyBtn) {
     if (!rubyEnabled) {
       toggleRubyBtn.disabled = true;
       toggleRubyBtn.textContent = "ルビ初期化中…";
+      await new Promise(r => setTimeout(r, 50));
+      
       // これから ON にする → まず Kuroshiro を初期化
       try {
         // 30秒でタイムアウト
