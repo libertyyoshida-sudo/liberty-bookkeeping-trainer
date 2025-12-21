@@ -1501,19 +1501,27 @@ if (toggleRubyBtn) {
   
   toggleRubyBtn.addEventListener("click", async () => {
     if (!rubyEnabled) {
+      toggleRubyBtn.disabled = true;
+      toggleRubyBtn.textContent = "ルビ初期化中…";
       // これから ON にする → まず Kuroshiro を初期化
       try {
-        await initKuroshiro();
+        // 30秒でタイムアウト
+        await Promise.race([
+          initKuroshiro(),
+          new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 30000))
+        ]);
+        
         rubyEnabled = true;
         toggleRubyBtn.textContent = "ルビ表示：ON";
-        console.log("ルビ機能を有効化しました");
         renderQuestion();
       } catch (e) {
-        console.error("Kuroshiro init error", e);
-        alert("ルビ機能の初期化に失敗しました。ページをリロードして再試行してください。");
+        console.error(e);
+        alert("ルビ初期化に失敗: " + (e?.message || e));
         rubyEnabled = false;
         toggleRubyBtn.textContent = "ルビ表示：OFF";
-      }
+      }finally {
+      toggleRubyBtn.disabled = false;
+      }      
     } else {
       // OFF にするだけ
       rubyEnabled = false;
