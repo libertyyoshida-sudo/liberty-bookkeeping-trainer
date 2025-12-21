@@ -784,29 +784,31 @@ function initKuroshiro() {
     }
 
     try {
-      // ★ 公式ドキュメント通り、素直に new する
-      kuroshiro = new Kuroshiro();
-      const analyzer = new KuromojiAnalyzer({
-        dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/",
-      });
+  // ★修正①：Kuroshiro を default 対応で生成
+  const KuroClass = window.Kuroshiro?.default || window.Kuroshiro;
+  kuroshiro = new KuroClass();
 
-      kuroshiro
-        .init(analyzer)
-        .then(() => {
-          kuroshiroReady = true;
-          console.log("Kuroshiro initialized ✅");
-          resolve(true);
-        })
-        .catch((e) => {
-          console.error("Kuroshiro init error:", e);
-          alert("ルビ初期化でエラーが発生しました: " + e.message);
-          reject(e);
-        });
-    } catch (e) {
-      console.error("Kuroshiro init 中に例外:", e);
-      alert("ルビ初期化でエラーが発生しました: " + e.message);
+  // ★修正②：dictPath を自分の Pages の dict にする
+  const dictPath = new URL("./dict/", location.href).toString();
+  const analyzer = new KuromojiAnalyzer({ dictPath });
+
+  kuroshiro
+    .init(analyzer)
+    .then(() => {
+      kuroshiroReady = true;
+      console.log("Kuroshiro initialized ✅ dictPath =", dictPath);
+      resolve(true);
+    })
+    .catch((e) => {
+      console.error("Kuroshiro init error:", e);
+      alert("ルビ初期化でエラーが発生しました: " + (e?.message || e));
       reject(e);
-    }
+    });
+} catch (e) {
+  console.error("Kuroshiro init 中に例外:", e);
+  alert("ルビ初期化でエラーが発生しました: " + (e?.message || e));
+  reject(e);
+}
   });
 }
 
