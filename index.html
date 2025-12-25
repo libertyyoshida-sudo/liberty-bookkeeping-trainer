@@ -768,7 +768,7 @@ function initKuroshiro() {
     return Promise.resolve();
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     // グローバルに読み込まれているか確認
     if (typeof Kuroshiro === "undefined") {
       console.error("Kuroshiro が見つかりません。");
@@ -789,7 +789,7 @@ function initKuroshiro() {
   kuroshiro = new KuroClass();
 
   // ★修正②：dictPath を自分の Pages の dict にする
-  const dictPath = new URL("./dict/", location.href).toString();
+  const dictPath ="https://libertyyoshida-sudo.github.io/liberty-bookkeeping-trainer/dict/";
   console.log("dictPath =", dictPath);
 
   const testFiles = [
