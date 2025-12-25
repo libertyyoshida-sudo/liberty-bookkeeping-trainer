@@ -789,8 +789,13 @@ function initKuroshiro() {
   kuroshiro = new KuroClass();
 
   // ★修正②：dictPath を自分の Pages の dict にする
-  const dictPath = "https://libertyyoshida-sudo.github.io/liberty-bookkeeping-trainer/dict/";
+  const dictPath = "https://libertyyoshida-sudo.github.io/liberty-bookkeeping-trainer/dict";
   console.log("dictPath =", dictPath);
+
+  const AnalyzerClass =
+  window.KuromojiAnalyzer ||
+  window.KuroshiroAnalyzerKuromoji || 
+  KuromojiAnalyzer;    
     
   const analyzer = new KuromojiAnalyzer({ dictPath });
 
