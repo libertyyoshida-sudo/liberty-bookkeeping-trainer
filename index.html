@@ -792,23 +792,6 @@ function initKuroshiro() {
   const dictPath = "https://libertyyoshida-sudo.github.io/liberty-bookkeeping-trainer/dict/";
   const analyzer = new KuromojiAnalyzer({ dictPath });
   console.log("dictPath =", dictPath);
-
-  const testFiles = [
-  "base.dat.gz","check.dat.gz","tid.dat.gz","tid_map.dat.gz","tid_pos.dat.gz",
-  "unk.dat.gz","unk_map.dat.gz","unk_pos.dat.gz"
-  ];
-
-  // 先に辞書ファイルが取れるかだけ確認（軽い）
-Promise.all(testFiles.map(async (f) => {
-  try {
-    const r = await fetch(dictPath + f, { cache: "no-store" });
-    return { file: f, ok: r.ok, status: r.status };
-  } catch (e) {
-    return { file: f, ok: false, status: "FETCH_ERROR" };
-  }
-})).then(results => {
-  console.table(results);
-}); 
     
   const analyzer = new KuromojiAnalyzer({ dictPath });
 
