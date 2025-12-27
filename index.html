@@ -595,8 +595,14 @@
     const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
 
-    // CDN版 supabase-js v2 は window.supabase にぶら下がる
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+   // Supabaseクライアント初期化
+    let supabaseClient;
+    if (window.supabase && window.supabase.createClient) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      console.log('Supabase client initialized ✅');
+    } else {
+      console.error('Supabase library not loaded');
+    }
   
 // 画面文言の多言語対応
 const i18n = {
@@ -761,7 +767,7 @@ let totalCorrect = 0;
 let rubyEnabled = false;
 let kuroshiro = null;
 let kuroshiroReady = false;
-let kuroshiroInitPromise = null;    
+let kuroshiroInitPromise = null;
 
 function initKuroshiro() {
   // すでに初期化済みならそのまま返す
@@ -769,26 +775,34 @@ function initKuroshiro() {
     return Promise.resolve();
   }
 
-   // ✅ 初期化中なら、そのPromiseを返す（2回目以降はここ）
+  // 初期化中なら、そのPromiseを返す
   if (kuroshiroInitPromise) {
     return kuroshiroInitPromise;
   }
 
-   // ✅ 初期化処理をPromiseとして保持
-   kuroshiroInitPromise = new Promise(async (resolve, reject) => {
+  // 初期化処理をPromiseとして保持
+  kuroshiroInitPromise = new Promise(async (resolve, reject) => {
     try {
+      // Kuroshiroの読み込み確認
+      if (typeof Kuroshiro === "undefined" && !window.Kuroshiro) {
+        throw new Error("Kuroshiro library not loaded");
+      }
+      
       const KuroClass = window.Kuroshiro?.default || window.Kuroshiro;
+      if (!KuroClass) {
+        throw new Error("Kuroshiro class not found");
+      }
+      
       kuroshiro = new KuroClass();
 
-  const dictPath = "./dict/";
-      const AnalyzerClass =
-        window.KuromojiAnalyzer ||
-        window.KuroshiroAnalyzerKuromoji;
-
+      // Analyzer確認
+      const AnalyzerClass = window.KuroshiroAnalyzerKuromoji?.default || 
+                           window.KuroshiroAnalyzerKuromoji;
       if (!AnalyzerClass) {
-        throw new Error("KuromojiAnalyzer が読み込まれていません");
+        throw new Error("KuromojiAnalyzer not loaded");
       }
 
+      const dictPath = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict";  // ← CDNのパス
       const analyzer = new AnalyzerClass({ dictPath });
 
       await kuroshiro.init(analyzer);
@@ -799,67 +813,12 @@ function initKuroshiro() {
 
     } catch (e) {
       console.error("Kuroshiro init error:", e);
-
-      // ✅ 失敗したら Promise をリセットして再挑戦できるようにする
       kuroshiroInitPromise = null;
       reject(e);
     }
   });
 
   return kuroshiroInitPromise;
-}    
-      
-  return new Promise(async (resolve, reject) => {
-    // グローバルに読み込まれているか確認
-    if (typeof Kuroshiro === "undefined") {
-      console.error("Kuroshiro が見つかりません。");
-      alert("ルビ用ライブラリ(Kuroshiro)の読み込みに失敗しました。");
-      reject(new Error("Kuroshiro not loaded"));
-      return;
-    }
-    if (typeof KuromojiAnalyzer === "undefined") {
-      console.error("KuromojiAnalyzer が見つかりません。");
-      alert("ルビ用アナライザ(KuromojiAnalyzer)の読み込みに失敗しました。");
-      reject(new Error("KuromojiAnalyzer not loaded"));
-      return;
-    }
-
-    try {
-  // ★修正①：Kuroshiro を default 対応で生成
-  const KuroClass = window.Kuroshiro?.default || window.Kuroshiro;
-  kuroshiro = new KuroClass();
-
-  // ★修正②：dictPath を自分の Pages の dict にする
-  const dictPath = "https://libertyyoshida-sudo.github.io/liberty-bookkeeping-trainer/dict";
-  console.log("dictPath =", dictPath);
-
-  const AnalyzerClass =
-    window.KuromojiAnalyzer ||
-    window.KuroshiroAnalyzerKuromoji ||
-
-  if (!AnalyzerClass) {
-  throw new Error("KuromojiAnalyzer が読み込まれていません");  
-    
-  const analyzer = new KuromojiAnalyzer({ dictPath });
-
-  kuroshiro
-    .init(analyzer)
-    .then(() => {
-      kuroshiroReady = true;
-      console.log("Kuroshiro initialized ✅ dictPath =", dictPath);
-      resolve(true);
-    })
-    .catch((e) => {
-      console.error("Kuroshiro init error:", e);
-      alert("ルビ初期化でエラーが発生しました: " + (e?.message || e));
-      reject(e);
-    });
-} catch (e) {
-  console.error("Kuroshiro init 中に例外:", e);
-  alert("ルビ初期化でエラーが発生しました: " + (e?.message || e));
-  reject(e);
-}
-  });
 }
 
 // Kuroshiro の furigana 出力「漢(かん)字」を <ruby>漢<rt>かん</rt>字</ruby> に変換
@@ -1543,21 +1502,17 @@ function renderQuestion() {
       prevBtn.addEventListener("click", goPrevQuestion);
       checkBtn.addEventListener("click", checkAnswer);
       
-// ルビON/OFFボタン - 修正後
+// ルビON/OFFボタン
 const toggleRubyBtn = document.getElementById("toggle-ruby");
 if (toggleRubyBtn) {
-  // 初期状態を設定
   toggleRubyBtn.textContent = rubyEnabled ? "ルビ表示：ON" : "ルビ表示：OFF";
   
   toggleRubyBtn.addEventListener("click", async () => {
     if (!rubyEnabled) {
       toggleRubyBtn.disabled = true;
       toggleRubyBtn.textContent = "ルビ初期化中…";
-      await new Promise(r => setTimeout(r, 50));
       
-      // これから ON にする → まず Kuroshiro を初期化
       try {
-        // 30秒でタイムアウト
         await Promise.race([
           initKuroshiro(),
           new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 30000))
@@ -1571,11 +1526,10 @@ if (toggleRubyBtn) {
         alert("ルビ初期化に失敗: " + (e?.message || e));
         rubyEnabled = false;
         toggleRubyBtn.textContent = "ルビ表示：OFF";
-      }finally {
-      toggleRubyBtn.disabled = false;
+      } finally {  // ← インデント修正
+        toggleRubyBtn.disabled = false;
       }      
     } else {
-      // OFF にするだけ
       rubyEnabled = false;
       toggleRubyBtn.textContent = "ルビ表示：OFF";
       console.log("ルビ機能を無効化しました");
@@ -1588,22 +1542,21 @@ if (toggleRubyBtn) {
         // 認証状態取得
         const { data: authData } = await supabaseClient.auth.getUser();
         window.sessionUser = authData.user || null;
-        updateAuthUI();
-
-// quiz_questions 取得（account_options カラムも一緒に返ってくる）
-const { data, error } = await supabaseClient
-  .from('quiz_questions')
-  .select('*');
-
-if (error) {
-  console.error('Supabase quiz_questions error:', error);
-  allQuestions = hardcodedQuestions;
-} else if (data && data.length > 0) {
-  console.log('取得したクイズ件数:', data.length);
-
-  // ★ ここで solution をオブジェクトに直しておく
-  allQuestions = data.map((row) => {
-    let solution = row.solution;
+        updateAuthUI(); 
+        
+        // quiz_questions 取得（account_options カラムも一緒に返ってくる）
+        const { data, error } = await supabaseClient
+          .from('quiz_questions')
+          .select('*');
+        if (error) {
+          console.error('Supabase quiz_questions error:', error);
+          allQuestions = hardcodedQuestions;
+        }else if (data && data.length > 0) {
+          console.log('取得したクイズ件数:', data.length);
+          
+          // ★ ここで solution をオブジェクトに直しておく
+          allQuestions = data.map((row) => {
+            let solution = row.solution;
 
     // solution が文字列なら JSON としてパース
     if (typeof solution === 'string') {
