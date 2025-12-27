@@ -761,6 +761,7 @@ let totalCorrect = 0;
 let rubyEnabled = false;
 let kuroshiro = null;
 let kuroshiroReady = false;
+let kuroshiroInitPromise = null;    
 
 function initKuroshiro() {
   // すでに初期化済みならそのまま返す
@@ -768,6 +769,46 @@ function initKuroshiro() {
     return Promise.resolve();
   }
 
+   // ✅ 初期化中なら、そのPromiseを返す（2回目以降はここ）
+  if (kuroshiroInitPromise) {
+    return kuroshiroInitPromise;
+  }
+
+   // ✅ 初期化処理をPromiseとして保持
+   kuroshiroInitPromise = new Promise(async (resolve, reject) => {
+    try {
+      const KuroClass = window.Kuroshiro?.default || window.Kuroshiro;
+      kuroshiro = new KuroClass();
+
+  const dictPath = "./dict/";
+      const AnalyzerClass =
+        window.KuromojiAnalyzer ||
+        window.KuroshiroAnalyzerKuromoji;
+
+      if (!AnalyzerClass) {
+        throw new Error("KuromojiAnalyzer が読み込まれていません");
+      }
+
+      const analyzer = new AnalyzerClass({ dictPath });
+
+      await kuroshiro.init(analyzer);
+
+      kuroshiroReady = true;
+      console.log("Kuroshiro initialized ✅");
+      resolve(true);
+
+    } catch (e) {
+      console.error("Kuroshiro init error:", e);
+
+      // ✅ 失敗したら Promise をリセットして再挑戦できるようにする
+      kuroshiroInitPromise = null;
+      reject(e);
+    }
+  });
+
+  return kuroshiroInitPromise;
+}    
+      
   return new Promise(async (resolve, reject) => {
     // グローバルに読み込まれているか確認
     if (typeof Kuroshiro === "undefined") {
@@ -793,9 +834,11 @@ function initKuroshiro() {
   console.log("dictPath =", dictPath);
 
   const AnalyzerClass =
-  window.KuromojiAnalyzer ||
-  window.KuroshiroAnalyzerKuromoji || 
-  KuromojiAnalyzer;    
+    window.KuromojiAnalyzer ||
+    window.KuroshiroAnalyzerKuromoji ||
+
+  if (!AnalyzerClass) {
+  throw new Error("KuromojiAnalyzer が読み込まれていません");  
     
   const analyzer = new KuromojiAnalyzer({ dictPath });
 
