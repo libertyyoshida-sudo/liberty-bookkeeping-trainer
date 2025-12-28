@@ -1330,58 +1330,68 @@ function renderQuestion() {
    
     // 答え合わせ
     async function checkAnswer() {
-      if (!questions || questions.length === 0) {
-        return;
-      }
-      const q = questions[currentIndex];
-      const user = getUserEntries();
-      const t = i18n[currentLang];   // ★ 翻訳テーブルを参照
+  if (!questions || questions.length === 0) {
+    return;
+  }
 
-      // 入力なし
-      if (user.debit.length === 0 && user.credit.length === 0) {
-        resultMessage.textContent = t['msg-input-required'];
-        resultMessage.className = "result-message ng";
-        answerPanel.style.display = "none";
-        return;
-      }
+  const q = questions[currentIndex];
+  const user = getUserEntries();
+  const t = i18n[currentLang];
 
-      // 借方・貸方が一致していない
-      if (!isBalanced(user)) {
-        resultMessage.textContent = t['msg-not-balanced'];
-        resultMessage.className = "result-message ng";
-        answerPanel.style.display = "none";
-        return;
-      }
+  // --- 模範解答（正誤判定に使う）
+  const norm = normalizeSolution(q.solution);
 
-      // 採点
-      // Supabase / ハードコード両対応の模範解答を取得
-      const norm = normalizeSolution(q.solution);
+  // --- 原因メッセージを積む
+  let reasonMessages = [];
 
-      const okDebit = compareSide(user.debit, norm.debit);
-      const okCredit = compareSide(user.credit, norm.credit);
-      const isCorrect = okDebit && okCredit;
+  // 入力なし → 不正解
+  const isEmpty = (user.debit.length === 0 && user.credit.length === 0);
+  if (isEmpty) {
+    reasonMessages.push(t['msg-input-required']);  // 「科目と金額を入力してください」
+  }
 
-      totalAnswered++;
-      if (isCorrect) {
-        totalCorrect++;
-      }
-      updateScore();
+  // 貸借不一致 → 不正解
+  const balanced = isBalanced(user);
+  if (!balanced) {
+    reasonMessages.push(t['msg-not-balanced']);    // 「借方合計と貸方合計が一致していません」
+  }
 
-      // 正解 / 不正解のメッセージ
-      if (isCorrect) {
-        resultMessage.textContent = t['msg-correct'];
-        resultMessage.className = "result-message ok";
-      } else {
-        resultMessage.textContent = t['msg-wrong'];
-        resultMessage.className = "result-message ng";
-      }
+  // --- 採点（入力あり＆貸借一致のときだけ比較）
+  let isCorrect = false;
 
-      answerJa.textContent = (q.journalJa || '').replace(/<br\s*\/?>/gi, '\n');
-      answerEn.textContent = (q.journalEn || '').replace(/<br\s*\/?>/gi, '\n');
-      answerPanel.style.display = "block";
+  if (!isEmpty && balanced) {
+    const okDebit = compareSide(user.debit, norm.debit);
+    const okCredit = compareSide(user.credit, norm.credit);
+    isCorrect = okDebit && okCredit;
+  }
 
-      await logStudyResult(q, isCorrect);
-    }
+  // --- スコア更新
+  totalAnswered++;
+  if (isCorrect) totalCorrect++;
+  updateScore();
+
+  // --- 結果メッセージ表示
+  if (isCorrect) {
+    resultMessage.textContent = t['msg-correct'];
+    resultMessage.className = "result-message ok";
+  } else {
+    // ❗不正解の場合は、原因を追加して丁寧に表示
+    const reasonText = reasonMessages.length > 0
+      ? "（原因: " + reasonMessages.join(" / ") + "）"
+      : "";
+
+    resultMessage.textContent = t['msg-wrong'] + " " + reasonText;
+    resultMessage.className = "result-message ng";
+  }
+
+  // --- ✅ どの場合でも模範解答を表示する
+  answerJa.textContent = (q.journalJa || '').replace(/<br\s*\/?>/gi, '\n');
+  answerEn.textContent = (q.journalEn || '').replace(/<br\s*\/?>/gi, '\n');
+  answerPanel.style.display = "block";
+
+  // --- ✅ 学習ログも未入力・貸借不一致でも記録する
+  await logStudyResult(q, isCorrect);
+}
 
     // 自分の履歴読み込み
     async function loadMyHistory() {
