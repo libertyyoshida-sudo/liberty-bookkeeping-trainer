@@ -50,7 +50,16 @@
   const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
   const { createClient } = supabase;
-  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: localStorage,
+   }
+  });
+
+  
 
   // Storage側の設定（あなたのバケット名に合わせる）
   const bucket = "slides";
@@ -76,14 +85,13 @@
   function pad(n){ return String(n).padStart(3,"0"); }
 
   async function requireLogin() {
-    const { data: authData } = await supabaseClient.auth.getUser();
-    if (!authData.user) {
-      alert("ログインが必要です。");
-      // 既存のログイン導線があるならここへ
-      location.href = "index.html";
-      throw new Error("Not logged in");
-    }
-    return authData.user;
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  if (!sessionData.session) {
+    alert("ログインが必要です。");
+    location.href = "index.html";
+    throw new Error("Not logged in");
+   }
+  return sessionData.session.user;
   }
 
   async function loadManifest() {
