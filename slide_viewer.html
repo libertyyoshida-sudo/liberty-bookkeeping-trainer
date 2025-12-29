@@ -115,25 +115,19 @@
     throw new Error("Missing contentId");
   }
 
-  const manifestPath = `${contentId}/manifest.json`;
-  console.log("manifestPath:", manifestPath);
+  const url = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${contentId}/manifest.json`;
+  console.log("manifest public url:", url);
 
-  const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(manifestPath, 60);
-  console.log("manifest signedUrl:", data?.signedUrl, "error:", error);
-
-  if (error) throw error;
-
-  const res = await fetch(data.signedUrl);
-  console.log("manifest fetch status:", res.status);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("manifest fetch failed: " + res.status);
 
   const json = await res.json();
   console.log("manifest json:", json);
 
   totalPages = json.pages;
   ext = json.ext || "png";
-}
-
-
+ }
+  
   async function getSignedImageUrl(p) {
   const filePath = `${contentId}/${pad(p)}.${ext}`;
   console.log("imagePath:", filePath);
