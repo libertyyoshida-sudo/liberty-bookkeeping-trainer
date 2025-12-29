@@ -1227,7 +1227,7 @@ function renderQuestion() {
         const cAmtStr = document.getElementById("credit-amount-" + i).value.trim();
 
         if (dAcc !== "" && dAmtStr !== "") {
-          const amt = Number(dAmtStr);
+          const amt = parseAmount(dAmtStr);
           if (!Number.isNaN(amt) && amt > 0) {
             debit.push({ account: dAcc, amount: amt });
           }
@@ -1493,6 +1493,8 @@ function renderQuestion() {
       // ここで一度適用
       applyLanguage();
 
+      setupAmountInputs();
+
       // イベント登録（言語切り替えなど）
       langJaBtn.addEventListener("click", () => {
         currentLang = "ja";
@@ -1610,6 +1612,41 @@ if (toggleRubyBtn) {
         startNewSessionFromUI();
       }
     });
+
+// 3桁カンマ整形（数値→文字列）
+function formatWithComma(n) {
+  if (n === null || n === undefined) return "";
+  const s = String(n).replace(/[^\d]/g, ""); // 数字以外除去
+  if (s === "") return "";
+  return s.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// 文字列→数値（カンマ除去してNumber化）
+function parseAmount(str) {
+  const s = String(str || "").replace(/[^\d]/g, "");
+  if (s === "") return NaN;
+  return Number(s);
+}
+
+// 金額inputにイベントを付ける
+function setupAmountInputs() {
+  const inputs = document.querySelectorAll(".amount-input");
+  inputs.forEach((inp) => {
+    inp.addEventListener("input", () => {
+      const rawDigits = inp.value.replace(/[^\d]/g, "");
+      // 先頭ゼロが気になるなら次の1行をON（例: 00012 -> 12）
+      // const normalized = rawDigits.replace(/^0+(?=\d)/, "");
+      inp.value = formatWithComma(rawDigits);
+    });
+
+    inp.addEventListener("blur", () => {
+      // blur時に最終整形（空は空のまま）
+      inp.value = formatWithComma(inp.value);
+    });
+  });
+}
+
+    
   </script>
 </head>
 <body>
@@ -1729,33 +1766,33 @@ if (toggleRubyBtn) {
           <div class="entry-row">
             <span class="row-label">1</span>
             <select class="account-select" id="debit-account-1"></select>
-            <input type="number" id="debit-amount-1" min="0" inputmode="numeric" />
+            <input type="text" id="debit-amount-1" class="amount-input" inputmode="numeric" autocomplete="off" />
             <select class="account-select" id="credit-account-1"></select>
-            <input type="number" id="credit-amount-1" min="0" inputmode="numeric" />
+            <input type="text" id="credit-amount-1" class="amount-input" inputmode="numeric" autocomplete="off" />
           </div>
 
           <div class="entry-row">
             <span class="row-label">2</span>
             <select class="account-select" id="debit-account-2"></select>
-            <input type="number" id="debit-amount-2" min="0" inputmode="numeric" />
+            <input type="text" id="debit-amount-2" class="amount-input" inputmode="numeric" autocomplete="off" />
             <select class="account-select" id="credit-account-2"></select>
-            <input type="number" id="credit-amount-2" min="0" inputmode="numeric" />
+            <input type="text" id="credit-amount-2" class="amount-input" inputmode="numeric" autocomplete="off" />
           </div>
 
           <div class="entry-row">
             <span class="row-label">3</span>
             <select class="account-select" id="debit-account-3"></select>
-            <input type="number" id="debit-amount-3" min="0" inputmode="numeric" />
+            <input type="text" id="debit-amount-3" class="amount-input" inputmode="numeric" autocomplete="off" />
             <select class="account-select" id="credit-account-3"></select>
-            <input type="number" id="credit-amount-3" min="0" inputmode="numeric" />
+            <input type="text" id="credit-amount-3" class="amount-input" inputmode="numeric" autocomplete="off" />
           </div>
 
           <div class="entry-row">
             <span class="row-label">4</span>
             <select class="account-select" id="debit-account-4"></select>
-            <input type="number" id="debit-amount-4" min="0" inputmode="numeric" />
+            <input type="text" id="debit-amount-4" class="amount-input" inputmode="numeric" autocomplete="off" />
             <select class="account-select" id="credit-account-4"></select>
-            <input type="number" id="credit-amount-4" min="0" inputmode="numeric" />
+            <input type="text" id="credit-amount-4" class="amount-input" inputmode="numeric" autocomplete="off" />
           </div>
         </div>
 
