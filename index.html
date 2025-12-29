@@ -1325,7 +1325,7 @@ function renderQuestion() {
       const normalizeSide = (list) =>
         (list || []).map((e) => ({
           account: (e.account || "").trim(),
-          amount: Number(e.amount)
+          amount: parseAmount(e.amount)
         })).filter(e => e.account && !Number.isNaN(e.amount));
 
       return {
