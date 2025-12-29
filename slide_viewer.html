@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>スライドビューア</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; background:#111; color:#fff; }
+    .bar{
+      position:fixed; top:0; left:0; right:0; z-index:10;
+      background:rgba(0,0,0,.75); padding:10px 12px;
+      display:flex; gap:10px; align-items:center;
+    }
+    button{
+      border:0; border-radius:10px; padding:8px 10px;
+      font-weight:700; cursor:pointer;
+    }
+    button:disabled{ opacity:.5; cursor:not-allowed; }
+    .info{ margin-left:auto; font-size:.9rem; opacity:.9; }
+    .stage{
+      height:100vh; display:flex; justify-content:center; align-items:center;
+      padding-top:56px; box-sizing:border-box;
+    }
+    img{
+      max-width:96vw; max-height:88vh;
+      border-radius:12px;
+      box-shadow:0 18px 60px rgba(0,0,0,.6);
+      user-select:none; -webkit-user-drag:none;
+      transform-origin:center center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bar">
+  <button id="prev">← 前</button>
+  <button id="next">次 →</button>
+  <button id="zoomIn">＋</button>
+  <button id="zoomOut">－</button>
+  <div class="info" id="pageInfo"></div>
+</div>
+
+<div class="stage">
+  <img id="slide" alt="slide" />
+</div>
+
+<script>
+  // ★あなたの値に置換してください
+  const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
+  const SUPABASE_ANON_KEY = "ここにあなたのANON KEY";
+  const { createClient } = supabase;
+  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Storage側の設定（あなたのバケット名に合わせる）
+  const bucket = "slides";
+
+  // URL例: slide_viewer.html?content=boki-2.0_20251229
+  const params = new URLSearchParams(location.search);
+  const contentId = params.get("content"); // ←フォルダ名
+
+  let totalPages = 0;
+  let ext = "png";
+  let page = 1;
+  let zoom = 1;
+
+  const imgEl = document.getElementById("slide");
+  const infoEl = document.getElementById("pageInfo");
+
+  // 初心者向け抑止（完全防止ではありません）
+  document.addEventListener("contextmenu", e => e.preventDefault());
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && ["s","p"].includes(e.key.toLowerCase())) e.preventDefault();
+  });
+
+  function pad(n){ return String(n).padStart(3,"0"); }
+
+  async function requireLogin() {
+    const { data: authData } = await supabaseClient.auth.getUser();
+    if (!authData.user) {
+      alert("ログインが必要です。");
+      // 既存のログイン導線があるならここへ
+      location.href = "index.html";
+      throw new Error("Not logged in");
+    }
+    return authData.user;
+  }
+
+  async function loadManifest() {
+    if (!contentId) {
+      alert("content パラメータがありません。例: ?content=boki-2.0_20251229");
+      throw new Error("Missing contentId");
+    }
+
+    // manifest.json を署名URLで取得（バケットが非公開の場合に必要）
+    const manifestPath = `${contentId}/manifest.json`;
+    const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(manifestPath, 60);
+    if (error) throw error;
+
+    const res = await fetch(data.signedUrl);
+    const json = await res.json();
+    totalPages = json.pages;
+    ext = json.ext || "png";
+  }
+
+  async function getSignedImageUrl(p) {
+    const filePath = `${contentId}/${pad(p)}.${ext}`;
+    const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(filePath, 60);
+    if (error) throw error;
+    return data.signedUrl;
+  }
+
+  async function render() {
+    infoEl.textContent = `${page} / ${totalPages}`;
+    document.getElementById("prev").disabled = page <= 1;
+    document.getElementById("next").disabled = page >= totalPages;
+
+    const url = await getSignedImageUrl(page);
+    imgEl.style.transform = `scale(${zoom})`;
+    imgEl.src = url;
+  }
+
+  function bindEvents() {
+    document.getElementById("prev").addEventListener("click", async () => {
+      if (page > 1) { page--; await render(); }
+    });
+    document.getElementById("next").addEventListener("click", async () => {
+      if (page < totalPages) { page++; await render(); }
+    });
+    document.getElementById("zoomIn").addEventListener("click", () => {
+      zoom = Math.min(2.5, zoom + 0.1);
+      imgEl.style.transform = `scale(${zoom})`;
+    });
+    document.getElementById("zoomOut").addEventListener("click", () => {
+      zoom = Math.max(0.6, zoom - 0.1);
+      imgEl.style.transform = `scale(${zoom})`;
+    });
+
+    window.addEventListener("keydown", async (e) => {
+      if (e.key === "ArrowLeft" && page > 1) { page--; await render(); }
+      if (e.key === "ArrowRight" && page < totalPages) { page++; await render(); }
+    });
+  }
+
+  (async () => {
+    await requireLogin();
+    await loadManifest();
+    bindEvents();
+    await render();
+  })();
+</script>
+
+</body>
+</html>
