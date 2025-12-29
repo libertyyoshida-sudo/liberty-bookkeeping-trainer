@@ -155,7 +155,14 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
 
     const { createClient } = supabase;
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: localStorage,
+      }
+     });
 
     // パスワード強度チェック
     function validatePassword(pw) {
@@ -175,6 +182,29 @@
       };
     }
 
+　　// パスワード一致確認
+    function updatePwConfirmHint() {
+      const pw = pwInput.value;
+      const pw2 = pwConfirmInput.value;
+
+      if (!pw2) {
+        pwConfirmHint.textContent = "";
+        return;
+      }
+
+      if (pw === pw2) {
+        pwConfirmHint.textContent = "一致しています。";
+        pwConfirmHint.style.color = "#28a745";
+      } else {
+        pwConfirmHint.textContent = "パスワードが一致しません。";
+        pwConfirmHint.style.color = "#d9534f";
+      }
+     }
+
+     pwInput.addEventListener('input', updatePwConfirmHint);
+     pwConfirmInput.addEventListener('input', updatePwConfirmHint);
+
+    
     window.addEventListener('DOMContentLoaded', () => {
       const form = document.getElementById('signup-form');
       const emailInput = document.getElementById('email');
@@ -184,6 +214,8 @@
       const successBox = document.getElementById('success-message');
       const pwHint = document.getElementById('pw-hint');
       const submitBtn = document.getElementById('submit-btn');
+      const pwConfirmInput = document.getElementById('passwordConfirm');
+      const pwConfirmHint = document.getElementById('pw-confirm-hint');
 
       pwInput.addEventListener('input', () => {
         const pw = pwInput.value;
@@ -216,10 +248,16 @@
 
         const email = emailInput.value.trim();
         const password = pwInput.value;
+        const passwordConfirm = document.getElementById('passwordConfirm').value;
         const nationality = nationalitySelect.value;
 
         if (!email || !password) {
           errorBox.textContent = "メールアドレスとパスワードを入力してください。";
+          return;
+        }
+
+        if (password !== passwordConfirm) {
+          errorBox.textContent = "パスワードと確認用パスワードが一致しません。";
           return;
         }
 
@@ -271,7 +309,27 @@
             return;
           }
 
-          successBox.textContent = "登録が完了しました。ログイン画面からサインインしてください。";
+          // ✅ 登録後もログインしたままにする
+          const { data: sessionData } = await supabaseClient.auth.getSession();
+
+          if (!sessionData.session) {
+            // signUpでセッションが付かない設定の場合は、ここでログインさせる
+            const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+              email,
+              password
+            });
+
+          if (signInError) {
+            errorBox.textContent = "登録は完了しましたが自動ログインに失敗しました: " + signInError.message;
+            submitBtn.disabled = false;
+            return;
+          }
+         }
+
+       // ✅ 成功したので一覧へ
+       location.href = "contents.html";
+       return;
+
 
           // フォームクリア
           form.reset();
@@ -303,7 +361,13 @@
         <input id="password" type="password" required autocomplete="new-password" />
         <div class="helper">
           条件：8文字以上・英大文字・英小文字・数字・記号を各1文字以上含めてください。
-        </div>
+      </div>
+      <div class="form-group">
+        <label for="passwordConfirm">パスワード（確認）</label>
+        <input id="passwordConfirm" type="password" required autocomplete="new-password" />
+        <div id="pw-confirm-hint" class="helper"></div>
+      </div>
+
         <div id="pw-hint" class="helper"></div>
       </div>
 
