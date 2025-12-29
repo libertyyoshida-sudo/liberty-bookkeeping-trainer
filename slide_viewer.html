@@ -68,6 +68,15 @@
   const params = new URLSearchParams(location.search);
   const contentId = params.get("content"); // ←フォルダ名
 
+  async function debugList() {
+  const folder = contentId;
+  const { data, error } = await supabaseClient.storage.from(bucket).list(folder, { limit: 50 });
+  console.log("LIST folder:", folder, "bucket:", bucket);
+  console.log("LIST data:", data);
+  console.log("LIST error:", error);
+  }
+
+
   let totalPages = 0;
   let ext = "png";
   let page = 1;
