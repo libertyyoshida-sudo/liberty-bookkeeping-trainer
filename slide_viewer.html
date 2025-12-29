@@ -130,15 +130,10 @@
   
   async function getSignedImageUrl(p) {
   const filePath = `${contentId}/${pad(p)}.${ext}`;
-  console.log("imagePath:", filePath);
-
-  const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(filePath, 60);
-  console.log("image signedUrl:", data?.signedUrl, "error:", error);
-
-  if (error) throw error;
-  return data.signedUrl;
-}
-
+  const url = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${filePath}`;
+  console.log("image public url:", url);
+  return url;
+  }
 
   async function render() {
     infoEl.textContent = `${page} / ${totalPages}`;
