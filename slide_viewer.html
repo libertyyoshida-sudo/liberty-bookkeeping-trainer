@@ -175,6 +175,7 @@
   (async () => {
   try {
     await requireLogin();
+    await debugList();
     await loadManifest();
     bindEvents();
     await render();
