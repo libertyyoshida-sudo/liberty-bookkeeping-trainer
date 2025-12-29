@@ -69,13 +69,19 @@
   const contentId = params.get("content"); // ←フォルダ名
 
   async function debugList() {
-  const folder = contentId;
-  const { data, error } = await supabaseClient.storage.from(bucket).list(folder, { limit: 50 });
-  console.log("LIST folder:", folder, "bucket:", bucket);
+  console.log("=== debugList start ===");
+  console.log("bucket:", bucket);
+  console.log("contentId:", contentId);
+
+  const { data, error } = await supabaseClient
+    .storage
+    .from(bucket)
+    .list(contentId, { limit: 200 });
+
   console.log("LIST data:", data);
   console.log("LIST error:", error);
+  console.log("=== debugList end ===");
   }
-
 
   let totalPages = 0;
   let ext = "png";
