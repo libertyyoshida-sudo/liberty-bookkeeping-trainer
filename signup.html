@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>Liberty Bookkeeping Trainer | 新規登録</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
     :root {
       --bg-main: #f5f7fb;
@@ -57,9 +58,7 @@
       text-align: center;
     }
 
-    .form-group {
-      margin-bottom: 14px;
-    }
+    .form-group { margin-bottom: 14px; }
 
     label {
       display: block;
@@ -144,9 +143,7 @@
       text-decoration: none;
     }
 
-    .footer-link a:hover {
-      text-decoration: underline;
-    }
+    .footer-link a:hover { text-decoration: underline; }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -155,6 +152,8 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
 
     const { createClient } = supabase;
+
+    // ✅ ログイン維持のための設定
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         persistSession: true,
@@ -162,11 +161,10 @@
         detectSessionInUrl: true,
         storage: localStorage,
       }
-     });
+    });
 
     // パスワード強度チェック
     function validatePassword(pw) {
-      // 8文字以上・英大文字・英小文字・数字・記号を各1つ以上
       const lengthOK = pw.length >= 8;
       const hasUpper  = /[A-Z]/.test(pw);
       const hasLower  = /[a-z]/.test(pw);
@@ -174,49 +172,24 @@
       const hasSymbol = /[^A-Za-z0-9]/.test(pw);
       return {
         ok: lengthOK && hasUpper && hasLower && hasNumber && hasSymbol,
-        lengthOK,
-        hasUpper,
-        hasLower,
-        hasNumber,
-        hasSymbol
+        lengthOK, hasUpper, hasLower, hasNumber, hasSymbol
       };
     }
 
-　　// パスワード一致確認
-    function updatePwConfirmHint() {
-      const pw = pwInput.value;
-      const pw2 = pwConfirmInput.value;
-
-      if (!pw2) {
-        pwConfirmHint.textContent = "";
-        return;
-      }
-
-      if (pw === pw2) {
-        pwConfirmHint.textContent = "一致しています。";
-        pwConfirmHint.style.color = "#28a745";
-      } else {
-        pwConfirmHint.textContent = "パスワードが一致しません。";
-        pwConfirmHint.style.color = "#d9534f";
-      }
-     }
-
-     pwInput.addEventListener('input', updatePwConfirmHint);
-     pwConfirmInput.addEventListener('input', updatePwConfirmHint);
-
-    
     window.addEventListener('DOMContentLoaded', () => {
       const form = document.getElementById('signup-form');
       const emailInput = document.getElementById('email');
       const pwInput = document.getElementById('password');
+      const pwConfirmInput = document.getElementById('passwordConfirm');
+      const pwConfirmHint = document.getElementById('pw-confirm-hint');
+
       const nationalitySelect = document.getElementById('nationality');
       const errorBox = document.getElementById('error-message');
       const successBox = document.getElementById('success-message');
       const pwHint = document.getElementById('pw-hint');
       const submitBtn = document.getElementById('submit-btn');
-      const pwConfirmInput = document.getElementById('passwordConfirm');
-      const pwConfirmHint = document.getElementById('pw-confirm-hint');
 
+      // ✅ パスワード強度ヒント
       pwInput.addEventListener('input', () => {
         const pw = pwInput.value;
         const r = validatePassword(pw);
@@ -241,6 +214,27 @@
         }
       });
 
+      // ✅ 確認用パスワード一致チェック表示
+      function updatePwConfirmHint() {
+        const pw = pwInput.value;
+        const pw2 = pwConfirmInput.value;
+
+        if (!pw2) {
+          pwConfirmHint.textContent = "";
+          return;
+        }
+
+        if (pw === pw2) {
+          pwConfirmHint.textContent = "一致しています。";
+          pwConfirmHint.style.color = "#28a745";
+        } else {
+          pwConfirmHint.textContent = "パスワードが一致しません。";
+          pwConfirmHint.style.color = "#d9534f";
+        }
+      }
+      pwInput.addEventListener('input', updatePwConfirmHint);
+      pwConfirmInput.addEventListener('input', updatePwConfirmHint);
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         errorBox.textContent = "";
@@ -248,7 +242,7 @@
 
         const email = emailInput.value.trim();
         const password = pwInput.value;
-        const passwordConfirm = document.getElementById('passwordConfirm').value;
+        const passwordConfirm = pwConfirmInput.value;
         const nationality = nationalitySelect.value;
 
         if (!email || !password) {
@@ -271,27 +265,21 @@
 
         try {
           // 1) Supabase Auth ユーザー作成
-          const { data, error } = await supabaseClient.auth.signUp({
-            email,
-            password
-          });
+          const { data, error } = await supabaseClient.auth.signUp({ email, password });
 
           if (error) {
             console.error("signUp error", error);
             errorBox.textContent = "登録に失敗しました: " + error.message;
-            submitBtn.disabled = false;
             return;
           }
 
           const user = data.user;
           if (!user) {
             errorBox.textContent = "ユーザー情報の取得に失敗しました。";
-            submitBtn.disabled = false;
             return;
           }
 
           // 2) profiles にレコード作成
-          //   ※ profiles.id を auth.user.id と同じにしている想定
           const { error: profileError } = await supabaseClient
             .from('profiles')
             .insert({
@@ -303,9 +291,7 @@
 
           if (profileError) {
             console.error("profiles insert error", profileError);
-            // プロフィール登録失敗しても、とりあえず Auth は作れているのでエラー表示のみ
-            errorBox.textContent = "登録は一部完了しましたが、プロフィール保存でエラーが発生しました。";
-            submitBtn.disabled = false;
+            errorBox.textContent = "登録は完了しましたが、プロフィール保存でエラーが発生しました。";
             return;
           }
 
@@ -313,27 +299,19 @@
           const { data: sessionData } = await supabaseClient.auth.getSession();
 
           if (!sessionData.session) {
-            // signUpでセッションが付かない設定の場合は、ここでログインさせる
             const { error: signInError } = await supabaseClient.auth.signInWithPassword({
-              email,
-              password
+              email, password
             });
 
-          if (signInError) {
-            errorBox.textContent = "登録は完了しましたが自動ログインに失敗しました: " + signInError.message;
-            submitBtn.disabled = false;
-            return;
+            if (signInError) {
+              errorBox.textContent = "登録は完了しましたが自動ログインに失敗しました: " + signInError.message;
+              return;
+            }
           }
-         }
 
-       // ✅ 成功したので一覧へ
-       location.href = "contents.html";
-       return;
-
-
-          // フォームクリア
-          form.reset();
-          pwHint.textContent = "";
+          // ✅ 成功したので一覧へ
+          location.href = "contents.html";
+          return;
 
         } catch (e2) {
           console.error(e2);
@@ -345,6 +323,7 @@
     });
   </script>
 </head>
+
 <body>
   <div class="card">
     <h1>新規登録</h1>
@@ -361,14 +340,14 @@
         <input id="password" type="password" required autocomplete="new-password" />
         <div class="helper">
           条件：8文字以上・英大文字・英小文字・数字・記号を各1文字以上含めてください。
+        </div>
+        <div id="pw-hint" class="helper"></div>
       </div>
+
       <div class="form-group">
         <label for="passwordConfirm">パスワード（確認）</label>
         <input id="passwordConfirm" type="password" required autocomplete="new-password" />
         <div id="pw-confirm-hint" class="helper"></div>
-      </div>
-
-        <div id="pw-hint" class="helper"></div>
       </div>
 
       <div class="form-group">
@@ -412,8 +391,8 @@
           <option value="TR">Turkey / トルコ</option>
           <option value="IR">Iran / イラン</option>
           <option value="NG">Nigeria / ナイジェリア</option>
-          <option value="GH">Ghana / ガーナ</option><option value="EG">Egypt / エジプト</option>
-          <!-- 必要に応じて追加してください -->
+          <option value="GH">Ghana / ガーナ</option>
+          <option value="EG">Egypt / エジプト</option>
         </select>
         <div class="helper">任意項目です。留学生の分析などに利用します。</div>
       </div>
