@@ -111,28 +111,45 @@
 
  async function loadManifest() {
   if (!contentId) {
-    alert("content パラメータがありません。例: ?content=boki-2.0_20251229");
+    alert("content パラメータがありません。例: ?content=boki-overview");
     throw new Error("Missing contentId");
   }
 
-  const url = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${contentId}/manifest.json`;
-  console.log("manifest public url:", url);
+  // まず manifest.json を試す（存在すればそれに従う）
+  const manifestPath = `${contentId}/manifest.json`;
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("manifest fetch failed: " + res.status);
+  // PublicでもPrivateでも動くように signedUrl を使う
+  const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(manifestPath, 60);
 
-  const json = await res.json();
-  console.log("manifest json:", json);
+  if (!error && data?.signedUrl) {
+    const res = await fetch(data.signedUrl);
+    if (res.ok) {
+      const json = await res.json();
+      totalPages = json.pages;
+      ext = json.ext || "png";
+      window.__naming = json.naming || "padded"; // "Slide" or "padded"
+      return;
+    }
+  }
 
-  totalPages = json.pages;
-  ext = json.ext || "png";
- }
-  
-  async function getSignedImageUrl(p) {
-  const filePath = `${contentId}/${pad(p)}.${ext}`;
-  const url = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${filePath}`;
-  console.log("image public url:", url);
-  return url;
+  // manifest が無い場合のフォールバック（overview用）
+  totalPages = 32;
+  ext = "jpg";
+  window.__naming = "Slide";
+}
+
+async function getSignedImageUrl(p) {
+  let filePath;
+
+  if (window.__naming === "Slide") {
+    filePath = `${contentId}/Slide${p}.${ext}`;
+  } else {
+    filePath = `${contentId}/${pad(p)}.${ext}`;
+  }
+
+  const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(filePath, 60);
+  if (error) throw error;
+  return data.signedUrl;
   }
 
   async function render() {
