@@ -20,6 +20,10 @@
       --radius-xl: 18px;
     }
 
+    .amount-input {
+      text-align: right;
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -1233,7 +1237,7 @@ function renderQuestion() {
           }
         }
         if (cAcc !== "" && cAmtStr !== "") {
-          const amt = Number(cAmtStr);
+          const amt = parseAmount(cAmtStr);
           if (!Number.isNaN(amt) && amt > 0) {
             credit.push({ account: cAcc, amount: amt });
           }
