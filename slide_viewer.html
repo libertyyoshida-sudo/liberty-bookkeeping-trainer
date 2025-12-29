@@ -102,18 +102,30 @@
 
     // manifest.json を署名URLで取得（バケットが非公開の場合に必要）
     const manifestPath = `${contentId}/manifest.json`;
+    console.log("manifestPath:", manifestPath);
+    
     const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(manifestPath, 60);
+    console.log("signed manifest:", data, error);
+    
     if (error) throw error;
 
     const res = await fetch(data.signedUrl);
+    console.log("manifest fetch status:", res.status);
+
     const json = await res.json();
+    console.log("manifest json:", json);
+    
     totalPages = json.pages;
     ext = json.ext || "png";
   }
 
   async function getSignedImageUrl(p) {
     const filePath = `${contentId}/${pad(p)}.${ext}`;
+    console.log("imagePath:", filePath);
+    
     const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(filePath, 60);
+    console.log("signed image:", data, error);
+    
     if (error) throw error;
     return data.signedUrl;
   }
@@ -151,11 +163,16 @@
   }
 
   (async () => {
+  try {
     await requireLogin();
     await loadManifest();
     bindEvents();
     await render();
-  })();
+  } catch (e) {
+    console.error(e);
+    alert("スライド表示エラー: " + (e?.message || JSON.stringify(e)));
+  }
+})();
 </script>
 
 </body>
