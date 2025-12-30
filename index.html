@@ -593,7 +593,8 @@
   <script src="https://unpkg.com/kuromoji@0.1.2/dist/kuromoji.min.js"></script>
   <script src="https://unpkg.com/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
   <script src="https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
- 
+
+  <script src="config.js"></script>
   <!-- ⭐ Supabase を「外で」読み込む（ここがポイント） -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
@@ -1519,6 +1520,9 @@ function renderQuestion() {
       nextBtn.addEventListener("click", goNextQuestion);
       prevBtn.addEventListener("click", goPrevQuestion);
       checkBtn.addEventListener("click", checkAnswer);
+
+      document.querySelector('a[href="signup.html"]').href = window.APP_BASE_URL + "/signup.html";
+      document.querySelector('a[href="forgot-password.html"]').href = window.APP_BASE_URL + "/forgot-password.html";
       
 // ルビON/OFFボタン
 const toggleRubyBtn = document.getElementById("toggle-ruby");
