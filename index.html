@@ -599,13 +599,21 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <script>
-    const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
+    const SUPABASE_URL = window.SUPABASE_URL;
+    const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
 
    // Supabaseクライアント初期化
     let supabaseClient;
     if (window.supabase && window.supabase.createClient) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: localStorage,
+        }
+      });
+      
       console.log('Supabase client initialized ✅');
     } else {
       console.error('Supabase library not loaded');
@@ -1669,27 +1677,28 @@ function setupAmountInputs() {
         <span data-i18n="app-subtitle">留学生・実務家向け 簿記仕訳トレーニング 2.0</span>
       </div>
 
-      <div class="auth-box">
-         <!-- ログアウト状態 --> 
-        <div id="auth-when-logged-out">
-          <input type="email" id="auth-email" placeholder="メールアドレス" />
-          <input type="password" id="auth-password" placeholder="パスワード" />
-         </div>
+     <div class="auth-box">
+      <!-- ログアウト状態 -->
+      <div id="auth-when-logged-out">
+       <div class="auth-fields">
+        <input type="email" id="auth-email" placeholder="メールアドレス" />
+        <input type="password" id="auth-password" placeholder="パスワード" />
+       </div>
 
-         <div class="auth-actions">   
-          <button class="auth-primary-btn" id="btn-login">ログイン</button>
-          <a href="signup.html" style="font-size:0.75rem; margin-left:4px;">新規登録</a>
-          <a href="forgot-password.html" class="auth-link">パスワードをお忘れの方はこちら</a>
-          </div>
-        </div>
-
-        <!-- ログイン状態 -->
-        <div id="auth-when-logged-in" style="display:none;">
-          <span id="auth-user-label" class="auth-status"></span>
-          <button class="auth-small-btn" id="btn-logout">ログアウト</button>
-        </div>
+      <div class="auth-actions">
+        <button class="auth-primary-btn" id="btn-login">ログイン</button>
+        <a href="signup.html" class="auth-link">新規登録</a>
+        <a href="forgot-password.html" class="auth-link">パスワードをお忘れの方はこちら</a>
+       </div>
       </div>
-    </header>
+
+  <!-- ログイン状態 -->
+  <div id="auth-when-logged-in" style="display:none;">
+    <span id="auth-user-label" class="auth-status"></span>
+    <button class="auth-small-btn" id="btn-logout">ログアウト</button>
+  </div>
+</div>
+
 
     <!-- 動画・スライド / 履歴ページへのボタン -->
     <div class="top-nav">
