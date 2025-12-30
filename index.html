@@ -1411,26 +1411,44 @@ async function askAiExplainCurrentQuestion() {
   if (btn) btn.disabled = true;
 
   try {
-    const payload = buildExplainPayloadForCurrentQuestion();
-    if (!payload) {
+    if (!questions || questions.length === 0) {
       appendAiMessage("ai", "問題が読み込めていません。");
       return;
     }
 
+    const q = questions[currentIndex];
     appendAiMessage("user", "この問題を解説して（ポイント・考え方・仕訳の理由を知りたい）");
 
-    // ★ここをあなたのWorkerのURLに置き換える
-    const WORKER_URL = window.APP_AI_WORKER_URL || ""; // config.jsに置くのがおすすめ
-
+    // ★ Worker URL（config.jsで設定）
+    const WORKER_URL = window.APP_AI_WORKER_URL || "";
     if (!WORKER_URL) {
       appendAiMessage("ai", "AIサーバー（Worker）のURLが未設定です。config.js に APP_AI_WORKER_URL を追加してください。");
       return;
     }
 
-    const res = await fetch(WORKER_URL + "/explain", {
+    // ★ AIへ送る文章（message）
+    const prompt = `
+あなたは簿記の先生です。留学生向けに「やさしい日本語」で説明してください。短い英語も添えてください。
+次の問題を解説してください。
+
+【問題ID】${q.id || ""}
+【カテゴリ】${q.categoryJa || ""}
+【問題文（日本語）】
+${q.questionJa || ""}
+
+【模範仕訳（日本語）】
+${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
+
+お願い：
+1) まず結論の仕訳（借方／貸方）
+2) つぎにポイント（なぜその科目？）
+3) 最後に短い英語でまとめ（2〜4行）
+`.trim();
+
+    const res = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ message: prompt }),
     });
 
     if (!res.ok) {
@@ -1440,7 +1458,9 @@ async function askAiExplainCurrentQuestion() {
     }
 
     const data = await res.json();
-    appendAiMessage("ai", data.explanation || "（解説が取得できませんでした）");
+    const answer = data.answer || data.response || JSON.stringify(data);
+
+    appendAiMessage("ai", answer);
 
   } catch (e) {
     console.error(e);
@@ -1449,6 +1469,7 @@ async function askAiExplainCurrentQuestion() {
     if (btn) btn.disabled = false;
   }
 }
+
           
   // --- 模範解答（正誤判定に使う）
   const norm = normalizeSolution(q.solution);
