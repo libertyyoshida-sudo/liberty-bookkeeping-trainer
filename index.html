@@ -1620,6 +1620,25 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
         if (box) box.innerHTML = "";
       });
 
+      async function tryLandscapeMode() {
+        try {
+    // 1) Fullscreenにする（iPhoneでは無理な場合あり）
+    if (document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen();
+    }
+
+    // 2) 画面向きを横にロック（Android Chromeなどで有効）
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock("landscape");
+    } else {
+      alert("この端末では横向き固定ができません。画面を横にしてご利用ください。");
+    }
+  } catch (e) {
+    console.warn(e);
+    alert("横画面モードにできませんでした。端末の設定で横向きにしてください。");
+  }
+}
+
       // とりあえず初期のセレクトを作っておく
       initAccountSelects();
 
