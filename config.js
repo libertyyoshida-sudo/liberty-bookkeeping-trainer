@@ -10,3 +10,7 @@ window.SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
 // ✅ Supabase anon public key（公開OKのキー）
 window.SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
+
+//AI関係
+window.APP_AI_WORKER_URL = "https://ai-chat.libertyyoshida.workers.dev";
+
