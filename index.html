@@ -1599,6 +1599,14 @@ async function askAiExplainCurrentQuestion() {
       if (btnLogout) btnLogout.addEventListener('click', signOut);
       if (btnStart) btnStart.addEventListener('click', startNewSessionFromUI);
 
+      const btnAiExplain = document.getElementById("btn-ai-explain");
+      const btnAiClear = document.getElementById("btn-ai-clear");
+      if (btnAiExplain) btnAiExplain.addEventListener("click", askAiExplainCurrentQuestion);
+      if (btnAiClear) btnAiClear.addEventListener("click", () => {
+        const box = document.getElementById("ai-chat-box");
+        if (box) box.innerHTML = "";
+      });
+
       // とりあえず初期のセレクトを作っておく
       initAccountSelects();
 
