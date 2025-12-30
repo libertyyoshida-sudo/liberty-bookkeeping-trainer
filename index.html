@@ -365,6 +365,14 @@
       align-items: center;
     }
 
+    //スマホ画面科目列
+    @media (max-width: 600px) {
+      .entry-header-row,
+      .entry-row {
+        grid-template-columns: 40px minmax(0, 1.5fr) 90px minmax(0, 1.5fr) 90px;
+      }
+    }
+    
     .entry-header-row {
       background: #e9f1ff;
       padding: 6px 8px;
@@ -390,6 +398,17 @@
       font-size: 0.78rem;
     }
 
+    //仕訳テーブル横スクロール
+    .entry-table {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+   .entry-header-row,
+    .entry-row {
+      min-width: 520px; /* ここを増やすと科目幅が広くなる */
+    }
+    
     select,
     input[type="number"] {
       width: 100%;
