@@ -1837,6 +1837,35 @@ function setupAmountInputs() {
         <div class="score-box">
           <div class="score-pill" id="score-pill">正解 0 / 0</div>
         </div>
+
+        <!-- AI解説（右サイドに追加） -->
+ <div style="margin-top:14px;">
+  <div class="side-card-title">AI解説（この問題）</div>
+
+  <div id="ai-chat-box" style="
+    border:1px solid var(--border-soft);
+    border-radius:10px;
+    padding:8px;
+    background:#f9fbff;
+    font-size:0.78rem;
+    max-height:220px;
+    overflow-y:auto;
+  "></div>
+
+  <div style="display:flex; gap:6px; margin-top:8px;">
+    <button id="btn-ai-explain" class="btn btn-primary" style="flex:1;">
+      この問題を解説して
+    </button>
+    <button id="btn-ai-clear" class="btn btn-secondary" style="flex:0;">
+      クリア
+    </button>
+  </div>
+ 
+  <div style="margin-top:6px; font-size:0.72rem; color:var(--text-muted); line-height:1.4;">
+    ※AIの解説は学習補助です。最終判断はテキスト等で確認してください。
+  </div>
+</div>
+
         
         <p id="progress-help"
           data-i18n="progress-help"
