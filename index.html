@@ -1353,6 +1353,103 @@ function renderQuestion() {
   const user = getUserEntries();
   const t = i18n[currentLang];
 
+  // ===== AI解説（この問題） =====
+function appendAiMessage(role, text) {
+  const box = document.getElementById("ai-chat-box");
+  if (!box) return;
+
+  const wrap = document.createElement("div");
+  wrap.style.margin = "6px 0";
+  wrap.style.padding = "6px 8px";
+  wrap.style.borderRadius = "10px";
+  wrap.style.background = role === "user" ? "#ffffff" : "#eef5ff";
+  wrap.style.border = "1px solid rgba(0,0,0,0.04)";
+
+  const head = document.createElement("div");
+  head.style.fontWeight = "700";
+  head.style.color = role === "user" ? "#333" : "var(--primary)";
+  head.style.marginBottom = "2px";
+  head.textContent = role === "user" ? "あなた" : "AI";
+
+  const body = document.createElement("div");
+  body.style.whiteSpace = "pre-wrap";
+  body.textContent = text;
+
+  wrap.appendChild(head);
+  wrap.appendChild(body);
+  box.appendChild(wrap);
+
+  box.scrollTop = box.scrollHeight;
+}
+
+function buildExplainPayloadForCurrentQuestion() {
+  if (!questions || questions.length === 0) return null;
+  const q = questions[currentIndex];
+
+  // 模範仕訳（表示用のjournalJa/journalEnがあるならそれを使うのがラク）
+  const modelJa = q.journalJa || "";
+  const modelEn = q.journalEn || "";
+
+  // solution（JSON）も一応渡す（AI側で整形して説明しやすい）
+  const sol = q.solution || null;
+
+  return {
+    lang: currentLang, // "ja" or "en"
+    questionId: q.id || "",
+    categoryJa: q.categoryJa || "",
+    categoryEn: q.categoryEn || "",
+    questionJa: q.questionJa || "",
+    questionEn: q.questionEn || "",
+    modelJa,
+    modelEn,
+    solution: sol
+  };
+}
+
+async function askAiExplainCurrentQuestion() {
+  const btn = document.getElementById("btn-ai-explain");
+  if (btn) btn.disabled = true;
+
+  try {
+    const payload = buildExplainPayloadForCurrentQuestion();
+    if (!payload) {
+      appendAiMessage("ai", "問題が読み込めていません。");
+      return;
+    }
+
+    appendAiMessage("user", "この問題を解説して（ポイント・考え方・仕訳の理由を知りたい）");
+
+    // ★ここをあなたのWorkerのURLに置き換える
+    const WORKER_URL = window.APP_AI_WORKER_URL || ""; // config.jsに置くのがおすすめ
+
+    if (!WORKER_URL) {
+      appendAiMessage("ai", "AIサーバー（Worker）のURLが未設定です。config.js に APP_AI_WORKER_URL を追加してください。");
+      return;
+    }
+
+    const res = await fetch(WORKER_URL + "/explain", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      appendAiMessage("ai", "エラー: " + res.status + " / " + text);
+      return;
+    }
+
+    const data = await res.json();
+    appendAiMessage("ai", data.explanation || "（解説が取得できませんでした）");
+
+  } catch (e) {
+    console.error(e);
+    appendAiMessage("ai", "通信エラーが発生しました。");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+          
   // --- 模範解答（正誤判定に使う）
   const norm = normalizeSolution(q.solution);
 
