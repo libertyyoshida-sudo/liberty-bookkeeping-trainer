@@ -1339,18 +1339,8 @@ function renderQuestion() {
         credit: normalizeSide(credits)
       };
     }
-   
-    // 答え合わせ
-    async function checkAnswer() {
-  if (!questions || questions.length === 0) {
-    return;
-  }
 
-  const q = questions[currentIndex];
-  const user = getUserEntries();
-  const t = i18n[currentLang];
-
-  // ===== AI解説（この問題） =====
+// ===== AI解説（この問題） =====
 function appendAiMessage(role, text) {
   const box = document.getElementById("ai-chat-box");
   if (!box) return;
@@ -1383,15 +1373,12 @@ function buildExplainPayloadForCurrentQuestion() {
   if (!questions || questions.length === 0) return null;
   const q = questions[currentIndex];
 
-  // 模範仕訳（表示用のjournalJa/journalEnがあるならそれを使うのがラク）
   const modelJa = q.journalJa || "";
   const modelEn = q.journalEn || "";
-
-  // solution（JSON）も一応渡す（AI側で整形して説明しやすい）
   const sol = q.solution || null;
 
   return {
-    lang: currentLang, // "ja" or "en"
+    lang: currentLang,
     questionId: q.id || "",
     categoryJa: q.categoryJa || "",
     categoryEn: q.categoryEn || "",
@@ -1416,14 +1403,12 @@ async function askAiExplainCurrentQuestion() {
     const q = questions[currentIndex];
     appendAiMessage("user", "この問題を解説して（ポイント・考え方・仕訳の理由を知りたい）");
 
-    // ★ Worker URL（config.jsで設定）
     const WORKER_URL = window.APP_AI_WORKER_URL || "";
     if (!WORKER_URL) {
       appendAiMessage("ai", "AIサーバー（Worker）のURLが未設定です。config.js に APP_AI_WORKER_URL を追加してください。");
       return;
     }
 
-    // ★ AIへ送る文章（message）
     const prompt = `
 あなたは簿記の先生です。留学生向けに「やさしい日本語」で説明してください。短い英語も添えてください。
 次の問題を解説してください。
@@ -1467,7 +1452,17 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
   }
 }
 
-          
+    
+    // 答え合わせ
+    async function checkAnswer() {
+  if (!questions || questions.length === 0) {
+    return;
+  }
+
+  const q = questions[currentIndex];
+  const user = getUserEntries();
+  const t = i18n[currentLang];
+           
   // --- 模範解答（正誤判定に使う）
   const norm = normalizeSolution(q.solution);
 
