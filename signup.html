@@ -145,7 +145,8 @@
 
     .footer-link a:hover { text-decoration: underline; }
   </style>
-
+  
+  <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
@@ -188,6 +189,8 @@
       const successBox = document.getElementById('success-message');
       const pwHint = document.getElementById('pw-hint');
       const submitBtn = document.getElementById('submit-btn');
+
+      document.getElementById("link-login").href = window.APP_BASE_URL + "/index.html";
 
       // ✅ パスワード強度ヒント
       pwInput.addEventListener('input', () => {
@@ -310,7 +313,7 @@
           }
 
           // ✅ 成功したので一覧へ
-          location.href = "contents.html";
+          location.href = window.APP_BASE_URL + "/contents.html";
           return;
 
         } catch (e2) {
@@ -406,7 +409,7 @@
     </form>
 
     <div class="footer-link">
-      すでにアカウントをお持ちの方は <a href="index.html">ログイン画面へ</a>
+      すでにアカウントをお持ちの方は <a id="link-login" href="index.html">ログイン画面へ</a>
     </div>
   </div>
 </body>
