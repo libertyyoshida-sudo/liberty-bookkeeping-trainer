@@ -29,6 +29,13 @@
       user-select:none; -webkit-user-drag:none;
       transform-origin:center center;
     }
+    input{
+      border:0;
+      border-radius:10px;
+      padding:8px 10px;
+      font-weight:700;
+    }
+
   </style>
 </head>
 <body>
@@ -38,6 +45,8 @@
   <button id="next">次 →</button>
   <button id="zoomIn">＋</button>
   <button id="zoomOut">－</button>
+  <input id="jumpInput" type="number" min="1" style="width:80px; padding:8px; border-radius:10px; border:0;" placeholder="頁" />
+  <button id="jumpBtn">移動</button>
   <div class="info" id="pageInfo"></div>
 </div>
 
@@ -181,6 +190,32 @@ async function getSignedImageUrl(p) {
     window.addEventListener("keydown", async (e) => {
       if (e.key === "ArrowLeft" && page > 1) { page--; await render(); }
       if (e.key === "ArrowRight" && page < totalPages) { page++; await render(); }
+    });
+
+        const jumpInput = document.getElementById("jumpInput");
+    const jumpBtn = document.getElementById("jumpBtn");
+
+    async function jumpToPage() {
+      const val = parseInt(jumpInput.value, 10);
+
+      if (isNaN(val)) return;
+
+      if (val < 1 || val > totalPages) {
+        alert(`1〜${totalPages} の範囲で入力してください`);
+        return;
+      }
+
+      page = val;
+      await render();
+      jumpInput.value = "";
+    }
+
+    jumpBtn.addEventListener("click", jumpToPage);
+
+    jumpInput.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        await jumpToPage();
+      }
     });
   }
 
