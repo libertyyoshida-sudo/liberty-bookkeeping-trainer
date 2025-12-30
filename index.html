@@ -604,19 +604,19 @@
 
    // Supabaseクライアント初期化
     let supabaseClient;
+    
+    const SUPABASE_URL = window.SUPABASE_URL;
+    const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
+
+　　// ✅ v2 は createClient を import するのが正しい
+    console.log("Supabase loaded:", window.supabase);
+    console.log("SUPABASE_URL:", SUPABASE_URL);
+    console.log("SUPABASE_ANON_KEY exists:", !!SUPABASE_ANON_KEY);
+
     if (window.supabase && window.supabase.createClient) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-          storage: localStorage,
-        }
-      });
-      
-      console.log('Supabase client initialized ✅');
-    } else {
-      console.error('Supabase library not loaded');
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      console.log("Supabase client initialized ✅", supabaseClient);
+    } else {console.error("Supabase library not loaded ❌");
     }
   
 // 画面文言の多言語対応
