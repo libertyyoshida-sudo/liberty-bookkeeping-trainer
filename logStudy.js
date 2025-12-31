@@ -1,30 +1,65 @@
-// 学習ログ保存（ログイン時のみ）
 async function logStudyResult(q, isCorrect) {
-  if (!window.sessionUser) return;
-
   try {
+    console.log("[logStudyResult] called", { qid: q?.id, isCorrect });
+
+    // ① ログイン確認
+    const { data: authData, error: authErr } = await supabaseClient.auth.getUser();
+    if (authErr) console.error("[auth.getUser] error", authErr);
+    const user = authData?.user;
+
+    console.log("[auth] user", user);
+
+    if (!user) {
+      console.warn("[logStudyResult] not logged in -> skip insert");
+      return;
+    }
+
+    // ② payload（※カラム名は後で合わせます）
     const payload = {
-      user_id: window.sessionUser.id,
-      content_type: 'quiz',
-      content_id: q.id,
-      action: 'answer',         // ✅ 追加しておくと履歴ページでも便利
+      user_id: user.id,
+      content_type: "quiz",
+      content_id: String(q.id || ""),
+      action: "answer",
       is_correct: isCorrect,
-      metadata: null            // ✅ 将来拡張用（選択肢など入れたいならここ）
-      // created_at はSupabase側で自動付与
+      metadata: {
+        lang: currentLang,
+        // user_entries: getUserEntries(), // ← 重いなら一旦コメントでもOK
+      }
+      // created_at はSupabase側の default now() に任せる
     };
 
-    const { error } = await supabaseClient
-      .from('study_logs')
-      .insert([payload]);       // ✅ 配列でinsert
+    console.log("[study_logs] insert payload", payload);
+
+    // ③ insert（配列で）
+    const { data, error } = await supabaseClient
+      .from("study_logs")
+      .insert([payload])
+      .select();
 
     if (error) {
-      console.error('study_logs insert error', error);
-    } else {
-      loadMyHistory();
+      console.error("[study_logs] insert error", error);
+      alert("履歴保存エラー: " + (error.message || JSON.stringify(error)));
+      return;
     }
+
+    console.log("[study_logs] insert success", data);
+
+    // ④ 直後に select して本当に入ったか確認
+    const { data: confirm, error: confirmErr } = await supabaseClient
+      .from("study_logs")
+      .select("id, user_id, content_id, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(3);
+
+    console.log("[study_logs] confirm select", { confirm, confirmErr });
+
+    loadMyHistory();
   } catch (e) {
-    console.error('logStudyResult exception', e);
+    console.error("[logStudyResult] exception", e);
+    alert("履歴保存で例外: " + (e?.message || e));
   }
 }
+
 
 
