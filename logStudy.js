@@ -32,17 +32,17 @@ async function logStudyResult(q, isCorrect) {
 
     // ③ insert（配列で）
     const { data, error } = await supabaseClient
-      .from("study_logs")
-      .insert([payload])
-      .select();
+  .from('study_logs')
+  .insert([payload])
+  .select();
 
-    if (error) {
-      console.error("[study_logs] insert error", error);
-      alert("履歴保存エラー: " + (error.message || JSON.stringify(error)));
-      return;
-    }
-
-    console.log("[study_logs] insert success", data);
+if (error) {
+  console.error('study_logs insert error raw:', error);
+  console.error('study_logs insert error JSON:', JSON.stringify(error, null, 2));
+  alert("履歴保存エラー: " + (error.message || JSON.stringify(error)));
+  return;
+}
+console.log("insert success:", data);
 
     // ④ 直後に select して本当に入ったか確認
     const { data: confirm, error: confirmErr } = await supabaseClient
