@@ -1,4 +1,5 @@
 async function logStudyResult(q, isCorrect) {
+  console.log("✅ logStudyResult VERSION 2025-12-31-01");
   try {
     console.log("[logStudyResult] called", { qid: q?.id, isCorrect });
 
