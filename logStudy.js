@@ -14,12 +14,14 @@ async function logStudyResult(q, isCorrect) {
       return;
     }
 
-    // ✅ ここでユーザー入力（仕訳）を取得
-    // ※ getUserEntries() はすでにあなたのコードにある関数
+    // ✅ ユーザー入力（仕訳）取得
     const userEntries = getUserEntries();  // { debit:[...], credit:[...] }
 
-    // ✅ answer_json が NOT NULL なので、空でも必ず入れる
-    const safeAnswerJson = userEntries || { debit: [], credit: [] };
+    // ✅ answer_json が NOT NULL なので、必ずオブジェクトを入れる
+    const safeAnswerJson =
+      (userEntries && typeof userEntries === "object")
+        ? userEntries
+        : { debit: [], credit: [] };
 
     // ② payload
     const payload = {
@@ -29,21 +31,20 @@ async function logStudyResult(q, isCorrect) {
       action: "answer",
       is_correct: isCorrect,
 
-      console.log("[DEBUG] payload keys:", Object.keys(payload));
-      console.log("[DEBUG] payload.answer_json:", payload.answer_json);
-      console.log("[DEBUG] payload full:", JSON.stringify(payload, null, 2));
-
-      // ✅ 必須：NOT NULL の answer_json に入れる
+      // ✅ 必須：NOT NULL の answer_json
       answer_json: safeAnswerJson,
 
-      // ✅ 任意：補助情報（将来役に立つ）
+      // ✅ 任意：補助情報
       metadata: {
         lang: currentLang,
-        balanced: isBalanced(safeAnswerJson), // 参考（なくてもOK）
-        // user_entries をここに重複して入れる必要はない（answer_json にあるため）
+        balanced: isBalanced(safeAnswerJson),
       }
-      // created_at は Supabase 側の default now() に任せる
     };
+
+    // ✅ payload作成後にデバッグ表示（ここが正しい位置）
+    console.log("[DEBUG] payload keys:", Object.keys(payload));
+    console.log("[DEBUG] payload.answer_json:", payload.answer_json);
+    console.log("[DEBUG] payload full:", JSON.stringify(payload, null, 2));
 
     console.log("[study_logs] insert payload", payload);
 
@@ -78,6 +79,3 @@ async function logStudyResult(q, isCorrect) {
     alert("履歴保存で例外: " + (e?.message || e));
   }
 }
-
-
-
