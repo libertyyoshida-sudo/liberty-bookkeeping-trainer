@@ -29,6 +29,10 @@ async function logStudyResult(q, isCorrect) {
       action: "answer",
       is_correct: isCorrect,
 
+      console.log("[DEBUG] payload keys:", Object.keys(payload));
+      console.log("[DEBUG] payload.answer_json:", payload.answer_json);
+      console.log("[DEBUG] payload full:", JSON.stringify(payload, null, 2));
+
       // ✅ 必須：NOT NULL の answer_json に入れる
       answer_json: safeAnswerJson,
 
