@@ -4,6 +4,10 @@
   <meta charset="utf-8" />
   <title>コンテンツ一覧 - Liberty Bookkeeping Trainer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- ✅ config.js を先に読み込む（window.SUPABASE_URL / KEY を使うため） -->
+  <script src="config.js"></script>
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
@@ -37,11 +41,16 @@
     }
   </style>
   <script>
-    const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
+    // ✅ config.js の値を使う
+    const SUPABASE_URL = window.SUPABASE_URL;
+    const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.error("Supabase設定が見つかりません。config.js を読み込めているか確認してください。");
+    }
+
     const { createClient } = supabase;
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
     async function saveViewLog(contentType, contentId) {
       const { data: authData } = await supabaseClient.auth.getUser();
       const user = authData.user;
