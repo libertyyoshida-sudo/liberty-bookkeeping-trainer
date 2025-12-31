@@ -1,29 +1,30 @@
-// logStudy.js
-// 学習ログ保存 共通関数
+// 学習ログ保存（ログイン時のみ）
+async function logStudyResult(q, isCorrect) {
+  if (!window.sessionUser) return;
 
-const { createClient } = supabase;
-window.supabaseClient = window.supabaseClient || createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-
-window.logStudy = async function ({ content_type, content_id, action, is_correct = null, metadata = null }) {
   try {
-    const { data: authData } = await window.supabaseClient.auth.getUser();
-    const user = authData?.user;
-    if (!user) return; // 未ログイン時は何もしない
-
     const payload = {
-      user_id: user.id,
-      content_type,
-      content_id,
-      action,
-      is_correct,
-      metadata
+      user_id: window.sessionUser.id,
+      content_type: 'quiz',
+      content_id: q.id,
+      action: 'answer',         // ✅ 追加しておくと履歴ページでも便利
+      is_correct: isCorrect,
+      metadata: null            // ✅ 将来拡張用（選択肢など入れたいならここ）
+      // created_at はSupabase側で自動付与
     };
 
-    const { error } = await window.supabaseClient.from("study_logs").insert([payload]);
-    if (error) console.error("study_logs insert error", error);
+    const { error } = await supabaseClient
+      .from('study_logs')
+      .insert([payload]);       // ✅ 配列でinsert
 
+    if (error) {
+      console.error('study_logs insert error', error);
+    } else {
+      loadMyHistory();
+    }
   } catch (e) {
-    console.error("logStudy error", e);
+    console.error('logStudyResult exception', e);
   }
-};
+}
+
 
