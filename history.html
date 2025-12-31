@@ -4,7 +4,13 @@
   <meta charset="utf-8" />
   <title>学習履歴 - Liberty Bookkeeping Trainer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- ✅ config.js を先に読み込む -->
+  <script src="config.js"></script>
+
+  <!-- ✅ supabase-js -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
       margin: 0;
@@ -57,9 +63,11 @@
       margin-bottom: 8px;
     }
   </style>
+
   <script>
-    const SUPABASE_URL = "https://uczxiifxjzwbarkstvnt.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjenhpaWZ4anp3YmFya3N0dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NTcwODQsImV4cCI6MjA3OTQzMzA4NH0.UCMjF7gaU7HstTPG16QuKi9Idxyl-Zh9AG7XjmvJ1UU";
+    // ✅ config.js から読み込み（ここが修正点）
+    const SUPABASE_URL = window.SUPABASE_URL;
+    const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
 
     const { createClient } = supabase;
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -68,17 +76,26 @@
       const authLabel = document.getElementById('auth-label');
       const tbody = document.getElementById('logs-body');
 
-      const { data: authData } = await supabaseClient.auth.getUser();
-      const user = authData.user;
+      // ✅ ログインユーザー取得
+      const { data: authData, error: authError } = await supabaseClient.auth.getUser();
+      if (authError) console.error("auth.getUser error", authError);
+
+      const user = authData?.user;
+
       if (!user) {
         authLabel.textContent = '未ログインです。履歴を表示するには、トップページでログインしてください。';
+        tbody.innerHTML = `<tr><td colspan="5">ログインしてください。</td></tr>`;
         return;
       }
+
       authLabel.textContent = `ログイン中: ${user.email}`;
 
+      // ✅ study_logs取得（RLS前提で自分の分だけ返る想定）
+      // ※事故防止で user_id を明示的に絞るなら eq を残すのが安心
       const { data, error } = await supabaseClient
         .from('study_logs')
         .select('*')
+        .eq('user_id', user.id) // ✅ 追加：安全性アップ
         .order('created_at', { ascending: false })
         .limit(200);
 
@@ -97,6 +114,7 @@
       for (const row of data) {
         const tr = document.createElement('tr');
         const created = new Date(row.created_at).toLocaleString();
+
         const type = row.content_type;
         let typeLabel = type;
         if (type === 'quiz') typeLabel = '問題';
@@ -105,7 +123,10 @@
 
         const action = row.action;
         const isCorrect = row.is_correct;
-        const resultText = (isCorrect === true) ? '正解' : (isCorrect === false ? '不正解' : '');
+
+        const resultText = (isCorrect === true)
+          ? '正解'
+          : (isCorrect === false ? '不正解' : '');
 
         tr.innerHTML = `
           <td>${created}</td>
@@ -119,6 +140,7 @@
     });
   </script>
 </head>
+
 <body>
   <div class="page">
     <h1>学習履歴</h1>
@@ -143,4 +165,5 @@
   </div>
 </body>
 </html>
+
 
