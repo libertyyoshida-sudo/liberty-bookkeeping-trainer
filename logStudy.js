@@ -1,48 +1,44 @@
 async function logStudyResult(q, isCorrect) {
   try {
-    const { data: authData } = await supabaseClient.auth.getUser();
+    const { data: authData, error: authErr } = await supabaseClient.auth.getUser();
+    if (authErr) console.error("[auth.getUser] error", authErr);
+
     const user = authData?.user;
-    if (!user) return;
+    if (!user) {
+      console.warn("not logged in");
+      return;
+    }
 
-    // ユーザー入力（仕訳）
-    const userEntries = getUserEntries();
-    const safeAnswerJson =
-      (userEntries && typeof userEntries === "object")
-        ? userEntries
-        : { debit: [], credit: [] };
+    const nowIso = new Date().toISOString();
 
-    // 時刻（NOT NULL対策）
-    const nowIso = new Date().toISOString(); // timestamptz ならISOでOK
-
-    // ✅ DBの必須カラムに合わせる
+    // ✅ テスト用：絶対にnullにならない payload
     const payload = {
       user_id: user.id,
       content_type: "quiz",
       content_id: String(q.id || ""),
       is_correct: isCorrect,
 
+      // ✅ NOT NULL 対策：固定値で必ず入れる
+      answer_json: { test: "ok" },
+
       // ✅ NOT NULL
-      answer_json: safeAnswerJson,
+      meta: { lang: currentLang, action: "answer" },
 
-      // ✅ NOT NULL: meta（metadataじゃなく meta）
-      meta: {
-        lang: currentLang,
-        action: "answer",
-      },
-
-      // ✅ NOT NULL: started_at / completed_at / created_at
-      // 「started_at」は “問題を表示した時刻” を本当は入れたいが、
-      // まずは最低限、保存成功を優先して now を入れる
+      // ✅ NOT NULL
       started_at: nowIso,
       completed_at: nowIso,
       created_at: nowIso
     };
 
-    console.log("📦 payload just before insert:", payload);
+    console.log("📦 payload FINAL:", JSON.stringify(payload, null, 2));
+    console.log("📦 payload.answer_json:", payload.answer_json);
 
-    const { error } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from("study_logs")
-      .insert([payload]);
+      .insert([payload])
+      .select();
+
+    console.log("🧾 insert data:", data);
 
     if (error) {
       console.error("study_logs insert error:", error);
