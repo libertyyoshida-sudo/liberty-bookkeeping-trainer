@@ -1312,14 +1312,13 @@ function renderQuestion() {
           content_id: q.id,           // ← 問題ID
           is_correct: isCorrect,
           // answer_json や meta を使いたければここで追加
-          // answer_json: getUserEntries(), みたいに入れてもOK（json型）
-          completed_at: new Date().toISOString()  // or created_at に任せてもOK        
+          // answer_json: getUserEntries(), みたいに入れてもOK（json型）  
 
         };
         
         const { error } = await supabaseClient
           .from('study_logs')
-          .insert(payload);
+          .insert([payload]);
         
         if (error) {
           console.error('study_logs insert error', error);
@@ -1553,7 +1552,7 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
           .from('study_logs')
           .select('id, content_id, is_correct, completed_at, created_at')
           .eq('user_id', window.sessionUser.id)
-          .order('completed_at', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(20);
 
         if (error) {
@@ -1580,7 +1579,7 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
           flag.textContent = row.is_correct ? '◯' : '×';
           flag.className = row.is_correct ? 'correct' : 'wrong';
           const dt = document.createElement('span');
-          const ts = row.completed_at || row.created_at;
+          const ts = row.created_at;
           const d = ts ? new Date(ts) : null;        
           dt.textContent = d ? d.toLocaleString() : '';
 
