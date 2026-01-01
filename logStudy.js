@@ -1,4 +1,7 @@
 async function logStudyResult_TEST(q, isCorrect) {
+  alert("✅ logStudyResult_TEST HIT");
+  return; // ← まず止める
+  
 　console.log("✅ VERSION: logStudyResult_TEST 2026-01-01-01"); // ←反映確認用
   
   try {
