@@ -1307,30 +1307,43 @@ function renderQuestion() {
 
       try {
         const payload = {
-          user_id: user.id,
+          user_id: window.sessionUser.id,  // ← window.sessionUserを使用
           content_type: "quiz",
           content_id: String(q.id || ""),
           is_correct: isCorrect,
-          answer_json: { test: "ok" },
-          meta: { lang: currentLang, action: "answer" },
+          answer_json: { 
+            test: "ok",
+            question_id: q?.id,
+            is_correct: isCorrect,
+            timestamp: nowIso
+          },
+          meta: {
+            lang: currentLang || "ja", 
+            action: "answer" 
+          },
           started_at: nowIso,
           completed_at: nowIso,
           created_at: nowIso
         };
 
         console.log("🔥 ABOUT TO INSERT STUDY_LOGS:", Object.keys(payload));
+        console.log("📦 payload FINAL:", JSON.stringify(payload, null, 2));
         
-        const { error } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from('study_logs')       
           .insert([payload]);
-        
+          .select();
+                
         if (error) {
           console.error('study_logs insert error', error);
+          console.error("Error details:", error.message);
         } else {
+          console.log('✅ study_logs insert success:', data);
           loadMyHistory();
         }
       } catch (e) {
         console.error('logStudyResult exception', e);
+        console.error("Stack trace:", e.stack);
       }
     }
 
