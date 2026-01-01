@@ -1315,9 +1315,11 @@ function renderQuestion() {
           // answer_json: getUserEntries(), みたいに入れてもOK（json型）  
 
         };
+
+        console.log("🔥 ABOUT TO INSERT STUDY_LOGS:", Object.keys(payload));
         
         const { error } = await supabaseClient
-          .from('study_logs')
+          .from('study_logs')       
           .insert([payload]);
         
         if (error) {
