@@ -1335,10 +1335,7 @@ function renderQuestion() {
           .from('study_logs')       
           .insert([payload])
           .select();
-
-        const data = result.data;
-        const error = result.error;      
-                
+                  
         if (error) {
           console.error('study_logs insert error', error);
           console.error("Error details:", error.message);
