@@ -1333,7 +1333,7 @@ function renderQuestion() {
         
         const { data, error } = await supabaseClient
           .from('study_logs')       
-          .insert([payload]);
+          .insert([payload])
           .select();
 
         const data = result.data;
