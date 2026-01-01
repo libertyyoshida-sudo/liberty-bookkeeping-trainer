@@ -1333,8 +1333,7 @@ function renderQuestion() {
         
         const { data, error } = await supabaseClient
           .from('study_logs')       
-          .insert([payload])
-          .select();
+          .insert([payload]);
                   
         if (error) {
           console.error('study_logs insert error', error);
