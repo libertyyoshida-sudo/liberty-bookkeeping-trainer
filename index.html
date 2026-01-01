@@ -1306,14 +1306,16 @@ function renderQuestion() {
       if (!window.sessionUser) return;
 
       try {
+        const nowIso = new Date().toISOString();
+        
         const payload = {
-          user_id: window.sessionUser.id,  // ← window.sessionUserを使用
+          user_id: window.sessionUser ? window.sessionUser.id : null,
           content_type: "quiz",
-          content_id: String(q.id || ""),
+          content_id: String((q && q.id) ? q.id : ""),
           is_correct: isCorrect,
           answer_json: { 
             test: "ok",
-            question_id: q?.id,
+            question_id: q && q.id ? q.id : "",
             is_correct: isCorrect,
             timestamp: nowIso
           },
@@ -1333,6 +1335,9 @@ function renderQuestion() {
           .from('study_logs')       
           .insert([payload]);
           .select();
+
+        const data = result.data;
+        const error = result.error;      
                 
         if (error) {
           console.error('study_logs insert error', error);
