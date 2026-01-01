@@ -1600,7 +1600,9 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
           const dt = document.createElement('span');
           const ts = row.created_at;
           const d = ts ? new Date(ts) : null;        
-          dt.textContent = d ? d.toLocaleString() : '';
+          dt.textContent = d 
+            ? d.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })
+            : "";
 
           right.appendChild(flag);
           right.appendChild(document.createTextNode(' '));
