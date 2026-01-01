@@ -1,7 +1,16 @@
 async function logStudyResult_TEST(q, isCorrect) {
-  console.log("✅ VERSION: logStudyResult_TEST 2026-01-01-03"); // 最初に実行確認
+  console.log("✅ VERSION: logStudyResult_TEST 2026-01-01-03");
+  console.log("📝 Parameters - q:", q, "isCorrect:", isCorrect);
   
   try {
+    // Supabaseクライアントの存在確認
+    if (!supabaseClient) {
+      console.error("❌ Supabase client not initialized");
+      return;
+    }
+    
+    console.log("🔄 Attempting to get user from auth...");
+    
     // ① ログインユーザー取得
     const { data: authData, error: authErr } = await supabaseClient.auth.getUser();
     if (authErr) {
@@ -9,16 +18,20 @@ async function logStudyResult_TEST(q, isCorrect) {
       return;
     }
     
+    console.log("👤 authData received:", authData);
+    
     const user = authData?.user;  // ✅ ここで定義
-    console.log("👤 user:", user);
+    console.log("👤 user variable:", user);
+    console.log("👤 user?.id:", user?.id);
     
     if (!user) {
-      console.warn("not logged in");
+      console.warn("⚠️ not logged in - skipping study log");
       return;
     }
     
     // ② 時刻
     const nowIso = new Date().toISOString();
+    console.log("🕐 Timestamp:", nowIso);
     
     // ③ payload(必須カラム全部入り)
     const payload = {
@@ -26,8 +39,16 @@ async function logStudyResult_TEST(q, isCorrect) {
       content_type: "quiz",
       content_id: String(q?.id || ""),
       is_correct: isCorrect,
-      answer_json: { test: "ok" },
-      meta: { lang: currentLang || "ja", action: "answer" },
+      answer_json: { 
+        test: "ok",
+        question_id: q?.id,
+        is_correct: isCorrect,
+        timestamp: nowIso
+      },
+      meta: { 
+        lang: currentLang || "ja", 
+        action: "answer" 
+      },
       started_at: nowIso,
       completed_at: nowIso,
       created_at: nowIso
@@ -37,24 +58,35 @@ async function logStudyResult_TEST(q, isCorrect) {
     console.log("📦 payload FINAL:", JSON.stringify(payload, null, 2));
     
     // ④ insert
-    const { error } = await supabaseClient
+    console.log("🚀 Inserting into study_logs table...");
+    const { data, error } = await supabaseClient
       .from("study_logs")
-      .insert([payload]);
+      .insert([payload])
+      .select();
     
     if (error) {
-      console.error("study_logs insert error:", error);
-      alert("履歴保存エラー: " + error.message);
+      console.error("❌ study_logs insert error:", error);
+      console.error("Error details:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       return;
     }
     
-    console.log("✅ insert success");
+    console.log("✅ insert success:", data);
     
     // loadMyHistory が定義されていれば実行
     if (typeof loadMyHistory === 'function') {
+      console.log("🔄 Calling loadMyHistory...");
       loadMyHistory();
+    } else {
+      console.log("ℹ️ loadMyHistory function not available");
     }
   } catch (e) {
-    console.error("logStudyResult exception", e);
+    console.error("❌ logStudyResult exception", e);
+    console.error("Stack trace:", e.stack);
   }
 }
 
