@@ -1,4 +1,5 @@
 async function logStudyResult(q, isCorrect) {
+  console.log("✅ logStudyResult NEW is running");
   try {
     const { data: authData, error: authErr } = await supabaseClient.auth.getUser();
     if (authErr) console.error("[auth.getUser] error", authErr);
