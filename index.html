@@ -1307,13 +1307,15 @@ function renderQuestion() {
 
       try {
         const payload = {
-          user_id: window.sessionUser.id,
-          content_type: 'quiz',       // ← 種別
-          content_id: q.id,           // ← 問題ID
+          user_id: user.id,
+          content_type: "quiz",
+          content_id: String(q.id || ""),
           is_correct: isCorrect,
-          // answer_json や meta を使いたければここで追加
-          // answer_json: getUserEntries(), みたいに入れてもOK（json型）  
-
+          answer_json: { test: "ok" },
+          meta: { lang: currentLang, action: "answer" },
+          started_at: nowIso,
+          completed_at: nowIso,
+          created_at: nowIso
         };
 
         console.log("🔥 ABOUT TO INSERT STUDY_LOGS:", Object.keys(payload));
