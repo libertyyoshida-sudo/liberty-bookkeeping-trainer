@@ -1302,7 +1302,7 @@ function renderQuestion() {
 
     
     // 学習ログ保存（ログイン時のみ）
-    async function logStudyResult(q, isCorrect) {
+    async function logStudyResult_TEST(q, isCorrect) {
       if (!window.sessionUser) return;
 
       try {
@@ -1535,7 +1535,7 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
 
   // --- ✅ 学習ログも未入力・貸借不一致でも記録する
   console.log("✅ checkAnswer reached logStudyResult call");   
-  await logStudyResult(q, isCorrect);
+  await logStudyResult_TEST(q, isCorrect);
 }
 
     // 自分の履歴読み込み
