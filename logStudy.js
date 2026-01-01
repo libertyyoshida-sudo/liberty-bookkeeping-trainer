@@ -12,7 +12,6 @@ async function logStudyResult(q, isCorrect) {
 
     const nowIso = new Date().toISOString();
 
-    // ✅ テスト用：絶対にnullにならない payload
     const payload = {
       user_id: user.id,
       content_type: "quiz",
@@ -31,13 +30,15 @@ async function logStudyResult(q, isCorrect) {
       created_at: nowIso
     };
 
+    // ✅ insertの前にログ出す（ここが正しい位置）
+    console.log("📦 payload keys:", Object.keys(payload));
     console.log("📦 payload FINAL:", JSON.stringify(payload, null, 2));
     console.log("📦 payload.answer_json:", payload.answer_json);
 
+    // ✅ insert（まずはselectなしでOK）
     const { data, error } = await supabaseClient
       .from("study_logs")
-      .insert([payload])
-      .select();
+      .insert([payload]);
 
     console.log("🧾 insert data:", data);
 
