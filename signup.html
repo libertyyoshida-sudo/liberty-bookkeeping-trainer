@@ -67,8 +67,13 @@
       color: var(--text-main);
     }
 
+    .password-wrapper {
+      position: relative;
+    }
+
     input[type="email"],
     input[type="password"],
+    input[type="text"],
     select {
       width: 100%;
       padding: 8px 10px;
@@ -78,6 +83,38 @@
       outline: none;
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
       background: #fff;
+    }
+
+    .password-wrapper input[type="password"],
+    .password-wrapper input[type="text"] {
+      padding-right: 40px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease;
+    }
+
+    .toggle-password:hover {
+      color: var(--primary);
+    }
+
+    .toggle-password:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-radius: 4px;
     }
 
     input:focus,
@@ -188,8 +225,35 @@
       const successBox = document.getElementById('success-message');
       const pwHint = document.getElementById('pw-hint');
       const submitBtn = document.getElementById('submit-btn');
+      const togglePasswordBtn = document.getElementById('toggle-password');
+      const togglePasswordConfirmBtn = document.getElementById('toggle-password-confirm');
 
       document.getElementById("link-login").href = window.APP_BASE_URL + "/index.html";
+
+      // パスワード表示・非表示の切り替え
+      togglePasswordBtn.addEventListener('click', () => {
+        if (pwInput.type === 'password') {
+          pwInput.type = 'text';
+          togglePasswordBtn.textContent = '🙈';
+          togglePasswordBtn.setAttribute('aria-label', 'パスワードを非表示');
+        } else {
+          pwInput.type = 'password';
+          togglePasswordBtn.textContent = '👁️';
+          togglePasswordBtn.setAttribute('aria-label', 'パスワードを表示');
+        }
+      });
+
+      togglePasswordConfirmBtn.addEventListener('click', () => {
+        if (pwConfirmInput.type === 'password') {
+          pwConfirmInput.type = 'text';
+          togglePasswordConfirmBtn.textContent = '🙈';
+          togglePasswordConfirmBtn.setAttribute('aria-label', 'パスワードを非表示');
+        } else {
+          pwConfirmInput.type = 'password';
+          togglePasswordConfirmBtn.textContent = '👁️';
+          togglePasswordConfirmBtn.setAttribute('aria-label', 'パスワードを表示');
+        }
+      });
 
       // ✅ パスワード強度ヒント
       pwInput.addEventListener('input', () => {
@@ -339,7 +403,10 @@
 
       <div class="form-group">
         <label for="password">パスワード</label>
-        <input id="password" type="password" required autocomplete="new-password" />
+        <div class="password-wrapper">
+          <input id="password" type="password" required autocomplete="new-password" />
+          <button type="button" class="toggle-password" id="toggle-password" aria-label="パスワードを表示">👁️</button>
+        </div>
         <div class="helper">
           条件：8文字以上・英大文字・英小文字・数字・記号を各1文字以上含めてください。
         </div>
@@ -348,7 +415,10 @@
 
       <div class="form-group">
         <label for="passwordConfirm">パスワード（確認）</label>
-        <input id="passwordConfirm" type="password" required autocomplete="new-password" />
+        <div class="password-wrapper">
+          <input id="passwordConfirm" type="password" required autocomplete="new-password" />
+          <button type="button" class="toggle-password" id="toggle-password-confirm" aria-label="パスワードを表示">👁️</button>
+        </div>
         <div id="pw-confirm-hint" class="helper"></div>
       </div>
 
