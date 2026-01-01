@@ -1,4 +1,6 @@
 async function logStudyResult_TEST(q, isCorrect) {
+　console.log("✅ VERSION: logStudyResult_TEST 2026-01-01-01"); // ←反映確認用
+  
   try {
     // ① ログインユーザー取得
     const { data: authData, error: authErr } = await supabaseClient.auth.getUser();
