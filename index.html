@@ -641,7 +641,6 @@
     console.log("SUPABASE_ANON_KEY exists:", !!SUPABASE_ANON_KEY);
 
     if (window.supabase?.createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY {
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: {
           persistSession: true,
