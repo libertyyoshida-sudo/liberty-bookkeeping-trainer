@@ -634,6 +634,7 @@
 
    // Supabaseクライアント初期化
     let supabaseClient;
+    let supabaseClient = null;
 
 　　// ✅ v2 は createClient を import するのが正しい
     console.log("Supabase loaded:", window.supabase);
@@ -644,6 +645,17 @@
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       console.log("Supabase client initialized ✅", supabaseClient);
     } else {console.error("Supabase library not loaded ❌");
+    if (window.supabase && window.supabase.createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: localStorage,
+        },
+      });
+    } else {
+      console.error("Supabase library not loaded or config missing ❌");
     }
   
 // 画面文言の多言語対応
@@ -1917,6 +1929,10 @@ if (toggleRubyBtn) {
 }
       
       try {
+        if (!supabaseClient) {
+          throw new Error("Supabase client not initialized");
+        }
+
         // 認証状態取得
         const { data: authData } = await supabaseClient.auth.getUser();
         window.sessionUser = authData.user || null;
@@ -2005,6 +2021,7 @@ if (toggleRubyBtn) {
         loadLearnedHistory();
       } catch (e) {
         console.error('初期処理エラー:', e);
+        console.error('初期処理エラー (Fallback to hardcoded):', e);
         allQuestions = hardcodedQuestions;
         setupCategoryFilterOptions(allQuestions);
         startNewSessionFromUI();
