@@ -1768,17 +1768,14 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
   const refLinksDiv = document.getElementById("answer-ref-links");
   if (refLinksDiv) {
     refLinksDiv.innerHTML = ""; // クリア
-    if (q.ref_links && Object.keys(q.ref_links).length > 0) {
     if (q.ref_links && typeof q.ref_links === 'object' && Object.keys(q.ref_links).length > 0) {
       const links = [];
       for (const [term, url] of Object.entries(q.ref_links)) {
         if (term && url) {
-          links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#005bac; text-decoration:underline; margin-right:12px; font-weight:bold;">📖 ${term}</a>`);
           links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer" style="display:inline-block; margin-right:12px; margin-bottom:4px; color:#005bac; text-decoration:underline; font-weight:bold;">📖 ${term}</a>`);
         }
       }
       if (links.length > 0) {
-        refLinksDiv.innerHTML = `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed #ccc;">${links.join("")}</div>`;
         const label = currentLang === 'en' ? 'Reference Materials:' : '参考テキストページ:';
         refLinksDiv.innerHTML = `<div style="margin-top:12px; padding-top:8px; border-top:1px dashed #ccc;">
           <div style="font-size:0.85rem; font-weight:bold; color:#555; margin-bottom:6px;">${label}</div>
