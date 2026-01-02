@@ -941,7 +941,6 @@ function furiganaTextToRubyHtml(str) {
     // DOM 取得（後で埋まるので let で宣言だけしておく）
     let questionLabel, categoryLabel, idLabel, randomLabel;
     let questionTextJa, questionTextEn;
-    let langJaBtn, langEnBtn, randomModeCheckbox, unlearnedCheckbox, drillModeCheckbox;
     let langJaBtn, langEnBtn, randomModeCheckbox, unlearnedCheckbox, notClearedCheckbox, drillModeCheckbox;
     let prevBtn, nextBtn, checkBtn;
     let resultMessage, answerPanel, answerJa, answerEn, scorePill;
@@ -1843,10 +1842,8 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
         // ✅ 3回連続正解判定のために is_correct も取得し、件数を増やす
         const { data, error } = await supabaseClient
           .from('study_logs')
-          .select('content_id')
           .select('content_id, is_correct')
           .eq('user_id', window.sessionUser.id)
-          .limit(2000);
           .order('created_at', { ascending: false }) // 最新順
           .limit(5000);
           
