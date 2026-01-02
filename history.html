@@ -12,159 +12,277 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
+    :root {
+      --bg-main: #f5f7fb;
+      --bg-card: #ffffff;
+      --primary: #005bac;
+      --primary-soft: #e2eef9;
+      --accent: #00a0e9;
+      --text-main: #222;
+      --text-muted: #666;
+      --border-soft: #dde3f0;
+      --danger: #d9534f;
+      --success: #28a745;
+      --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.06);
+      --radius-xl: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      background: #f5f7fb;
-      color: #222;
-    }
-    .page {
-      max-width: 900px;
-      margin: 0 auto;
+      background: radial-gradient(circle at top left, #e6f0ff, #f5f7fb 40%, #ffffff 80%);
+      color: var(--text-main);
+      min-height: 100vh;
       padding: 20px 16px 40px;
     }
-    h1 {
-      font-size: 1.3rem;
-      margin-bottom: 4px;
+
+    .page {
+      max-width: 1000px;
+      margin: 0 auto;
     }
-    a { color: #005bac; text-decoration: none; }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    header img.logo {
+      height: 36px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin: 0;
+      color: var(--primary);
+    }
+
+    a.back-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    a.back-link:hover { text-decoration: underline; }
+
     .card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 14px 16px;
-      margin-top: 12px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-soft);
+      padding: 24px;
       border: 1px solid rgba(0,0,0,0.03);
     }
+
+    .auth-info {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
     .log-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
     }
-    .log-table th,
-    .log-table td {
-      border-bottom: 1px solid #e5e8f0;
-      padding: 6px 4px;
+
+    .log-table th {
       text-align: left;
+      padding: 8px 6px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 2px solid #edf1fb;
+      white-space: nowrap;
     }
+
+    .log-table td {
+      padding: 10px 6px;
+      border-bottom: 1px solid #edf1fb;
+      vertical-align: middle;
+    }
+
     .badge {
-      display: inline-block;
-      padding: 2px 6px;
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
       border-radius: 999px;
-      font-size: 0.7rem;
-      background: #e2eef9;
-      color: #005bac;
+      font-size: 0.75rem;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-weight: 500;
     }
-    .ok { color: #28a745; }
-    .ng { color: #d9534f; }
-    .auth-info {
-      font-size: 0.8rem;
-      color: #666;
-      margin-bottom: 8px;
+
+    .result-ok { color: var(--success); font-weight: 600; }
+    .result-ng { color: var(--danger); font-weight: 600; }
+
+    /* スマホ対応: テーブルを横スクロールに */
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
   </style>
 
   <script>
-    // ✅ config.js から読み込み（ここが修正点）
     const SUPABASE_URL = window.SUPABASE_URL;
     const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
 
     const { createClient } = supabase;
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // ✅ ログイン状態を維持するための設定
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: localStorage,
+      }
+    });
 
     window.addEventListener('DOMContentLoaded', async () => {
       const authLabel = document.getElementById('auth-label');
       const tbody = document.getElementById('logs-body');
 
-      // ✅ ログインユーザー取得
-      const { data: authData, error: authError } = await supabaseClient.auth.getUser();
-      if (authError) console.error("auth.getUser error", authError);
-
-      const user = authData?.user;
+      // セッション取得
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const user = sessionData?.session?.user;
 
       if (!user) {
         authLabel.textContent = '未ログインです。履歴を表示するには、トップページでログインしてください。';
-        tbody.innerHTML = `<tr><td colspan="5">ログインしてください。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;">ログインしていません</td></tr>`;
         return;
       }
 
       authLabel.textContent = `ログイン中: ${user.email}`;
 
-      // ✅ study_logs取得（RLS前提で自分の分だけ返る想定）
-      // ※事故防止で user_id を明示的に絞るなら eq を残すのが安心
-      const { data, error } = await supabaseClient
+      // ログ取得
+      const { data: logs, error: logsError } = await supabaseClient
         .from('study_logs')
         .select('*')
         .eq('user_id', user.id) // ✅ 追加：安全性アップ
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(100);
 
-      if (error) {
-        console.error('study_logs select error', error);
-        tbody.innerHTML = `<tr><td colspan="5">履歴取得でエラーが発生しました。</td></tr>`;
+      if (logsError) {
+        console.error('study_logs error', logsError);
+        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--danger);">エラーが発生しました: ${logsError.message}</td></tr>`;
         return;
       }
 
-      if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5">まだ履歴がありません。</td></tr>`;
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;color:#666;">履歴がありません。</td></tr>`;
         return;
+      }
+
+      // ✅ 追加: クイズの情報を quiz_questions から取得して結合する
+      const quizIds = logs
+        .filter(r => r.content_type === 'quiz' && r.content_id)
+        .map(r => r.content_id);
+      const uniqueQuizIds = [...new Set(quizIds)];
+
+      let questionMap = {};
+      if (uniqueQuizIds.length > 0) {
+        const { data: questions, error: qError } = await supabaseClient
+          .from('quiz_questions')
+          .select('id, categoryJa, titleJa')
+          .in('id', uniqueQuizIds);
+
+        if (!qError && questions) {
+          questions.forEach(q => {
+            questionMap[q.id] = q;
+          });
+        }
       }
 
       tbody.innerHTML = '';
-      for (const row of data) {
+      logs.forEach(row => {
         const tr = document.createElement('tr');
-        const created = new Date(row.created_at).toLocaleString();
+        
+        // 日時フォーマット
+        const d = new Date(row.created_at);
+        const dateStr = d.toLocaleString('ja-JP', {
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit'
+        });
 
-        const type = row.content_type;
-        let typeLabel = type;
-        if (type === 'quiz') typeLabel = '問題';
-        if (type === 'slide') typeLabel = 'スライド';
-        if (type === 'youtube') typeLabel = '動画';
+        // 種別ラベル
+        let typeLabel = row.content_type;
+        if (typeLabel === 'quiz') typeLabel = '問題';
+        if (typeLabel === 'slide') typeLabel = 'スライド';
+        if (typeLabel === 'youtube') typeLabel = '動画';
+        if (typeLabel === 'site') typeLabel = 'サイト';
 
-        const isCorrect = row.is_correct;
-        const resultText = (isCorrect === true)
-          ? '正解'
-          : (isCorrect === false ? '不正解' : '');
+        // 結果
+        let resultHtml = '-';
+        if (row.is_correct === true) resultHtml = '<span class="result-ok">正解</span>';
+        if (row.is_correct === false) resultHtml = '<span class="result-ng">不正解</span>';
+        if (row.action === 'view') resultHtml = '<span style="color:#888;font-size:0.8rem;">閲覧</span>';
 
-        const categoryJa = row.categoryJa || '';
-        const titleJa = row.titleJa || '';
+        // カテゴリ・タイトルの解決
+        let categoryJa = '';
+        let titleJa = '';
+
+        if (row.content_type === 'quiz') {
+          const q = questionMap[row.content_id];
+          if (q) {
+            categoryJa = q.categoryJa || '';
+            titleJa = q.titleJa || '';
+          } else {
+            titleJa = `(ID: ${row.content_id})`;
+          }
+        } else {
+          // クイズ以外の場合は content_id をそのまま表示など
+          titleJa = row.content_id || '';
+        }
 
         tr.innerHTML = `
-          <td>${created}</td>
+          <td>${dateStr}</td>
           <td><span class="badge">${typeLabel}</span></td>
           <td>${categoryJa}</td>
           <td>${titleJa}</td>
-          <td>${resultText ? `<span class="${isCorrect ? 'ok':'ng'}">${resultText}</span>` : ''}</td>
+          <td>${row.action || '-'}</td>
+          <td>${resultHtml}</td>
         `;
         tbody.appendChild(tr);
-      }
+      });
     });
   </script>
 </head>
 
 <body>
   <div class="page">
-    <h1>学習履歴</h1>
-    <p><a href="index.html">← トップ（問題）へ戻る</a></p>
+    <header>
+      <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
+      <h1>学習履歴</h1>
+    </header>
+
+    <a href="index.html" class="back-link">← トップ（問題）へ戻る</a>
+
     <div class="card">
-      <p id="auth-label" class="auth-info"></p>
-      <table class="log-table">
-        <thead>
-          <tr>
-            <th>日時</th>
-            <th>種別</th>
-            <th>カテゴリ</th>
-            <th>タイトル</th>
-            <th>結果</th>
-          </tr>
-        </thead>
-        <tbody id="logs-body">
-          <tr><td colspan="5">読み込み中...</td></tr>
-        </tbody>
-      </table>
+      <div id="auth-label" class="auth-info">確認中...</div>
+      
+      <div class="table-wrapper">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>日時</th>
+              <th>種別</th>
+              <th>カテゴリ</th>
+              <th>タイトル / ID</th>
+              <th>アクション</th>
+              <th>結果</th>
+            </tr>
+          </thead>
+          <tbody id="logs-body">
+            <tr><td colspan="7" style="padding:20px;text-align:center;">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </body>
 </html>
-
-
