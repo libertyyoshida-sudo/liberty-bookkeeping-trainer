@@ -169,11 +169,135 @@
       margin-right: 6px;
     }
     .bar-fill { height: 100%; background: var(--success); }
+
+    /* 言語切り替えボタン */
+    .lang-toggle {
+      margin-left: auto;
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 2px;
+      background: var(--primary-soft);
+    }
+    .lang-toggle button {
+      border: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: transparent;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .lang-toggle button.active {
+      background: #fff;
+      color: var(--primary);
+      font-weight: 600;
+      box-shadow: 0 0 0 1px rgba(0, 91, 172, 0.06);
+    }
+
+    /* AIチャットエリア */
+    .ai-section {
+      margin-bottom: 24px;
+    }
+    .ai-chat-box {
+      background: #f9fbff;
+      border: 1px solid #e2eef9;
+      border-radius: 12px;
+      padding: 16px;
+      height: 240px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    .ai-msg {
+      margin-bottom: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .ai-msg.user { background: #fff; border: 1px solid #ddd; margin-left: 20px; color: #333; }
+    .ai-msg.ai { background: #e2eef9; margin-right: 20px; color: #005bac; }
+    
+    .btn-primary { background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 999px; cursor: pointer; font-size: 0.9rem; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #fff; color: var(--primary); border: 1px solid var(--primary); padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-secondary:hover { background: var(--primary-soft); }
   </style>
 
   <script>
     const SUPABASE_URL = window.SUPABASE_URL;
     const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
+
+    // 多言語定義
+    const i18n = {
+      ja: {
+        title: '学習分析',
+        back: '← トップ（問題）へ戻る',
+        toHistory: '📊 学習履歴（ログ）へ',
+        notLogin: '未ログインです。分析を表示するにはログインしてください。',
+        login: 'ログイン中: ',
+        statProgress: '学習済み問題数',
+        statAccuracy: '総正解率',
+        statTotal: '総回答回数',
+        chartTitle: 'カテゴリ別 正解・不正解数',
+        tableTitle: '問題別 詳細レポート',
+        thCat: 'カテゴリ',
+        thTitle: 'タイトル',
+        thCount: '回数',
+        thCorrect: '正解',
+        thWrong: '不正解',
+        thRate: '正解率',
+        unlearned: '未学習',
+        aiTitle: 'AI学習アドバイザー',
+        aiDesc: 'あなたの学習状況を分析して、次のステップをアドバイスします。',
+        aiBtn: '分析してアドバイスをください',
+        aiWait: '分析中です...少々お待ちください。',
+        aiUserMsg: '学習状況を分析して、アドバイスをください。',
+        aiError: 'エラーが発生しました: ',
+        exportBtn: '📥 CSVエクスポート',
+        loading: '読み込み中...',
+        loginRequired: 'ログインしていません'
+      },
+      en: {
+        title: 'Learning Analytics',
+        back: '← Back to Top',
+        toHistory: '📊 To History',
+        notLogin: 'Not logged in. Please log in to view analytics.',
+        login: 'Logged in: ',
+        statProgress: 'Learned Questions',
+        statAccuracy: 'Total Accuracy',
+        statTotal: 'Total Attempts',
+        chartTitle: 'Correct & Wrong by Category',
+        tableTitle: 'Detailed Report by Question',
+        thCat: 'Category',
+        thTitle: 'Title',
+        thCount: 'Count',
+        thCorrect: 'Correct',
+        thWrong: 'Wrong',
+        thRate: 'Rate',
+        unlearned: 'Not learned',
+        aiTitle: 'AI Study Advisor',
+        aiDesc: 'I will analyze your learning status and advise you on the next steps.',
+        aiBtn: 'Analyze & Get Advice',
+        aiWait: 'Analyzing... Please wait.',
+        aiUserMsg: 'Please analyze my learning status and give me advice.',
+        aiError: 'An error occurred: ',
+        exportBtn: '📥 Export CSV',
+        loading: 'Loading...',
+        loginRequired: 'Not logged in'
+      }
+    };
+
+    let currentLang = 'ja';
+    let currentUser = null;
+    let globalQuestions = [];
+    let globalStatsMap = {};
+    let globalCategoryStats = {};
+    let chartInstance = null;
+
     const { createClient } = supabase;
     
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -187,30 +311,43 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       const authLabel = document.getElementById('auth-label');
-      const tbody = document.getElementById('analysis-body');
+      const langJaBtn = document.getElementById('lang-ja');
+      const langEnBtn = document.getElementById('lang-en');
+      const btnAnalyze = document.getElementById('btn-ai-analyze');
+      const chatBox = document.getElementById('ai-chat-box');
+      const btnExport = document.getElementById('btn-export');
+
+      // 言語切り替え
+      langJaBtn.addEventListener('click', () => { currentLang = 'ja'; updateUI(); });
+      langEnBtn.addEventListener('click', () => { currentLang = 'en'; updateUI(); });
 
       // 1. ログインチェック
       const { data: sessionData } = await supabaseClient.auth.getSession();
       const user = sessionData?.session?.user;
+      currentUser = user;
+
+      // 初期UI更新
+      updateUI();
 
       if (!user) {
-        authLabel.textContent = '未ログインです。分析を表示するにはログインしてください。';
-        tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;">ログインしていません</td></tr>`;
         return;
       }
-      authLabel.textContent = `ログイン中: ${user.email}`;
 
       // 2. データ取得 (問題マスタ & ログ)
       // 問題マスタ全件
       const { data: questions, error: qError } = await supabaseClient
         .from('quiz_questions')
-        .select('id, categoryJa, titleJa')
+        .select('id, categoryJa, titleJa, categoryEn, titleEn')
         .order('id');
 
       if (qError) {
         console.error('questions error', qError);
         return;
       }
+      globalQuestions = questions;
+
+      // ログ取得前に一旦UI更新（読み込み中など）
+      // ここでは省略するが、必要ならローディング表示を入れる
 
       // 学習ログ (自分のクイズ回答のみ, 直近5000件程度)
       const { data: logs, error: lError } = await supabaseClient
@@ -235,13 +372,15 @@
         statsMap[q.id] = {
           id: q.id,
           title: q.titleJa || '(無題)',
+          titleEn: q.titleEn || '(Untitled)',
           category: q.categoryJa || 'その他',
+          categoryEn: q.categoryEn || 'Other',
           total: 0,
           correct: 0,
           wrong: 0
         };
 
-        const cat = q.categoryJa || 'その他';
+        const cat = q.categoryJa || 'その他'; // 集計キーは日本語カテゴリで統一しておく（表示時に変換）
         if (!categoryStats[cat]) {
           categoryStats[cat] = { totalQ: 0, learnedQ: 0, correct: 0, wrong: 0 };
         }
@@ -278,54 +417,148 @@
         }
       });
 
-      // 4. 表示更新
-      // スタッツ
-      document.getElementById('stat-progress').textContent = `${learnedIds.size} / ${questions.length}`;
-      document.getElementById('stat-accuracy').textContent = totalAnswered ? Math.round((totalCorrect / totalAnswered) * 100) + '%' : '-';
-      document.getElementById('stat-total').textContent = totalAnswered + '回';
+      globalStatsMap = statsMap;
+      globalCategoryStats = categoryStats;
 
-      // チャート描画
-      const categories = Object.keys(categoryStats);
-      const dataCorrect = categories.map(c => categoryStats[c].correct);
-      const dataWrong = categories.map(c => categoryStats[c].wrong);
-      // 未学習の問題数（目安として表示したい場合）
-      // 今回は「正解数」「不正解数」の積み上げにする
-      
-      const ctx = document.getElementById('chartCanvas').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: categories,
-          datasets: [
-            { label: '正解数', data: dataCorrect, backgroundColor: '#28a745' },
-            { label: '不正解数', data: dataWrong, backgroundColor: '#d9534f' }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { stacked: true },
-            y: { stacked: true }
-          }
+      // データが揃ったのでUI更新
+      updateUI();
+
+      // ---------------------------------------------------------
+      // UI更新関数
+      // ---------------------------------------------------------
+      function updateUI() {
+        const t = i18n[currentLang];
+
+        // ボタン状態
+        langJaBtn.classList.toggle('active', currentLang === 'ja');
+        langEnBtn.classList.toggle('active', currentLang === 'en');
+
+        // テキスト更新
+        document.getElementById('page-title').textContent = t.title;
+        document.getElementById('back-link').textContent = t.back;
+        document.getElementById('history-link').textContent = t.toHistory;
+        document.getElementById('label-stat-progress').textContent = t.statProgress;
+        document.getElementById('label-stat-accuracy').textContent = t.statAccuracy;
+        document.getElementById('label-stat-total').textContent = t.statTotal;
+        document.getElementById('chart-title').textContent = t.chartTitle;
+        document.getElementById('table-title').textContent = t.tableTitle;
+        document.getElementById('th-cat').textContent = t.thCat;
+        document.getElementById('th-title').textContent = t.thTitle;
+        document.getElementById('th-count').textContent = t.thCount;
+        document.getElementById('th-correct').textContent = t.thCorrect;
+        document.getElementById('th-wrong').textContent = t.thWrong;
+        document.getElementById('th-rate').textContent = t.thRate;
+        document.getElementById('ai-title').textContent = t.aiTitle;
+        document.getElementById('btn-ai-analyze').textContent = t.aiBtn;
+        document.getElementById('btn-export').textContent = t.exportBtn;
+
+        // AI初期メッセージ（チャットボックスが初期状態なら）
+        const aiChatBox = document.getElementById('ai-chat-box');
+        if (aiChatBox.children.length === 1 && aiChatBox.children[0].classList.contains('ai')) {
+           aiChatBox.children[0].textContent = t.aiDesc;
         }
-      });
 
-      // テーブル描画
-      tbody.innerHTML = '';
-      questions.forEach(q => {
-        const s = statsMap[q.id];
+        const authLabel = document.getElementById('auth-label');
+        const tbody = document.getElementById('analysis-body');
+
+        if (!currentUser) {
+          authLabel.textContent = t.notLogin;
+          tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;">${t.loginRequired}</td></tr>`;
+          document.getElementById('stat-progress-val').textContent = '- / -';
+          document.getElementById('stat-accuracy-val').textContent = '-';
+          document.getElementById('stat-total-val').textContent = '-';
+          return;
+        }
+        authLabel.textContent = `${t.login}${currentUser.email}`;
+
+        // データがない場合（読み込み前など）
+        if (globalQuestions.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;">${t.loading}</td></tr>`;
+          return;
+        }
+
+        // スタッツ値更新
+        // learnedIds, totalAnswered, totalCorrect は再計算が必要だが、
+        // 簡易的に globalStatsMap から計算する
+        let learnedCount = 0;
+        let sumAnswered = 0;
+        let sumCorrect = 0;
+        Object.values(globalStatsMap).forEach(s => {
+          if (s.total > 0) learnedCount++;
+          sumAnswered += s.total;
+          sumCorrect += s.correct;
+        });
+
+        document.getElementById('stat-progress-val').textContent = `${learnedCount} / ${globalQuestions.length}`;
+        document.getElementById('stat-accuracy-val').textContent = sumAnswered ? Math.round((sumCorrect / sumAnswered) * 100) + '%' : '-';
+        document.getElementById('stat-total-val').textContent = sumAnswered + (currentLang === 'en' ? '' : '回');
+
+        // チャート更新
+        renderChart();
+
+        // テーブル更新
+        renderTable(tbody, t);
+      }
+
+      function renderChart() {
+        const categories = Object.keys(globalCategoryStats);
+        // カテゴリ名の多言語化対応（簡易的：マスタから英語名を探すか、辞書で変換）
+        // ここでは globalCategoryStats のキーが日本語なので、英語モードなら英語に変換したいが、
+        // マッピングが複雑になるため、キー（日本語）をそのまま使うか、代表的なものを置換する。
+        // 今回はシンプルに、キーに対応する英語カテゴリ名を questions から探すロジックを入れる。
+        
+        const labels = categories.map(catJa => {
+          if (currentLang === 'ja') return catJa;
+          // 英語モード: そのカテゴリを持つ最初の問題を探して英語カテゴリ名を取得
+          const q = globalQuestions.find(q => q.categoryJa === catJa);
+          return q ? (q.categoryEn || catJa) : catJa;
+        });
+
+        const dataCorrect = categories.map(c => globalCategoryStats[c].correct);
+        const dataWrong = categories.map(c => globalCategoryStats[c].wrong);
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        const ctx = document.getElementById('chartCanvas').getContext('2d');
+        chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              { label: currentLang === 'en' ? 'Correct' : '正解数', data: dataCorrect, backgroundColor: '#28a745' },
+              { label: currentLang === 'en' ? 'Wrong' : '不正解数', data: dataWrong, backgroundColor: '#d9534f' }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true }
+            }
+          }
+        });
+      }
+
+      function renderTable(tbody, t) {
+        tbody.innerHTML = '';
+        globalQuestions.forEach(q => {
+          const s = globalStatsMap[q.id];
         const tr = document.createElement('tr');
         const isLearned = s.total > 0;
         if (!isLearned) tr.className = 'unlearned';
 
         const rate = s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0;
         const badgeClass = isLearned ? (rate >= 80 ? 'badge-green' : 'badge-blue') : 'badge-gray';
-        const statusLabel = isLearned ? `${rate}%` : '未学習';
+
+          const catLabel = currentLang === 'en' ? (s.categoryEn || s.category) : s.category;
+          const titleLabel = currentLang === 'en' ? (s.titleEn || s.title) : s.title;
 
         tr.innerHTML = `
-          <td><span class="badge ${badgeClass}">${s.category}</span></td>
-          <td>${s.title}</td>
+            <td><span class="badge ${badgeClass}">${catLabel}</span></td>
+            <td>${titleLabel}</td>
           <td style="text-align:center;">${s.total}</td>
           <td style="text-align:center; color:var(--success); font-weight:bold;">${s.correct}</td>
           <td style="text-align:center; color:var(--danger);">${s.wrong}</td>
@@ -338,6 +571,135 @@
         `;
         tbody.appendChild(tr);
       });
+      }
+
+      // AI分析機能
+      function appendMsg(role, text) {
+        const div = document.createElement('div');
+        div.className = `ai-msg ${role}`;
+        div.textContent = text;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      if (btnAnalyze) {
+        btnAnalyze.addEventListener('click', async () => {
+          const t = i18n[currentLang];
+          if (!globalQuestions || globalQuestions.length === 0) {
+            appendMsg('ai', t.loading);
+            return;
+          }
+
+          const WORKER_URL = window.APP_AI_WORKER_URL;
+          if (!WORKER_URL) {
+            appendMsg('ai', 'Error: APP_AI_WORKER_URL not found.');
+            return;
+          }
+
+          btnAnalyze.disabled = true;
+          appendMsg('user', t.aiUserMsg);
+          appendMsg('ai', t.aiWait);
+
+          try {
+            // 集計データの作成
+            let summaryText = Object.entries(globalCategoryStats).map(([k, v]) => {
+              // カテゴリ名の英語化
+              let catName = k;
+              if (currentLang === 'en') {
+                const q = globalQuestions.find(q => q.categoryJa === k);
+                if (q && q.categoryEn) catName = q.categoryEn;
+              }
+              return `${catName}: Correct ${v.correct} / Wrong ${v.wrong} (Total ${v.totalQ} questions)`;
+            }).join('\n');
+
+            let prompt = '';
+            if (currentLang === 'en') {
+              prompt = `
+You are a bookkeeping study advisor.
+Based on the student's learning status below, please provide advice on:
+1. Strong areas
+2. Weak areas
+3. Future study plan
+
+【Learning Status】
+${summaryText}
+`.trim();
+            } else {
+              prompt = `
+あなたは簿記の学習アドバイザーです。
+以下の学習状況をもとに、次の3点をアドバイスしてください。
+1. 得意分野
+2. 苦手分野
+3. 今後の学習計画
+
+【学習状況】
+${summaryText}
+`.trim();
+            }
+
+            const res = await fetch(WORKER_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ message: prompt }),
+            });
+
+            if (!res.ok) throw new Error(res.statusText);
+            const data = await res.json();
+            const answer = data.answer || data.response || JSON.stringify(data);
+            
+            appendMsg('ai', answer);
+          } catch (e) {
+            console.error(e);
+            appendMsg('ai', t.aiError + e.message);
+          } finally {
+            btnAnalyze.disabled = false;
+          }
+        });
+      }
+
+      // CSVエクスポート機能
+      if (btnExport) {
+        btnExport.addEventListener('click', () => {
+          if (!globalQuestions || globalQuestions.length === 0) return;
+
+          // BOM付加でExcel文字化け防止
+          let csvContent = "\uFEFF";
+          // Header
+          csvContent += "ID,Category,Title,Total,Correct,Wrong,Rate,Status\n";
+
+          globalQuestions.forEach(q => {
+            const s = globalStatsMap[q.id];
+            const rate = s.total > 0 ? Math.round((s.correct / s.total) * 100) + '%' : '-';
+            const status = s.total > 0 ? (currentLang === 'en' ? 'Learned' : '学習済') : (currentLang === 'en' ? 'Unlearned' : '未学習');
+            
+            const cat = currentLang === 'en' ? (s.categoryEn || s.category) : s.category;
+            const title = currentLang === 'en' ? (s.titleEn || s.title) : s.title;
+
+            // CSVエスケープ（簡易）
+            const row = [
+              s.id,
+              `"${cat}"`,
+              `"${title}"`,
+              s.total,
+              s.correct,
+              s.wrong,
+              rate,
+              status
+            ].join(",");
+            csvContent += row + "\n";
+          });
+
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.setAttribute("href", url);
+          const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
+          link.setAttribute("download", `learning_analytics_${dateStr}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+      }
     });
   </script>
 </head>
@@ -345,12 +707,25 @@
   <div class="page">
     <header>
       <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
-      <h1>学習分析</h1>
+      <h1 id="page-title">学習分析</h1>
+      <div class="lang-toggle">
+        <button id="lang-ja" class="active">日本語</button>
+        <button id="lang-en">English</button>
+      </div>
     </header>
 
     <div class="nav-links">
-      <a href="index.html" class="back-link">← トップ（問題）へ戻る</a>
-      <a href="history.html" class="back-link">📊 学習履歴（ログ）へ</a>
+      <a href="index.html" class="back-link" id="back-link">← トップ（問題）へ戻る</a>
+      <a href="history.html" class="back-link" id="history-link">📊 学習履歴（ログ）へ</a>
+    </div>
+
+    <!-- AIアドバイスエリア -->
+    <div class="card ai-section">
+      <h2 id="ai-title" style="font-size:1.1rem; margin-top:0; color:var(--primary);">AI学習アドバイザー</h2>
+      <div id="ai-chat-box" class="ai-chat-box">
+        <div class="ai-msg ai">あなたの学習状況を分析して、次のステップをアドバイスします。</div>
+      </div>
+      <button id="btn-ai-analyze" class="btn-primary">分析してアドバイスをください</button>
     </div>
 
     <div class="card">
@@ -358,37 +733,41 @@
 
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-value" id="stat-progress">- / -</div>
-          <div class="stat-label">学習済み問題数</div>
+          <div class="stat-value" id="stat-progress-val">- / -</div>
+          <div class="stat-label" id="label-stat-progress">学習済み問題数</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value" id="stat-accuracy">-</div>
-          <div class="stat-label">総正解率</div>
+          <div class="stat-value" id="stat-accuracy-val">-</div>
+          <div class="stat-label" id="label-stat-accuracy">総正解率</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value" id="stat-total">-</div>
-          <div class="stat-label">総回答回数</div>
+          <div class="stat-value" id="stat-total-val">-</div>
+          <div class="stat-label" id="label-stat-total">総回答回数</div>
         </div>
       </div>
 
-      <h3 style="margin-top:0; color:var(--text-muted); font-size:1rem;">カテゴリ別 正解・不正解数</h3>
+      <h3 id="chart-title" style="margin-top:0; color:var(--text-muted); font-size:1rem;">カテゴリ別 正解・不正解数</h3>
       <div class="chart-wrapper">
         <canvas id="chartCanvas"></canvas>
       </div>
     </div>
 
     <div class="card">
-      <h3 style="margin-top:0; margin-bottom:16px; color:var(--primary); font-size:1.1rem;">問題別 詳細レポート</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 id="table-title" style="margin:0; color:var(--primary); font-size:1.1rem;">問題別 詳細レポート</h3>
+        <button id="btn-export" class="btn-secondary">📥 CSVエクスポート</button>
+      </div>
+      
       <div class="table-wrapper">
         <table class="analysis-table">
           <thead>
             <tr>
-              <th>カテゴリ</th>
-              <th>タイトル</th>
-              <th style="text-align:center;">回数</th>
-              <th style="text-align:center;">正解</th>
-              <th style="text-align:center;">不正解</th>
-              <th>正解率</th>
+              <th id="th-cat">カテゴリ</th>
+              <th id="th-title">タイトル</th>
+              <th id="th-count" style="text-align:center;">回数</th>
+              <th id="th-correct" style="text-align:center;">正解</th>
+              <th id="th-wrong" style="text-align:center;">不正解</th>
+              <th id="th-rate">正解率</th>
             </tr>
           </thead>
           <tbody id="analysis-body">
