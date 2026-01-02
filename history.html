@@ -121,18 +121,19 @@
         if (type === 'slide') typeLabel = 'スライド';
         if (type === 'youtube') typeLabel = '動画';
 
-        const action = row.action;
         const isCorrect = row.is_correct;
-
         const resultText = (isCorrect === true)
           ? '正解'
           : (isCorrect === false ? '不正解' : '');
 
+        const categoryJa = row.categoryJa || '';
+        const titleJa = row.titleJa || '';
+
         tr.innerHTML = `
           <td>${created}</td>
           <td><span class="badge">${typeLabel}</span></td>
-          <td>${row.content_id}</td>
-          <td>${action}</td>
+          <td>${categoryJa}</td>
+          <td>${titleJa}</td>
           <td>${resultText ? `<span class="${isCorrect ? 'ok':'ng'}">${resultText}</span>` : ''}</td>
         `;
         tbody.appendChild(tr);
@@ -152,8 +153,8 @@
           <tr>
             <th>日時</th>
             <th>種別</th>
-            <th>コンテンツID</th>
-            <th>アクション</th>
+            <th>カテゴリ</th>
+            <th>タイトル</th>
             <th>結果</th>
           </tr>
         </thead>
