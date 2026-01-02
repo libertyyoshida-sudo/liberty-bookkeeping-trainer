@@ -125,11 +125,127 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
+    
+    /* 言語切り替えボタン */
+    .lang-toggle {
+      margin-left: auto;
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 2px;
+      background: var(--primary-soft);
+    }
+    .lang-toggle button {
+      border: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: transparent;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .lang-toggle button.active {
+      background: #fff;
+      color: var(--primary);
+      font-weight: 600;
+      box-shadow: 0 0 0 1px rgba(0, 91, 172, 0.06);
+    }
+
+    /* AIチャットエリア */
+    .ai-section {
+      margin-bottom: 24px;
+    }
+    .ai-chat-box {
+      background: #f9fbff;
+      border: 1px solid #e2eef9;
+      border-radius: 12px;
+      padding: 16px;
+      height: 240px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    .ai-msg {
+      margin-bottom: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .ai-msg.user { background: #fff; border: 1px solid #ddd; margin-left: 20px; color: #333; }
+    .ai-msg.ai { background: #e2eef9; margin-right: 20px; color: #005bac; }
+    
+    .btn-primary { background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 999px; cursor: pointer; font-size: 0.9rem; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
   </style>
 
   <script>
     const SUPABASE_URL = window.SUPABASE_URL;
     const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
+
+    // 多言語定義
+    const i18n = {
+      ja: {
+        title: '学習履歴',
+        back: '← トップ（問題）へ戻る',
+        aiTitle: 'AI学習アドバイザー',
+        aiDesc: 'こんにちは！あなたの学習履歴から、得意・不得意を分析してアドバイスします。「分析してアドバイスをください」ボタンを押してください。',
+        aiBtn: '分析してアドバイスをください',
+        thDate: '日時',
+        thType: '種別',
+        thCat: 'カテゴリ',
+        thTitle: 'タイトル / ID',
+        thAction: 'アクション',
+        thResult: '結果',
+        loading: '読み込み中...',
+        noLog: '履歴がありません。',
+        notLogin: '未ログインです。履歴を表示するには、トップページでログインしてください。',
+        login: 'ログイン中: ',
+        typeQuiz: '問題',
+        typeSlide: 'スライド',
+        typeYoutube: '動画',
+        typeSite: 'サイト',
+        resOk: '正解',
+        resNg: '不正解',
+        resView: '閲覧',
+        aiWait: '履歴を分析中です...少々お待ちください。',
+        aiNoLog: '履歴データがありません。まずは問題を解いてみましょう！',
+        aiUserMsg: '学習履歴を分析して、アドバイスをください。',
+        aiError: 'エラーが発生しました: '
+      },
+      en: {
+        title: 'Study History',
+        back: '← Back to Top',
+        aiTitle: 'AI Study Advisor',
+        aiDesc: 'Hello! I will analyze your study history and give you advice on your strengths and weaknesses. Please click the button below.',
+        aiBtn: 'Analyze & Get Advice',
+        thDate: 'Date',
+        thType: 'Type',
+        thCat: 'Category',
+        thTitle: 'Title / ID',
+        thAction: 'Action',
+        thResult: 'Result',
+        loading: 'Loading...',
+        noLog: 'No history yet.',
+        notLogin: 'Not logged in. Please log in at the top page to view history.',
+        login: 'Logged in: ',
+        typeQuiz: 'Quiz',
+        typeSlide: 'Slide',
+        typeYoutube: 'Video',
+        typeSite: 'Site',
+        resOk: 'Correct',
+        resNg: 'Wrong',
+        resView: 'Viewed',
+        aiWait: 'Analyzing your history... Please wait.',
+        aiNoLog: 'No history data found. Please try some quizzes first!',
+        aiUserMsg: 'Please analyze my study history and give me advice.',
+        aiError: 'An error occurred: '
+      }
+    };
+
+    let currentLang = 'ja';
+    let logsData = [];
+    let questionMapData = {};
+    let currentUser = null;
 
     const { createClient } = supabase;
     
@@ -144,20 +260,33 @@
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
-      const authLabel = document.getElementById('auth-label');
-      const tbody = document.getElementById('logs-body');
+      const btnAnalyze = document.getElementById('btn-ai-analyze');
+      const chatBox = document.getElementById('ai-chat-box');
+      const langJaBtn = document.getElementById('lang-ja');
+      const langEnBtn = document.getElementById('lang-en');
+
+      // 言語切り替えイベント
+      langJaBtn.addEventListener('click', () => {
+        currentLang = 'ja';
+        updateUI();
+      });
+      langEnBtn.addEventListener('click', () => {
+        currentLang = 'en';
+        updateUI();
+      });
 
       // セッション取得
       const { data: sessionData } = await supabaseClient.auth.getSession();
       const user = sessionData?.session?.user;
+      currentUser = user;
 
       if (!user) {
-        authLabel.textContent = '未ログインです。履歴を表示するには、トップページでログインしてください。';
-        tbody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;">ログインしていません</td></tr>`;
+        updateUI(); // 未ログイン表示更新
         return;
       }
 
-      authLabel.textContent = `ログイン中: ${user.email}`;
+      // 初回UI更新（読み込み中）
+      updateUI();
 
       // ログ取得
       const { data: logs, error: logsError } = await supabaseClient
@@ -169,12 +298,15 @@
 
       if (logsError) {
         console.error('study_logs error', logsError);
-        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--danger);">エラーが発生しました: ${logsError.message}</td></tr>`;
+        const tbody = document.getElementById('logs-body');
+        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--danger);">Error: ${logsError.message}</td></tr>`;
         return;
       }
 
+      logsData = logs || [];
+
       if (!logs || logs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;color:#666;">履歴がありません。</td></tr>`;
+        updateUI();
         return;
       }
 
@@ -184,71 +316,234 @@
         .map(r => r.content_id);
       const uniqueQuizIds = [...new Set(quizIds)];
 
-      let questionMap = {};
       if (uniqueQuizIds.length > 0) {
         const { data: questions, error: qError } = await supabaseClient
           .from('quiz_questions')
-          .select('id, categoryJa, titleJa')
+          .select('id, categoryJa, titleJa, categoryEn, titleEn') // ✅ 英語カラムも取得
           .in('id', uniqueQuizIds);
 
         if (!qError && questions) {
           questions.forEach(q => {
-            questionMap[q.id] = q;
+            questionMapData[q.id] = q;
           });
         }
       }
 
+      // データが揃ったので再描画
+      updateUI();
+
+      // ---------------------------------------------------------
+      // UI更新関数
+      // ---------------------------------------------------------
+      function updateUI() {
+        const t = i18n[currentLang];
+
+        // ボタンのアクティブ切り替え
+        langJaBtn.classList.toggle('active', currentLang === 'ja');
+        langEnBtn.classList.toggle('active', currentLang === 'en');
+
+        // 固定テキスト更新
+        document.getElementById('page-title').textContent = t.title;
+        document.getElementById('back-link').textContent = t.back;
+        document.getElementById('ai-title').textContent = t.aiTitle;
+        
+        // AI説明文（チャットボックス内の初期メッセージは書き換えない方が自然だが、初期状態なら書き換える）
+        const aiChatBox = document.getElementById('ai-chat-box');
+        if (aiChatBox.children.length === 1 && aiChatBox.children[0].classList.contains('ai')) {
+           aiChatBox.children[0].textContent = t.aiDesc;
+        }
+        
+        document.getElementById('btn-ai-analyze').textContent = t.aiBtn;
+
+        // テーブルヘッダー
+        document.getElementById('th-date').textContent = t.thDate;
+        document.getElementById('th-type').textContent = t.thType;
+        document.getElementById('th-cat').textContent = t.thCat;
+        document.getElementById('th-title').textContent = t.thTitle;
+        document.getElementById('th-action').textContent = t.thAction;
+        document.getElementById('th-result').textContent = t.thResult;
+
+        const authLabel = document.getElementById('auth-label');
+        const tbody = document.getElementById('logs-body');
+
+        // ログイン状態表示
+        if (!currentUser) {
+          authLabel.textContent = t.notLogin;
+          tbody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;">${t.notLogin}</td></tr>`;
+          return;
+        }
+        authLabel.textContent = `${t.login}${currentUser.email}`;
+
+        // ログなし
+        if (logsData.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;color:#666;">${t.noLog}</td></tr>`;
+          return;
+        }
+
       tbody.innerHTML = '';
-      logs.forEach(row => {
+        logsData.forEach(row => {
         const tr = document.createElement('tr');
         
         // 日時フォーマット
         const d = new Date(row.created_at);
-        const dateStr = d.toLocaleString('ja-JP', {
+          const dateStr = d.toLocaleString(currentLang === 'en' ? 'en-US' : 'ja-JP', {
           year: 'numeric', month: '2-digit', day: '2-digit',
           hour: '2-digit', minute: '2-digit'
         });
 
         // 種別ラベル
         let typeLabel = row.content_type;
-        if (typeLabel === 'quiz') typeLabel = '問題';
-        if (typeLabel === 'slide') typeLabel = 'スライド';
-        if (typeLabel === 'youtube') typeLabel = '動画';
-        if (typeLabel === 'site') typeLabel = 'サイト';
+          if (typeLabel === 'quiz') typeLabel = t.typeQuiz;
+          if (typeLabel === 'slide') typeLabel = t.typeSlide;
+          if (typeLabel === 'youtube') typeLabel = t.typeYoutube;
+          if (typeLabel === 'site') typeLabel = t.typeSite;
 
         // 結果
         let resultHtml = '-';
-        if (row.is_correct === true) resultHtml = '<span class="result-ok">正解</span>';
-        if (row.is_correct === false) resultHtml = '<span class="result-ng">不正解</span>';
-        if (row.action === 'view') resultHtml = '<span style="color:#888;font-size:0.8rem;">閲覧</span>';
+          if (row.is_correct === true) resultHtml = `<span class="result-ok">${t.resOk}</span>`;
+          if (row.is_correct === false) resultHtml = `<span class="result-ng">${t.resNg}</span>`;
+          if (row.action === 'view') resultHtml = `<span style="color:#888;font-size:0.8rem;">${t.resView}</span>`;
 
         // カテゴリ・タイトルの解決
-        let categoryJa = '';
-        let titleJa = '';
+          let categoryStr = '';
+          let titleStr = '';
 
         if (row.content_type === 'quiz') {
-          const q = questionMap[row.content_id];
+            const q = questionMapData[row.content_id];
           if (q) {
-            categoryJa = q.categoryJa || '';
-            titleJa = q.titleJa || '';
+              // 言語に応じて切り替え
+              if (currentLang === 'en') {
+                categoryStr = q.categoryEn || q.categoryJa || '';
+                titleStr = q.titleEn || q.titleJa || '';
+              } else {
+                categoryStr = q.categoryJa || '';
+                titleStr = q.titleJa || '';
+              }
           } else {
-            titleJa = `(ID: ${row.content_id})`;
+              titleStr = `(ID: ${row.content_id})`;
           }
         } else {
           // クイズ以外の場合は content_id をそのまま表示など
-          titleJa = row.content_id || '';
+            titleStr = row.content_id || '';
         }
 
         tr.innerHTML = `
           <td>${dateStr}</td>
           <td><span class="badge">${typeLabel}</span></td>
-          <td>${categoryJa}</td>
-          <td>${titleJa}</td>
+            <td>${categoryStr}</td>
+            <td>${titleStr}</td>
           <td>${row.action || '-'}</td>
           <td>${resultHtml}</td>
         `;
         tbody.appendChild(tr);
       });
+      }
+
+      // ✅ AI分析機能
+      function appendMsg(role, text) {
+        const div = document.createElement('div');
+        div.className = `ai-msg ${role}`;
+        div.textContent = text;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      if (btnAnalyze) {
+        btnAnalyze.addEventListener('click', async () => {
+          const t = i18n[currentLang];
+          if (!logsData || logsData.length === 0) {
+            appendMsg('ai', t.aiNoLog);
+            return;
+          }
+
+          const WORKER_URL = window.APP_AI_WORKER_URL;
+          if (!WORKER_URL) {
+            appendMsg('ai', 'Error: APP_AI_WORKER_URL not found.');
+            return;
+          }
+
+          btnAnalyze.disabled = true;
+          appendMsg('user', t.aiUserMsg);
+          appendMsg('ai', t.aiWait);
+
+          try {
+            // 履歴を集計
+            const stats = {}; // { "CategoryName": { ok: 0, ng: 0, total: 0 } }
+            logsData.forEach(r => {
+              if (r.content_type !== 'quiz') return;
+              
+              // カテゴリ特定
+              let cat = currentLang === 'en' ? 'Unknown' : '不明';
+              const q = questionMapData[r.content_id];
+              if (q) {
+                if (currentLang === 'en') {
+                  cat = q.categoryEn || q.categoryJa || 'Other';
+                } else {
+                  cat = q.categoryJa || 'その他';
+                }
+              }
+              
+              if (!stats[cat]) stats[cat] = { ok: 0, ng: 0, total: 0 };
+              stats[cat].total++;
+              if (r.is_correct) stats[cat].ok++;
+              else stats[cat].ng++;
+            });
+
+            // プロンプト作成
+            let summaryText = Object.entries(stats).map(([k, v]) => {
+              if (currentLang === 'en') {
+                return `Category "${k}": Correct ${v.ok} / Wrong ${v.ng} (Total ${v.total})`;
+              } else {
+                return `カテゴリ「${k}」: 正解${v.ok}問 / 不正解${v.ng}問 (計${v.total}問)`;
+              }
+            }).join('\n');
+
+            let prompt = '';
+            if (currentLang === 'en') {
+              prompt = `
+You are a bookkeeping study advisor for international students.
+Based on the student's recent study history below, please provide gentle advice on the following 3 points in English:
+
+1. Strong areas (Categories with high accuracy)
+2. Weak areas (Categories with many mistakes or needing improvement)
+3. Specific study advice for the future
+
+【Study History Summary】
+${summaryText}
+`.trim();
+            } else {
+              prompt = `
+あなたは簿記3級の学習アドバイザーです。
+以下の学習者の直近の学習履歴データをもとに、以下の3点を優しくアドバイスしてください。
+
+1. 得意分野（正解率が高いカテゴリ）
+2. 苦手分野（不正解が多いカテゴリ、または学習が必要な点）
+3. 今後の具体的な学習アドバイス
+
+【学習履歴集計】
+${summaryText}
+`.trim();
+            }
+
+            const res = await fetch(WORKER_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ message: prompt }),
+            });
+
+            if (!res.ok) throw new Error(res.statusText);
+            const data = await res.json();
+            const answer = data.answer || data.response || JSON.stringify(data);
+            
+            appendMsg('ai', answer);
+          } catch (e) {
+            console.error(e);
+            appendMsg('ai', t.aiError + e.message);
+          } finally {
+            btnAnalyze.disabled = false;
+          }
+        });
+      }
     });
   </script>
 </head>
@@ -257,10 +552,23 @@
   <div class="page">
     <header>
       <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
-      <h1>学習履歴</h1>
+      <h1 id="page-title">学習履歴</h1>
+      <div class="lang-toggle">
+        <button id="lang-ja" class="active">日本語</button>
+        <button id="lang-en">English</button>
+      </div>
     </header>
 
-    <a href="index.html" class="back-link">← トップ（問題）へ戻る</a>
+    <a href="index.html" class="back-link" id="back-link">← トップ（問題）へ戻る</a>
+
+    <!-- AIアドバイスエリア -->
+    <div class="card ai-section">
+      <h2 id="ai-title" style="font-size:1.1rem; margin-top:0; color:var(--primary);">AI学習アドバイザー</h2>
+      <div id="ai-chat-box" class="ai-chat-box">
+        <div class="ai-msg ai">こんにちは！あなたの学習履歴から、得意・不得意を分析してアドバイスします。「分析してアドバイスをください」ボタンを押してください。</div>
+      </div>
+      <button id="btn-ai-analyze" class="btn-primary">分析してアドバイスをください</button>
+    </div>
 
     <div class="card">
       <div id="auth-label" class="auth-info">確認中...</div>
@@ -269,12 +577,12 @@
         <table class="log-table">
           <thead>
             <tr>
-              <th>日時</th>
-              <th>種別</th>
-              <th>カテゴリ</th>
-              <th>タイトル / ID</th>
-              <th>アクション</th>
-              <th>結果</th>
+              <th id="th-date">日時</th>
+              <th id="th-type">種別</th>
+              <th id="th-cat">カテゴリ</th>
+              <th id="th-title">タイトル / ID</th>
+              <th id="th-action">アクション</th>
+              <th id="th-result">結果</th>
             </tr>
           </thead>
           <tbody id="logs-body">
