@@ -674,6 +674,7 @@ const i18n = {
     'filter-count': '問題数:',
     'filter-start': '出題開始',
     'filter-unlearned': '未学習のみ',
+    'filter-not-cleared': '未修得のみ',
     'filter-drill': '特訓モード',
     'drill-info': '特訓中: 連続3回正解でクリア',
     'drill-cleared': '★クリア済',
@@ -729,6 +730,7 @@ const i18n = {
     'filter-count': 'Number of questions:',
     'filter-start': 'Start',
     'filter-unlearned': 'Unlearned only',
+    'filter-not-cleared': 'Not cleared only',
     'filter-drill': 'Drill Mode',
     'drill-info': 'Drill: 3 consecutive correct answers to clear',
     'drill-cleared': '★Cleared',
@@ -792,6 +794,7 @@ const i18n = {
     
     // 学習済みID管理
     let learnedQuestionIds = new Set();
+    let clearedQuestionIds = new Set(); // 直近3回連続正解したID
     // 特訓モード管理
     let isDrillMode = false;
     let drillStreaks = {}; // { id: count }
@@ -939,6 +942,7 @@ function furiganaTextToRubyHtml(str) {
     let questionLabel, categoryLabel, idLabel, randomLabel;
     let questionTextJa, questionTextEn;
     let langJaBtn, langEnBtn, randomModeCheckbox, unlearnedCheckbox, drillModeCheckbox;
+    let langJaBtn, langEnBtn, randomModeCheckbox, unlearnedCheckbox, notClearedCheckbox, drillModeCheckbox;
     let prevBtn, nextBtn, checkBtn;
     let resultMessage, answerPanel, answerJa, answerEn, scorePill;
     let categoryFilterSelect, questionCountSelect, historyListEl;
@@ -1179,6 +1183,7 @@ function furiganaTextToRubyHtml(str) {
       const cat = categoryFilterSelect ? categoryFilterSelect.value : '';
       const countValue = questionCountSelect ? questionCountSelect.value : '10';
       const unlearnedOnly = unlearnedCheckbox ? unlearnedCheckbox.checked : false;
+      const notClearedOnly = notClearedCheckbox ? notClearedCheckbox.checked : false;
       const drillMode = drillModeCheckbox ? drillModeCheckbox.checked : false;
 
       let pool = allQuestions;
@@ -1193,6 +1198,16 @@ function furiganaTextToRubyHtml(str) {
           // チェックを外すなどの処理はせず、そのまま全件対象にするか、空にするか。ここではアラート出してフィルタしない挙動にする
         } else {
           pool = pool.filter(q => !learnedQuestionIds.has(q.id));
+        }
+      }
+
+      // 未修得フィルタ（クリア済みを除外）
+      if (notClearedOnly) {
+        if (!window.sessionUser) {
+          alert(currentLang === 'en' ? 'Please log in to use "Not cleared only".' : '「未修得のみ」機能を使うにはログインしてください。');
+        } else {
+          // クリア済みIDに含まれていないものを残す（未学習も含まれる）
+          pool = pool.filter(q => !clearedQuestionIds.has(q.id));
         }
       }
 
@@ -1636,6 +1651,35 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
   }
 }
 
+    // ✅ 用語をリンク化する関数
+    function linkifyJournalText(text, refLinks) {
+      if (!text) return "";
+      
+      // refLinksがない場合でも、改行コードを<br>に変換して返す
+      if (!refLinks || Object.keys(refLinks).length === 0) {
+        return text.replace(/\n/g, "<br>");
+      }
+
+      let html = text;
+
+      // refLinks = { "売上(現金)": "https://...026.png", ... }
+      for (const [term, url] of Object.entries(refLinks)) {
+        if (!term || !url) continue;
+
+        // term を <a> に置換
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const re = new RegExp(escaped, "g");
+
+        html = html.replace(re,
+          `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#005bac;text-decoration:underline;">${term}</a>`
+        );
+      }
+
+      // 改行を <br> に戻す
+      html = html.replace(/\n/g, "<br>");
+      return html;
+    }
+
     
     // 答え合わせ
     async function checkAnswer() {
@@ -1715,8 +1759,11 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
   }
 
   // --- ✅ どの場合でも模範解答を表示する
-  answerJa.textContent = (q.journalJa || '').replace(/<br\s*\/?>/gi, '\n');
-  answerEn.textContent = (q.journalEn || '').replace(/<br\s*\/?>/gi, '\n');
+  const journalJaText = (q.journalJa || "").replace(/<br\s*\/?>/gi, "\n");
+  const journalEnText = (q.journalEn || "").replace(/<br\s*\/?>/gi, "\n");
+
+  answerJa.innerHTML = linkifyJournalText(journalJaText, q.ref_links);
+  answerEn.innerHTML = linkifyJournalText(journalEnText, q.ref_links);
   answerPanel.style.display = "block";
 
   // --- ✅ 学習ログも未入力・貸借不一致でも記録する
@@ -1793,15 +1840,40 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
         // 過去に一度でも解いたことがある問題IDを取得（正誤問わず）
         // 件数が多いと重くなるので直近1000件程度にするか、全件取るか。
         // ここでは簡易的に直近2000件を取得してSetにする
+        // ✅ 3回連続正解判定のために is_correct も取得し、件数を増やす
         const { data, error } = await supabaseClient
           .from('study_logs')
           .select('content_id')
+          .select('content_id, is_correct')
           .eq('user_id', window.sessionUser.id)
           .limit(2000);
+          .order('created_at', { ascending: false }) // 最新順
+          .limit(5000);
           
         if (!error && data) {
           learnedQuestionIds = new Set(data.map(d => d.content_id));
           console.log("学習済みIDロード完了:", learnedQuestionIds.size, "件");
+          
+          // ✅ 直近3回連続正解（クリア済み）の判定
+          const streaks = {}; // { id: current_streak_count }
+          clearedQuestionIds = new Set();
+
+          for (const row of data) {
+            const qid = row.content_id;
+            // 既に「失敗（途切れ）」判定済み、または「クリア」判定済みの場合はスキップ
+            if (streaks[qid] === -1 || clearedQuestionIds.has(qid)) continue;
+
+            const current = streaks[qid] || 0;
+            if (row.is_correct) {
+              streaks[qid] = current + 1;
+              if (streaks[qid] >= 3) {
+                clearedQuestionIds.add(qid);
+              }
+            } else {
+              streaks[qid] = -1; // 直近で不正解があったので連続ストップ
+            }
+          }
+          console.log("学習済みID:", learnedQuestionIds.size, "件 / クリア済みID:", clearedQuestionIds.size, "件");
         }
       } catch (e) {
         console.error("loadLearnedHistory error", e);
@@ -1823,6 +1895,7 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
       langEnBtn = document.getElementById("lang-en");
       randomModeCheckbox = document.getElementById("random-mode");
       unlearnedCheckbox = document.getElementById("filter-unlearned");
+      notClearedCheckbox = document.getElementById("filter-not-cleared");
       drillModeCheckbox = document.getElementById("mode-drill");
       prevBtn = document.getElementById("prev-question");
       nextBtn = document.getElementById("next-question");
@@ -2164,6 +2237,10 @@ function setupAmountInputs() {
           <label>
             <input type="checkbox" id="filter-unlearned" />
             <span data-i18n="filter-unlearned">未学習のみ</span>
+          </label>
+          <label>
+            <input type="checkbox" id="filter-not-cleared" />
+            <span data-i18n="filter-not-cleared">未修得のみ</span>
           </label>
           <label>
             <input type="checkbox" id="mode-drill" />

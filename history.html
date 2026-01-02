@@ -176,6 +176,14 @@
     
     .btn-primary { background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 999px; cursor: pointer; font-size: 0.9rem; }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* 問題リンク */
+    a.question-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    a.question-link:hover { text-decoration: underline; color: var(--accent); }
   </style>
 
   <script>
@@ -319,7 +327,7 @@
       if (uniqueQuizIds.length > 0) {
         const { data: questions, error: qError } = await supabaseClient
           .from('quiz_questions')
-          .select('id, categoryJa, titleJa, categoryEn, titleEn') // ✅ 英語カラムも取得
+          .select('id, categoryJa, titleJa, categoryEn, titleEn, ref_links') // ✅ ref_links も取得
           .in('id', uniqueQuizIds);
 
         if (!qError && questions) {
@@ -419,6 +427,23 @@
                 categoryStr = q.categoryJa || '';
                 titleStr = q.titleJa || '';
               }
+
+              // ✅ タイトルをリンク化 & 解説リンク追加
+              const linkUrl = `index.html?id=${encodeURIComponent(q.id)}`;
+              let html = `<a href="${linkUrl}" class="question-link">${titleStr}</a>`;
+
+              if (q.ref_links && Object.keys(q.ref_links).length > 0) {
+                const links = [];
+                for (const [term, url] of Object.entries(q.ref_links)) {
+                  if (term && url) {
+                    links.push(`<a href="${url}" target="_blank" style="color:#00a0e9; margin-right:8px; font-size:0.8rem; text-decoration:underline;">📖${term}</a>`);
+                  }
+                }
+                if (links.length > 0) {
+                  html += `<div style="margin-top:2px;">${links.join('')}</div>`;
+                }
+              }
+              titleStr = html;
           } else {
               titleStr = `(ID: ${row.content_id})`;
           }

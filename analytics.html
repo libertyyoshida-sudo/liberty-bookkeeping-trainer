@@ -346,7 +346,7 @@
       // 問題マスタ全件
       const { data: questions, error: qError } = await supabaseClient
         .from('quiz_questions')
-        .select('id, categoryJa, titleJa, categoryEn, titleEn')
+        .select('id, categoryJa, titleJa, categoryEn, titleEn, ref_links')
         .order('id');
 
       if (qError) {
@@ -386,7 +386,8 @@
           categoryEn: q.categoryEn || 'Other',
           total: 0,
           correct: 0,
-          wrong: 0
+          wrong: 0,
+          ref_links: q.ref_links // ✅ リンク情報を保持
         };
 
         const cat = q.categoryJa || 'その他'; // 集計キーは日本語カテゴリで統一しておく（表示時に変換）
@@ -568,9 +569,26 @@
           // ★ リンク先URL生成
           const linkUrl = `index.html?id=${encodeURIComponent(s.id)}`;
 
+          // ✅ 解説画像リンク（ref_links）の生成
+          let refLinksHtml = '';
+          if (s.ref_links && Object.keys(s.ref_links).length > 0) {
+            const links = [];
+            for (const [term, url] of Object.entries(s.ref_links)) {
+              if (term && url) {
+                links.push(`<a href="${url}" target="_blank" style="color:#00a0e9; margin-right:8px; font-size:0.8rem; text-decoration:underline;">📖${term}</a>`);
+              }
+            }
+            if (links.length > 0) {
+              refLinksHtml = `<div style="margin-top:2px;">${links.join('')}</div>`;
+            }
+          }
+
         tr.innerHTML = `
             <td><span class="badge ${badgeClass}">${catLabel}</span></td>
-            <td><a href="${linkUrl}" class="question-link">${titleLabel}</a></td>
+            <td>
+              <a href="${linkUrl}" class="question-link">${titleLabel}</a>
+              ${refLinksHtml}
+            </td>
           <td style="text-align:center;">${s.total}</td>
           <td style="text-align:center; color:var(--success); font-weight:bold;">${s.correct}</td>
           <td style="text-align:center; color:var(--danger);">${s.wrong}</td>
