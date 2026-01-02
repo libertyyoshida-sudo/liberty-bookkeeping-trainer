@@ -633,7 +633,6 @@
     const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
 
    // Supabaseクライアント初期化
-    let supabaseClient;
     let supabaseClient = null;
 
 　　// ✅ v2 は createClient を import するのが正しい
@@ -641,12 +640,8 @@
     console.log("SUPABASE_URL:", SUPABASE_URL);
     console.log("SUPABASE_ANON_KEY exists:", !!SUPABASE_ANON_KEY);
 
-    if (window.supabase && window.supabase.createClient) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      console.log("Supabase client initialized ✅", supabaseClient);
-    } else {console.error("Supabase library not loaded ❌");
-    if (window.supabase && window.supabase.createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    if (window.supabase?.createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
@@ -654,6 +649,7 @@
           storage: localStorage,
         },
       });
+      console.log("Supabase client initialized ✅", supabaseClient);
     } else {
       console.error("Supabase library not loaded or config missing ❌");
     }
@@ -1138,7 +1134,9 @@ function furiganaTextToRubyHtml(str) {
       [5, 10, 20, 50].forEach(n => {
         const opt = document.createElement('option');
         opt.value = String(n);
-        opt.textContent = t['filter-count-max'] ? t'filter-count-max' : `最大 ${n}問`;
+        opt.textContent = t['filter-count-max']
+          ? t['filter-count-max'](n)
+          : `最大 ${n}問`;
         questionCountSelect.appendChild(opt);
       });
       const optAllQ = document.createElement('option');
