@@ -692,7 +692,14 @@ const i18n = {
     'msg-wrong': '× 惜しいです。模範仕訳を確認してみましょう。',
     'msg-drill-cleared': '🎉 この問題はクリアです！(3回連続正解)',
     'msg-drill-reset': '💦 不正解のためカウントリセット',
-    'score': (correct, total) => `正解 ${correct} / ${total}`
+    'score': (correct, total) => `正解 ${correct} / ${total}`,
+    'filter-cat-all': 'すべてのカテゴリ',
+    'filter-count-max': (n) => `最大 ${n}問`,
+    'filter-count-all': '全件',
+    'ai-explain-title': 'AI解説（この問題）',
+    'btn-ai-explain': 'この問題を解説して',
+    'btn-ai-clear': 'クリア',
+    'ai-note': '※AIの解説は学習補助です。最終判断はテキスト等で確認してください。'
   },
   en: {
     'app-title': 'Liberty Bookkeeping Trainer',
@@ -739,7 +746,14 @@ const i18n = {
     'msg-wrong': '× Almost. Check the model journal entry.',
     'msg-drill-cleared': '🎉 Question Cleared! (3 in a row)',
     'msg-drill-reset': '💦 Count reset due to wrong answer',
-    'score': (correct, total) => `Correct ${correct} / ${total}`
+    'score': (correct, total) => `Correct ${correct} / ${total}`,
+    'filter-cat-all': 'All Categories',
+    'filter-count-max': (n) => `Max ${n} Qs`,
+    'filter-count-all': 'All',
+    'ai-explain-title': 'AI Explanation (This Question)',
+    'btn-ai-explain': 'Explain this question',
+    'btn-ai-clear': 'Clear',
+    'ai-note': '* AI explanation is a study aid. Please verify with textbooks.'
   }
 };
     
@@ -803,6 +817,19 @@ const i18n = {
       "仕入",
       "売上",
       "消耗品費"
+    ];
+    
+    // 英語用デフォルト
+    const accountMasterEn = [
+      "",
+      "Cash",
+      "Ordinary Deposit",
+      "Accounts Receivable",
+      "Accounts Payable",
+      "Accounts Payable (Other)",
+      "Purchases",
+      "Sales",
+      "Supplies Expense"
     ];
 
         // ★ カテゴリの表示順をここで定義（グローバル）
@@ -965,23 +992,22 @@ function furiganaTextToRubyHtml(str) {
     // 問題レコードから「この問題で使える勘定科目リスト」を生成
     function buildAccountListFromQuestion(q) {
       let list = [];
+      const isEn = currentLang === 'en';
 
-      if (q && q.account_options) {
-        if (Array.isArray(q.account_options)) {
-          // account_options が JSON 配列の場合
-          list = q.account_options;
-        } else if (typeof q.account_options === 'string') {
-          // カンマ区切り文字列の場合
-          list = q.account_options
-            .split(',')
-            .map(s => s.trim())
-            .filter(Boolean);
+      // 問題固有のオプションがあればそれを使う
+      const options = isEn ? q.account_optionsEn : q.account_options;
+
+      if (options) {
+        if (Array.isArray(options)) {
+          list = options;
+        } else if (typeof options === 'string') {
+          list = options.split(',').map(s => s.trim()).filter(Boolean);
         }
       }
 
       // account_options が空ならデフォルトマスターを使用
       if (!list || list.length === 0) {
-        list = accountMaster.slice(1); // 空欄以外をベースに
+        list = isEn ? accountMasterEn.slice(1) : accountMaster.slice(1);
       }
 
       // 重複除去
@@ -1041,6 +1067,11 @@ function furiganaTextToRubyHtml(str) {
     // 出題カテゴリ・問題数の選択肢をセット
     function setupCategoryFilterOptions(all) {
       if (!categoryFilterSelect || !questionCountSelect) return;
+      
+      // 現在の選択値を保存（再描画時の復元用）
+      const currentCat = categoryFilterSelect.value;
+      const currentCount = questionCountSelect.value;
+      const t = i18n[currentLang];
 
     // まずカテゴリ一覧を重複なしで収集
     const catsSet = new Set();
@@ -1067,31 +1098,46 @@ function furiganaTextToRubyHtml(str) {
   categoryFilterSelect.innerHTML = '';
   const optAll = document.createElement('option');
   optAll.value = '';
-  optAll.textContent = 'すべてのカテゴリ';
+  optAll.textContent = t['filter-cat-all'] || 'すべてのカテゴリ';
   categoryFilterSelect.appendChild(optAll);
 
-  cats.forEach(c => {
+  cats.forEach(cJa => {
     const opt = document.createElement('option');
-    opt.value = c;
-    opt.textContent = c;
+    opt.value = cJa; // 内部的には日本語カテゴリ名をIDとして使う
+    
+    // 表示ラベル
+    let label = cJa;
+    if (currentLang === 'en') {
+      // そのカテゴリを持つ最初の問題を探して英語名を取得
+      const q = all.find(x => x.categoryJa === cJa);
+      if (q && q.categoryEn) label = q.categoryEn;
+    }
+    opt.textContent = label;
     categoryFilterSelect.appendChild(opt);
   });
+  
+  // 選択復元
+  if (currentCat) categoryFilterSelect.value = currentCat;
 
    // 問題数
       questionCountSelect.innerHTML = '';
       [5, 10, 20, 50].forEach(n => {
         const opt = document.createElement('option');
         opt.value = String(n);
-        opt.textContent = `最大 ${n}問`;
+        opt.textContent = t['filter-count-max'] ? t'filter-count-max' : `最大 ${n}問`;
         questionCountSelect.appendChild(opt);
       });
       const optAllQ = document.createElement('option');
       optAllQ.value = 'all';
-      optAllQ.textContent = '全件';
+      optAllQ.textContent = t['filter-count-all'] || '全件';
       questionCountSelect.appendChild(optAllQ);
 
       // デフォルト
-      questionCountSelect.value = '10';
+      if (currentCount) {
+        questionCountSelect.value = currentCount;
+      } else {
+        questionCountSelect.value = '10';
+      }
     }
 
     // 配列をシャッフル
@@ -1198,6 +1244,12 @@ function applyLanguage() {
   if (scorePill) {
     scorePill.textContent = t.score(totalCorrect, totalAnswered);
   }
+  
+  // フィルタの選択肢を言語に合わせて更新
+  setupCategoryFilterOptions(allQuestions);
+  
+  // 現在表示中の問題の勘定科目プルダウンなどを更新
+  renderQuestion();
 
   // 履歴エリア（ログインしていないときのメッセージなど）は loadMyHistory 内で t を使う形でもOK
 }
@@ -1810,12 +1862,10 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
       langJaBtn.addEventListener("click", () => {
         currentLang = "ja";
         applyLanguage();
-        renderQuestion();
       });
       langEnBtn.addEventListener("click", () => {
         currentLang = "en";
         applyLanguage();
-        renderQuestion();
       });
       randomModeCheckbox.addEventListener("change", (e) => {
         randomMode = e.target.checked;
@@ -1902,11 +1952,18 @@ if (toggleRubyBtn) {
         .map(s => s.trim())
         .filter(Boolean);
     }
+    
+    // account_optionsEn も配列化
+    let account_optionsEn = row.account_optionsEn;
+    if (typeof account_optionsEn === 'string') {
+      account_optionsEn = account_optionsEn.split(',').map(s => s.trim()).filter(Boolean);
+    }
 
     return {
       ...row,
       solution,
       account_options,
+      account_optionsEn,
     };
   });
 
@@ -2105,7 +2162,7 @@ function setupAmountInputs() {
           </label>
         </div>
 
-        <p class="hint-text" id="hint-text" data-furigana-target>
+        <p class="hint-text" id="hint-text" data-i18n="hint-text" data-furigana-target>
           行ごとに「借方勘定科目・金額」「貸方勘定科目・金額」を入力します。<br>
           不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。
         </p>
@@ -2179,7 +2236,7 @@ function setupAmountInputs() {
 
         <!-- AI解説（右サイドに追加） -->
  <div style="margin-top:14px;">
-  <div class="side-card-title">AI解説（この問題）</div>
+  <div class="side-card-title" data-i18n="ai-explain-title">AI解説（この問題）</div>
 
   <div id="ai-chat-box" style="
     border:1px solid var(--border-soft);
@@ -2192,15 +2249,15 @@ function setupAmountInputs() {
   "></div>
 
   <div style="display:flex; gap:6px; margin-top:8px;">
-    <button id="btn-ai-explain" class="btn btn-primary" style="flex:1;">
+    <button id="btn-ai-explain" class="btn btn-primary" style="flex:1;" data-i18n="btn-ai-explain">
       この問題を解説して
     </button>
-    <button id="btn-ai-clear" class="btn btn-secondary" style="flex:0;">
+    <button id="btn-ai-clear" class="btn btn-secondary" style="flex:0;" data-i18n="btn-ai-clear">
       クリア
     </button>
   </div>
  
-  <div style="margin-top:6px; font-size:0.72rem; color:var(--text-muted); line-height:1.4;">
+  <div style="margin-top:6px; font-size:0.72rem; color:var(--text-muted); line-height:1.4;" data-i18n="ai-note">
     ※AIの解説は学習補助です。最終判断はテキスト等で確認してください。
   </div>
 </div>
