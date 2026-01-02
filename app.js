@@ -507,7 +507,7 @@ if (currentCat) categoryFilterSelect.value = currentCat;
     const opt = document.createElement('option');
     opt.value = String(n);
     opt.textContent = t['filter-count-max']
-      ? t'filter-count-max'
+      ? t['filter-count-max'](n)
       : `最大 ${n}問`;
     questionCountSelect.appendChild(opt);
   });
