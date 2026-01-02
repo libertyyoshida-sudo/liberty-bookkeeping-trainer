@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>学習分析 - Liberty Bookkeeping Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- ✅ config.js -->
+  <script src="config.js"></script>
+  <!-- ✅ supabase-js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- ✅ Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #f5f7fb;
+      --bg-card: #ffffff;
+      --primary: #005bac;
+      --primary-soft: #e2eef9;
+      --accent: #00a0e9;
+      --text-main: #222;
+      --text-muted: #666;
+      --border-soft: #dde3f0;
+      --danger: #d9534f;
+      --success: #28a745;
+      --warning: #ffc107;
+      --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.06);
+      --radius-xl: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(circle at top left, #e6f0ff, #f5f7fb 40%, #ffffff 80%);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+    }
+
+    .page {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    header img.logo {
+      height: 36px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin: 0;
+      color: var(--primary);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    a.back-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    a.back-link:hover { text-decoration: underline; }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-soft);
+      padding: 24px;
+      border: 1px solid rgba(0,0,0,0.03);
+      margin-bottom: 24px;
+    }
+
+    .auth-info {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    /* スタッツカード */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      border: 1px solid var(--border-soft);
+      text-align: center;
+    }
+    .stat-value { font-size: 2rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* チャート */
+    .chart-wrapper {
+      position: relative;
+      height: 350px;
+      width: 100%;
+    }
+
+    /* テーブル */
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .analysis-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .analysis-table th {
+      text-align: left;
+      padding: 10px 8px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 2px solid #edf1fb;
+      white-space: nowrap;
+    }
+    .analysis-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #edf1fb;
+      vertical-align: middle;
+    }
+    .analysis-table tr.unlearned {
+      background-color: #fcfcfc;
+      color: #888;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .badge-gray { background: #eee; color: #666; }
+    .badge-blue { background: var(--primary-soft); color: var(--primary); }
+    .badge-green { background: #d4edda; color: #155724; }
+    
+    .bar-container {
+      width: 80px;
+      height: 6px;
+      background: #eee;
+      border-radius: 3px;
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    .bar-fill { height: 100%; background: var(--success); }
+  </style>
+
+  <script>
+    const SUPABASE_URL = window.SUPABASE_URL;
+    const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
+    const { createClient } = supabase;
+    
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: localStorage,
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const authLabel = document.getElementById('auth-label');
+      const tbody = document.getElementById('analysis-body');
+
+      // 1. ログインチェック
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const user = sessionData?.session?.user;
+
+      if (!user) {
+        authLabel.textContent = '未ログインです。分析を表示するにはログインしてください。';
+        tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;">ログインしていません</td></tr>`;
+        return;
+      }
+      authLabel.textContent = `ログイン中: ${user.email}`;
+
+      // 2. データ取得 (問題マスタ & ログ)
+      // 問題マスタ全件
+      const { data: questions, error: qError } = await supabaseClient
+        .from('quiz_questions')
+        .select('id, categoryJa, titleJa')
+        .order('id');
+
+      if (qError) {
+        console.error('questions error', qError);
+        return;
+      }
+
+      // 学習ログ (自分のクイズ回答のみ, 直近5000件程度)
+      const { data: logs, error: lError } = await supabaseClient
+        .from('study_logs')
+        .select('content_id, is_correct')
+        .eq('user_id', user.id)
+        .eq('content_type', 'quiz')
+        .limit(5000);
+
+      if (lError) {
+        console.error('logs error', lError);
+        return;
+      }
+
+      // 3. 集計処理
+      // マスタをベースに集計オブジェクトを作成
+      const statsMap = {}; // id -> { title, category, total, correct, wrong }
+      const categoryStats = {}; // category -> { totalQuestions, learnedQuestions, correctCount, wrongCount }
+
+      // マスタ初期化
+      questions.forEach(q => {
+        statsMap[q.id] = {
+          id: q.id,
+          title: q.titleJa || '(無題)',
+          category: q.categoryJa || 'その他',
+          total: 0,
+          correct: 0,
+          wrong: 0
+        };
+
+        const cat = q.categoryJa || 'その他';
+        if (!categoryStats[cat]) {
+          categoryStats[cat] = { totalQ: 0, learnedQ: 0, correct: 0, wrong: 0 };
+        }
+        categoryStats[cat].totalQ++;
+      });
+
+      // ログ集計
+      const learnedIds = new Set();
+      let totalCorrect = 0;
+      let totalAnswered = 0;
+
+      logs.forEach(log => {
+        const s = statsMap[log.content_id];
+        if (s) {
+          s.total++;
+          totalAnswered++;
+          if (log.is_correct) {
+            s.correct++;
+            totalCorrect++;
+          } else {
+            s.wrong++;
+          }
+          learnedIds.add(log.content_id);
+        }
+      });
+
+      // カテゴリ集計の更新
+      Object.values(statsMap).forEach(s => {
+        const cat = s.category;
+        if (s.total > 0) {
+          categoryStats[cat].learnedQ++;
+          categoryStats[cat].correct += s.correct;
+          categoryStats[cat].wrong += s.wrong;
+        }
+      });
+
+      // 4. 表示更新
+      // スタッツ
+      document.getElementById('stat-progress').textContent = `${learnedIds.size} / ${questions.length}`;
+      document.getElementById('stat-accuracy').textContent = totalAnswered ? Math.round((totalCorrect / totalAnswered) * 100) + '%' : '-';
+      document.getElementById('stat-total').textContent = totalAnswered + '回';
+
+      // チャート描画
+      const categories = Object.keys(categoryStats);
+      const dataCorrect = categories.map(c => categoryStats[c].correct);
+      const dataWrong = categories.map(c => categoryStats[c].wrong);
+      // 未学習の問題数（目安として表示したい場合）
+      // 今回は「正解数」「不正解数」の積み上げにする
+      
+      const ctx = document.getElementById('chartCanvas').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: categories,
+          datasets: [
+            { label: '正解数', data: dataCorrect, backgroundColor: '#28a745' },
+            { label: '不正解数', data: dataWrong, backgroundColor: '#d9534f' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true },
+            y: { stacked: true }
+          }
+        }
+      });
+
+      // テーブル描画
+      tbody.innerHTML = '';
+      questions.forEach(q => {
+        const s = statsMap[q.id];
+        const tr = document.createElement('tr');
+        const isLearned = s.total > 0;
+        if (!isLearned) tr.className = 'unlearned';
+
+        const rate = s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0;
+        const badgeClass = isLearned ? (rate >= 80 ? 'badge-green' : 'badge-blue') : 'badge-gray';
+        const statusLabel = isLearned ? `${rate}%` : '未学習';
+
+        tr.innerHTML = `
+          <td><span class="badge ${badgeClass}">${s.category}</span></td>
+          <td>${s.title}</td>
+          <td style="text-align:center;">${s.total}</td>
+          <td style="text-align:center; color:var(--success); font-weight:bold;">${s.correct}</td>
+          <td style="text-align:center; color:var(--danger);">${s.wrong}</td>
+          <td>
+            ${isLearned ? `
+              <div class="bar-container"><div class="bar-fill" style="width:${rate}%"></div></div>
+              <span>${rate}%</span>
+            ` : '<span style="color:#999; font-size:0.8rem;">-</span>'}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
+      <h1>学習分析</h1>
+    </header>
+
+    <div class="nav-links">
+      <a href="index.html" class="back-link">← トップ（問題）へ戻る</a>
+      <a href="history.html" class="back-link">📊 学習履歴（ログ）へ</a>
+    </div>
+
+    <div class="card">
+      <div id="auth-label" class="auth-info">確認中...</div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-progress">- / -</div>
+          <div class="stat-label">学習済み問題数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-accuracy">-</div>
+          <div class="stat-label">総正解率</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total">-</div>
+          <div class="stat-label">総回答回数</div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:0; color:var(--text-muted); font-size:1rem;">カテゴリ別 正解・不正解数</h3>
+      <div class="chart-wrapper">
+        <canvas id="chartCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0; margin-bottom:16px; color:var(--primary); font-size:1.1rem;">問題別 詳細レポート</h3>
+      <div class="table-wrapper">
+        <table class="analysis-table">
+          <thead>
+            <tr>
+              <th>カテゴリ</th>
+              <th>タイトル</th>
+              <th style="text-align:center;">回数</th>
+              <th style="text-align:center;">正解</th>
+              <th style="text-align:center;">不正解</th>
+              <th>正解率</th>
+            </tr>
+          </thead>
+          <tbody id="analysis-body">
+            <tr><td colspan="6" style="padding:20px;text-align:center;">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
