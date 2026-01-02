@@ -1763,6 +1763,24 @@ ${(q.journalJa || "").replace(/<br\s*\/?>/gi, "\n")}
 
   answerJa.innerHTML = linkifyJournalText(journalJaText, q.ref_links);
   answerEn.innerHTML = linkifyJournalText(journalEnText, q.ref_links);
+
+  // --- ✅ 参照リンク（テキストへのリンク）を一覧表示する
+  const refLinksDiv = document.getElementById("answer-ref-links");
+  if (refLinksDiv) {
+    refLinksDiv.innerHTML = ""; // クリア
+    if (q.ref_links && Object.keys(q.ref_links).length > 0) {
+      const links = [];
+      for (const [term, url] of Object.entries(q.ref_links)) {
+        if (term && url) {
+          links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#005bac; text-decoration:underline; margin-right:12px; font-weight:bold;">📖 ${term}</a>`);
+        }
+      }
+      if (links.length > 0) {
+        refLinksDiv.innerHTML = `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed #ccc;">${links.join("")}</div>`;
+      }
+    }
+  }
+
   answerPanel.style.display = "block";
 
   // --- ✅ 学習ログも未入力・貸借不一致でも記録する
@@ -2328,6 +2346,7 @@ function setupAmountInputs() {
           <h3 data-i18n="answer-title">模範仕訳 / Model Answer</h3>
           <pre id="answer-ja"></pre>
           <pre id="answer-en"></pre>
+          <div id="answer-ref-links" style="margin-bottom:8px; font-size:0.9rem;"></div>
           <small data-i18n="answer-note">※ 科目名と金額が合致していれば正解です（行の順番は問いません）。</small>
         </div>
       </section>
