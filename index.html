@@ -1917,7 +1917,31 @@ if (toggleRubyBtn) {
 
 
         setupCategoryFilterOptions(allQuestions);
-        startNewSessionFromUI();
+        
+        // ★ URLパラメータ ?id=xxx があればその問題を表示するロジックを追加
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get('id');
+        let startedSpecific = false;
+
+        if (targetId) {
+          const found = allQuestions.find(q => q.id === targetId);
+          if (found) {
+            questions = [found];
+            currentIndex = 0;
+            historyStack = [];
+            totalAnswered = 0;
+            totalCorrect = 0;
+            updateScore();
+            renderQuestion();
+            startedSpecific = true;
+            console.log("特定の問題IDで開始:", targetId);
+          }
+        }
+
+        if (!startedSpecific) {
+          startNewSessionFromUI();
+        }
+
         loadMyHistory();
         loadLearnedHistory();
       } catch (e) {

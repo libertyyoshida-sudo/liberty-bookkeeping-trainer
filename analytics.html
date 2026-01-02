@@ -225,6 +225,15 @@
       background: #fff; color: var(--primary); border: 1px solid var(--primary); padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;
     }
     .btn-secondary:hover { background: var(--primary-soft); }
+
+    /* 問題リンク */
+    a.question-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      display: block;
+    }
+    a.question-link:hover { text-decoration: underline; color: var(--accent); }
   </style>
 
   <script>
@@ -556,9 +565,12 @@
           const catLabel = currentLang === 'en' ? (s.categoryEn || s.category) : s.category;
           const titleLabel = currentLang === 'en' ? (s.titleEn || s.title) : s.title;
 
+          // ★ リンク先URL生成
+          const linkUrl = `index.html?id=${encodeURIComponent(s.id)}`;
+
         tr.innerHTML = `
             <td><span class="badge ${badgeClass}">${catLabel}</span></td>
-            <td>${titleLabel}</td>
+            <td><a href="${linkUrl}" class="question-link">${titleLabel}</a></td>
           <td style="text-align:center;">${s.total}</td>
           <td style="text-align:center; color:var(--success); font-weight:bold;">${s.correct}</td>
           <td style="text-align:center; color:var(--danger);">${s.wrong}</td>
