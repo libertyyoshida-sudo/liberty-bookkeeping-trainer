@@ -289,6 +289,8 @@
       margin-bottom: 10px;
       border: 1px solid rgba(0, 91, 172, 0.08);
       font-size: 0.9rem;
+      min-height: 6em;
+      line-height: 1.6;
     }
 
     .question-text p {
@@ -1124,7 +1126,7 @@ function furiganaTextToRubyHtml(str) {
       [5, 10, 20, 50].forEach(n => {
         const opt = document.createElement('option');
         opt.value = String(n);
-        opt.textContent = t['filter-count-max'] ? t['filter-count-max'](n) : `最大 ${n}問`;
+        opt.textContent = t['filter-count-max'] ? t'filter-count-max' : `最大 ${n}問`;
         questionCountSelect.appendChild(opt);
       });
       const optAllQ = document.createElement('option');
