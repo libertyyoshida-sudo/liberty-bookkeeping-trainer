@@ -210,6 +210,7 @@
         notLogin: '未ログインです。履歴を表示するには、トップページでログインしてください。',
         login: 'ログイン中: ',
         typeQuiz: '問題',
+        typeAccountQuiz: '勘定科目クイズ',
         typeSlide: 'スライド',
         typeYoutube: '動画',
         typeSite: 'サイト',
@@ -239,6 +240,7 @@
         notLogin: 'Not logged in. Please log in at the top page to view history.',
         login: 'Logged in: ',
         typeQuiz: 'Quiz',
+        typeAccountQuiz: 'Account Quiz',
         typeSlide: 'Slide',
         typeYoutube: 'Video',
         typeSite: 'Site',
@@ -405,6 +407,7 @@
         // 種別ラベル
         let typeLabel = row.content_type;
           if (typeLabel === 'quiz') typeLabel = t.typeQuiz;
+          if (typeLabel === 'account_quiz') typeLabel = t.typeAccountQuiz;
           if (typeLabel === 'slide') typeLabel = t.typeSlide;
           if (typeLabel === 'youtube') typeLabel = t.typeYoutube;
           if (typeLabel === 'site') typeLabel = t.typeSite;
@@ -450,6 +453,13 @@
           } else {
               titleStr = `(ID: ${row.content_id})`;
           }
+        } else if (row.content_type === 'account_quiz') {
+          // 勘定科目クイズ
+          let metaInfo = '';
+          if (row.meta && row.meta.mode) {
+             metaInfo = row.meta.mode === 'statement' ? '(BS/PL)' : '(Category)';
+          }
+          titleStr = `ID: ${row.content_id} ${metaInfo}`;
         } else {
           // クイズ以外の場合は content_id をそのまま表示など
             titleStr = row.content_id || '';

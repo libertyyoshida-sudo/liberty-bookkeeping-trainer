@@ -4,64 +4,127 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>勘定科目クイズ</title>
-  <!-- ✅ config.js を読み込む -->
+  
+  <!-- ✅ 共通スタイルと設定を読み込む -->
+  <link rel="stylesheet" href="style.css" />
   <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 紙吹雪エフェクト用ライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
   <style>
-    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;margin:0;background:#f6f7fb;color:#111;}
-    .wrap{max-width:720px;margin:0 auto;padding:24px;}
-    .card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 6px 20px rgba(0,0,0,.08);}
-    h1{font-size:20px;margin:0 0 12px;}
-    .prompt{font-size:18px;line-height:1.6;margin:12px 0 16px;}
-    .grid{display:grid;gap:10px;}
-    button.choice{padding:14px 12px;border-radius:12px;border:1px solid #e3e6ef;background:#fff;font-size:16px;cursor:pointer;text-align:left;}
-    button.choice:hover{background:#f2f4ff;}
-    .result{margin-top:14px;font-size:16px;font-weight:700;}
-    .ok{color:#1a7f37;}
-    .ng{color:#b42318;}
-    .row{display:flex;gap:10px;margin-top:16px;}
-    .small{font-size:13px;color:#666;}
-    select{padding:10px;border-radius:10px;border:1px solid #e3e6ef;}
-    .btn{padding:10px 12px;border-radius:10px;border:1px solid #e3e6ef;background:#111;color:#fff;cursor:pointer;}
+    /* quiz.html 固有のスタイル調整 */
+    .page { max-width: 800px; }
+    
+    .quiz-options {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    
+    .quiz-options label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .choice-btn {
+      width: 100%;
+      text-align: left;
+      padding: 16px;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-main);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .choice-btn:hover {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+    
+    .grid { display: grid; gap: 12px; margin-top: 20px; }
+    
+    .result-area {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      font-weight: bold;
+      text-align: center;
+      font-size: 1.2rem;
+      display: none; /* 初期非表示 */
+    }
+    .result-area.ok { background: #d4edda; color: #155724; display: block; }
+    .result-area.ng { background: #f8d7da; color: #721c24; display: block; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>勘定科目クイズ</h1>
+  <div class="page">
+    <header>
+      <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
+      <h1 style="font-size:1.4rem; color:var(--primary); margin:0;">勘定科目クイズ</h1>
+    </header>
 
-      <div class="row">
-        <label class="small">Language:
+    <div class="nav-links" style="margin-bottom:16px;">
+      <a href="index.html" class="back-link">← トップ（問題）へ戻る</a>
+    </div>
+
+    <div class="card">
+      <div class="quiz-options">
+        <label>Language:
           <select id="lang">
             <option value="ja" selected>日本語</option>
             <option value="en">English</option>
           </select>
         </label>
 
-        <label class="small">Mode:
+        <label>Mode:
           <select id="mode">
             <option value="statement" selected>やさしい（BS/PLで選択肢）</option>
             <option value="category">むずかしい（カテゴリ優先）</option>
           </select>
         </label>
 
-        <button class="btn" id="nextBtn">次の問題</button>
+        <div id="streak-box" style="margin-left:16px; font-weight:bold; color:#e67e22; display:none; align-items:center; gap:4px;">
+          🔥 <span id="streak-count">0</span> Streak!
+        </div>
+
+        <button class="btn btn-primary" id="nextBtn" style="margin-left:auto;">次の問題</button>
       </div>
 
-      <div class="prompt" id="prompt">読み込み中...</div>
+      <div class="question-text" id="prompt" style="font-size:1.1rem; font-weight:bold; min-height:auto;">読み込み中...</div>
 
       <div class="grid" id="choices"></div>
 
-      <div class="result" id="result"></div>
-      <div class="small" id="debug"></div>
+      <div class="result-area" id="result"></div>
+      
+      <!-- 解説エリア -->
+      <div id="explain-area" style="display:none; margin-top:20px; padding:16px; background:#f8f9fa; border-radius:12px; border:1px solid #e9ecef;">
+        <div id="correct-display" style="font-weight:bold; color:#d9534f; margin-bottom:12px;"></div>
+        <button id="btn-ai-explain" class="btn btn-secondary" style="width:100%;">🤖 なぜ？ (AI解説)</button>
+        <div id="ai-explanation" style="margin-top:12px; font-size:0.9rem; line-height:1.6; color:#333; display:none; white-space: pre-wrap;"></div>
+      </div>
+
+      <div id="debug" style="font-size:0.75rem; color:#ccc; margin-top:10px; text-align:right;"></div>
     </div>
   </div>
 
-  <script type="module">
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-
+  <script>
     // config.js の値を利用
     const supabaseUrl = window.SUPABASE_URL;
     const supabaseKey = window.SUPABASE_ANON_KEY;
+    const { createClient } = supabase;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const promptEl = document.getElementById("prompt");
@@ -71,13 +134,31 @@
     const langEl = document.getElementById("lang");
     const modeEl = document.getElementById("mode");
     const nextBtn = document.getElementById("nextBtn");
+    const streakBox = document.getElementById("streak-box");
+    const streakCountEl = document.getElementById("streak-count");
+    const explainArea = document.getElementById("explain-area");
+    const correctDisplay = document.getElementById("correct-display");
+    const btnAiExplain = document.getElementById("btn-ai-explain");
+    const aiExplanation = document.getElementById("ai-explanation");
 
     let current = null;
+    let currentUser = null;
+    let streak = 0;
+
+    // ログインユーザー取得
+    supabase.auth.getUser().then(({ data }) => {
+      currentUser = data?.user;
+    });
 
     async function loadQuiz(){
       resultEl.textContent = "";
       choicesEl.innerHTML = "";
       promptEl.textContent = "読み込み中...";
+      explainArea.style.display = "none";
+      aiExplanation.style.display = "none";
+      aiExplanation.textContent = "";
+      btnAiExplain.disabled = false;
+      btnAiExplain.textContent = "🤖 なぜ？ (AI解説)";
 
       const { data, error } = await supabase.rpc("get_accounts_quiz", {
         p_language: langEl.value,
@@ -95,7 +176,7 @@
 
       data.choices.forEach(c => {
         const btn = document.createElement("button");
-        btn.className = "choice";
+        btn.className = "choice-btn";
         btn.textContent = c.label;
         btn.onclick = () => answer(c.id);
         choicesEl.appendChild(btn);
@@ -105,10 +186,157 @@
       debugEl.textContent = `question_id=${data.question_id} / correct=${data.correct_account_code}`;
     }
 
+    // Web Audio API で簡易SE再生
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(isCorrect) {
+      // ユーザー操作が必要なブラウザ対策でresume
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (isCorrect) {
+        // 正解：ピンポン（サイン波で2音）
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now); 
+        osc.frequency.setValueAtTime(1100, now + 0.15); 
+        
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0.1, now + 0.3);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.6);
+        
+        osc.start(now);
+        osc.stop(now + 0.6);
+      } else {
+        // 不正解：ブブー（ノコギリ波で低音）
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.4);
+
+        osc.start(now);
+        osc.stop(now + 0.4);
+      }
+    }
+
+    // 学習ログ保存
+    async function saveLog(isCorrect) {
+      if (!currentUser || !current) return;
+
+      const { error } = await supabase.from('study_logs').insert({
+        user_id: currentUser.id,
+        content_type: 'account_quiz', // 仕訳問題(quiz)と区別
+        content_id: String(current.question_id),
+        is_correct: isCorrect,
+        created_at: new Date().toISOString(),
+        meta: {
+          mode: modeEl.value,
+          lang: langEl.value
+        }
+      });
+
+      if (error) {
+        console.error('Log save error:', error);
+      }
+    }
+
+    // AI解説リクエスト
+    async function askAi() {
+      if (!current) return;
+      const WORKER_URL = window.APP_AI_WORKER_URL;
+      if (!WORKER_URL) {
+        alert("AI Worker URL not configured.");
+        return;
+      }
+
+      btnAiExplain.disabled = true;
+      btnAiExplain.textContent = "解説を生成中...";
+      aiExplanation.style.display = "block";
+      aiExplanation.textContent = "考え中...";
+
+      const correctChoice = current.choices.find(c => String(c.id) === String(current.correct_account_id));
+      const correctLabel = correctChoice ? correctChoice.label : "Unknown";
+
+      const prompt = `
+あなたは簿記の先生です。以下の勘定科目クイズの解説をしてください。
+
+【問題】${current.prompt}
+【正解】${correctLabel}
+
+なぜこの科目が正解なのか、初心者にもわかるように短く解説してください。
+`.trim();
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: prompt }),
+        });
+
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        const answer = data.answer || data.response || JSON.stringify(data);
+        
+        aiExplanation.textContent = answer;
+      } catch (e) {
+        console.error(e);
+        aiExplanation.textContent = "エラーが発生しました: " + e.message;
+      } finally {
+        btnAiExplain.textContent = "🤖 解説を再生成";
+        btnAiExplain.disabled = false;
+      }
+    }
+
+    btnAiExplain.addEventListener("click", askAi);
+
     function answer(selectedId){
       const ok = String(selectedId) === String(current.correct_account_id);
-      resultEl.className = "result " + (ok ? "ok" : "ng");
+      
+      // 音を鳴らす
+      playTone(ok);
+      // ログ保存
+      saveLog(ok);
+
+      // ストリーク更新
+      if (ok) {
+        streak++;
+        streakBox.style.display = "inline-flex";
+        streakCountEl.textContent = streak;
+
+        // 5回連続正解ごとに紙吹雪でお祝い
+        if (streak > 0 && streak % 5 === 0) {
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        }
+      } else {
+        streak = 0;
+        streakBox.style.display = "none";
+      }
+
+      resultEl.className = "result-area " + (ok ? "ok" : "ng");
       resultEl.textContent = ok ? "✅ 正解！" : "❌ ちがいます";
+
+      // 解説エリア表示
+      explainArea.style.display = "block";
+      if (!ok) {
+        const correctChoice = current.choices.find(c => String(c.id) === String(current.correct_account_id));
+        correctDisplay.style.display = "block";
+        correctDisplay.textContent = `正解は: ${correctChoice ? correctChoice.label : '???'}`;
+      } else {
+        correctDisplay.style.display = "none";
+      }
     }
 
     nextBtn.addEventListener("click", loadQuiz);

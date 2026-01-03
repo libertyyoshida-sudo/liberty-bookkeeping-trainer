@@ -266,6 +266,7 @@
         thRate: '正解率',
         unlearned: '未学習',
         filterPeriod: '集計期間:',
+        filterWeakOnly: '苦手カテゴリのみ',
         periodAll: '全期間',
         periodWeek: '直近1週間',
         periodMonth: '直近1ヶ月',
@@ -278,7 +279,13 @@
         aiError: 'エラーが発生しました: ',
         exportBtn: '📥 CSVエクスポート',
         loading: '読み込み中...',
-        loginRequired: 'ログインしていません'
+        loginRequired: 'ログインしていません',
+        chartType: 'グラフ:',
+        typeBar: '縦棒',
+        typeHBar: '横棒',
+        typeRadar: 'レーダー',
+        typeLine: '折れ線',
+        downloadChart: '📷 画像保存'
       },
       en: {
         title: 'Learning Analytics',
@@ -304,6 +311,7 @@
         thRate: 'Rate',
         unlearned: 'Not learned',
         filterPeriod: 'Period:',
+        filterWeakOnly: 'Weak Categories Only',
         periodAll: 'All Time',
         periodWeek: 'Last 7 Days',
         periodMonth: 'Last 30 Days',
@@ -316,7 +324,13 @@
         aiError: 'An error occurred: ',
         exportBtn: '📥 Export CSV',
         loading: 'Loading...',
-        loginRequired: 'Not logged in'
+        loginRequired: 'Not logged in',
+        chartType: 'Chart:',
+        typeBar: 'Bar',
+        typeHBar: 'H-Bar',
+        typeRadar: 'Radar',
+        typeLine: 'Line',
+        downloadChart: '📷 Save Image'
       }
     };
 
@@ -329,6 +343,7 @@
     let chartInstance = null;
     let rateChartInstance = null;
     let trendChartInstance = null;
+    let weakCategories = new Set();
 
     const { createClient } = supabase;
     
@@ -349,6 +364,9 @@
       const chatBox = document.getElementById('ai-chat-box');
       const btnExport = document.getElementById('btn-export');
       const periodFilter = document.getElementById('period-filter');
+      const weakFilter = document.getElementById('weak-filter');
+      const chartTypeSelect = document.getElementById('chart-type-select');
+      const rateChartTypeSelect = document.getElementById('rate-chart-type-select');
 
       // 言語切り替え
       langJaBtn.addEventListener('click', () => { currentLang = 'ja'; updateUI(); });
@@ -359,11 +377,46 @@
         aggregateLogs();
         updateUI();
       });
+      
+      // 苦手フィルタ切り替え
+      weakFilter.addEventListener('change', () => {
+        aggregateLogs();
+        updateUI();
+      });
+
+      // チャートタイプ切り替え
+      chartTypeSelect.addEventListener('change', () => { renderChart(); });
+      rateChartTypeSelect.addEventListener('change', () => { renderRateChart(); });
+
+      // チャート画像保存
+      function downloadChart(canvasId, fileName) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        
+        // 白背景を付けて保存（透過PNGだと見づらいため）
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const ctx = tempCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+        ctx.drawImage(canvas, 0, 0);
+        
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = tempCanvas.toDataURL('image/png');
+        link.click();
+      }
+
+      document.getElementById('btn-download-chart-1').addEventListener('click', () => downloadChart('chartCanvas', 'chart_counts.png'));
+      document.getElementById('btn-download-chart-2').addEventListener('click', () => downloadChart('rateChartCanvas', 'chart_rates.png'));
+      document.getElementById('btn-download-chart-3').addEventListener('click', () => downloadChart('trendChartCanvas', 'chart_trend.png'));
 
       // 1. ログインチェック
       const { data: sessionData } = await supabaseClient.auth.getSession();
       const user = sessionData?.session?.user;
       currentUser = user;
+      loadWeakCategories();
 
       // 初期UI更新
       updateUI();
@@ -391,9 +444,9 @@
       // 学習ログ (自分のクイズ回答のみ, 直近5000件程度)
       const { data: logs, error: lError } = await supabaseClient
         .from('study_logs')
-        .select('content_id, is_correct, created_at')
+        .select('content_id, content_type, is_correct, created_at, meta')
         .eq('user_id', user.id)
-        .eq('content_type', 'quiz')
+        .in('content_type', ['quiz', 'account_quiz'])
         .limit(5000);
 
       if (lError) {
@@ -409,6 +462,7 @@
       function aggregateLogs() {
         const period = periodFilter.value;
         const now = new Date();
+        const weakOnly = weakFilter.checked;
         let cutoff = null;
         
         if (period === 'week') {
@@ -425,6 +479,9 @@
 
         // マスタ初期化
         globalQuestions.forEach(q => {
+          // 苦手フィルタ有効時、苦手カテゴリ以外はスキップ
+          if (weakOnly && !weakCategories.has(q.categoryJa)) return;
+
           statsMap[q.id] = {
             id: q.id,
             title: q.titleJa || '(無題)',
@@ -452,13 +509,43 @@
             if (logDate < cutoff) return;
           }
 
-          const s = statsMap[log.content_id];
-          if (s) {
+          if (log.content_type === 'account_quiz') {
+            // 勘定科目クイズ用（動的エントリ）
+            // 苦手フィルタ有効時、'勘定科目クイズ' カテゴリが苦手設定になければスキップ
+            if (weakOnly && !weakCategories.has('勘定科目クイズ')) return;
+
+            const mode = (log.meta && log.meta.mode) || 'unknown';
+            const vId = `account_quiz_${mode}`;
+            
+            if (!statsMap[vId]) {
+              let tJa = '勘定科目クイズ';
+              let tEn = 'Account Quiz';
+              if (mode === 'statement') { tJa += ' (BS/PL)'; tEn += ' (BS/PL)'; }
+              else if (mode === 'category') { tJa += ' (カテゴリ)'; tEn += ' (Category)'; }
+
+              statsMap[vId] = {
+                id: vId,
+                title: tJa,
+                titleEn: tEn,
+                category: '勘定科目クイズ',
+                categoryEn: 'Account Quiz',
+                total: 0,
+                correct: 0,
+                wrong: 0,
+                ref_links: {}
+              };
+            }
+            const s = statsMap[vId];
             s.total++;
-            if (log.is_correct) {
-              s.correct++;
-            } else {
-              s.wrong++;
+            if (log.is_correct) s.correct++;
+            else s.wrong++;
+          } else {
+            // 通常クイズ
+            const s = statsMap[log.content_id];
+            if (s) {
+              s.total++;
+              if (log.is_correct) s.correct++;
+              else s.wrong++;
             }
           }
         });
@@ -466,15 +553,37 @@
         // カテゴリ集計の更新
         Object.values(statsMap).forEach(s => {
           const cat = s.category;
+          // 勘定科目クイズなど、マスタにないカテゴリの場合の初期化
+          if (!categoryStats[cat]) {
+            categoryStats[cat] = { totalQ: 0, learnedQ: 0, correct: 0, wrong: 0 };
+          }
+
           if (s.total > 0) {
             categoryStats[cat].learnedQ++;
             categoryStats[cat].correct += s.correct;
             categoryStats[cat].wrong += s.wrong;
+            
+            // 動的カテゴリの場合は totalQ も増やして進捗100%扱いにする
+            if (s.id.startsWith('account_quiz_')) {
+              categoryStats[cat].totalQ++;
+            }
           }
         });
 
         globalStatsMap = statsMap;
         globalCategoryStats = categoryStats;
+      }
+
+      function loadWeakCategories() {
+        const key = currentUser ? `liberty_weak_${currentUser.id}` : 'liberty_weak_guest';
+        try {
+          const json = localStorage.getItem(key);
+          if (json) {
+            weakCategories = new Set(JSON.parse(json));
+          }
+        } catch (e) {
+          console.error(e);
+        }
       }
 
       // データが揃ったのでUI更新
@@ -516,10 +625,20 @@
         document.getElementById('btn-ai-analyze').textContent = t.aiBtn;
         document.getElementById('btn-export').textContent = t.exportBtn;
         document.getElementById('label-period').textContent = t.filterPeriod;
+        document.getElementById('label-weak-filter').textContent = t.filterWeakOnly;
         document.getElementById('opt-all').textContent = t.periodAll;
         document.getElementById('opt-week').textContent = t.periodWeek;
         document.getElementById('opt-month').textContent = t.periodMonth;
         document.getElementById('opt-year').textContent = t.periodYear;
+        
+        // チャートタイプ選択肢ラベル更新
+        updateSelectOptions(document.getElementById('chart-type-select'), t);
+        updateSelectOptions(document.getElementById('rate-chart-type-select'), t);
+        document.getElementById('label-chart-type-1').textContent = t.chartType;
+        document.getElementById('label-chart-type-2').textContent = t.chartType;
+        document.getElementById('btn-download-chart-1').textContent = t.downloadChart;
+        document.getElementById('btn-download-chart-2').textContent = t.downloadChart;
+        document.getElementById('btn-download-chart-3').textContent = t.downloadChart;
 
         // AI初期メッセージ（チャットボックスが初期状態なら）
         const aiChatBox = document.getElementById('ai-chat-box');
@@ -575,6 +694,15 @@
         renderTable(tbody, t);
       }
 
+      function updateSelectOptions(select, t) {
+        for(let opt of select.options) {
+          if (opt.value === 'bar') opt.textContent = t.typeBar;
+          if (opt.value === 'horizontalBar') opt.textContent = t.typeHBar;
+          if (opt.value === 'radar') opt.textContent = t.typeRadar;
+          if (opt.value === 'line') opt.textContent = t.typeLine;
+        }
+      }
+
       function renderChart() {
         const categories = Object.keys(globalCategoryStats);
         // カテゴリ名の多言語化対応（簡易的：マスタから英語名を探すか、辞書で変換）
@@ -588,6 +716,10 @@
           const q = globalQuestions.find(q => q.categoryJa === catJa);
           return q ? (q.categoryEn || catJa) : catJa;
         });
+        
+        // 苦手カテゴリ強調用の枠線設定
+        const borderColors = categories.map(c => weakCategories.has(c) ? '#ff4500' : '#fff');
+        const borderWidths = categories.map(c => weakCategories.has(c) ? 3 : 1);
 
         const dataCorrect = categories.map(c => globalCategoryStats[c].correct);
         const dataWrong = categories.map(c => globalCategoryStats[c].wrong);
@@ -596,22 +728,56 @@
           chartInstance.destroy();
         }
 
+        const typeVal = document.getElementById('chart-type-select').value;
+        let chartType = 'bar';
+        let indexAxis = 'x';
+        
+        if (typeVal === 'horizontalBar') {
+          chartType = 'bar';
+          indexAxis = 'y';
+        } else if (typeVal === 'radar') {
+          chartType = 'radar';
+        }
+
+        // Radarの場合は背景色を少し薄くして塗りつぶす
+        const fill = (chartType === 'radar');
+
         const ctx = document.getElementById('chartCanvas').getContext('2d');
         chartInstance = new Chart(ctx, {
-          type: 'bar',
+          type: chartType,
           data: {
             labels: labels,
             datasets: [
-              { label: currentLang === 'en' ? 'Correct' : '正解数', data: dataCorrect, backgroundColor: '#36a2eb' },
-              { label: currentLang === 'en' ? 'Wrong' : '不正解数', data: dataWrong, backgroundColor: '#ff6384' }
+              { 
+                label: currentLang === 'en' ? 'Correct' : '正解数', 
+                data: dataCorrect, 
+                backgroundColor: fill ? 'rgba(54, 162, 235, 0.2)' : '#36a2eb',
+                borderColor: borderColors,
+                borderWidth: borderWidths
+                fill: fill
+              },
+              { 
+                label: currentLang === 'en' ? 'Wrong' : '不正解数', 
+                data: dataWrong, 
+                backgroundColor: fill ? 'rgba(255, 99, 132, 0.2)' : '#ff6384',
+                borderColor: borderColors,
+                borderWidth: borderWidths
+                fill: fill
+              }
             ]
           },
           options: {
+            indexAxis: indexAxis,
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-              x: { stacked: true },
-              y: { stacked: true }
+              // Radarにはx/y軸がないので条件分岐
+              ...(chartType !== 'radar' ? {
+                x: { stacked: true },
+                y: { stacked: true }
+              } : {
+                r: { suggestMin: 0 }
+              })
             }
           }
         });
@@ -624,6 +790,10 @@
           const q = globalQuestions.find(q => q.categoryJa === catJa);
           return q ? (q.categoryEn || catJa) : catJa;
         });
+        
+        // 苦手カテゴリ強調用の枠線設定
+        const borderColors = categories.map(c => weakCategories.has(c) ? '#ff4500' : 'rgba(75, 192, 192, 1)');
+        const borderWidths = categories.map(c => weakCategories.has(c) ? 3 : 1);
 
         const dataRates = categories.map(c => {
           const s = globalCategoryStats[c];
@@ -635,26 +805,47 @@
           rateChartInstance.destroy();
         }
 
+        const typeVal = document.getElementById('rate-chart-type-select').value;
+        let chartType = 'bar';
+        let indexAxis = 'x';
+        
+        if (typeVal === 'horizontalBar') {
+          chartType = 'bar';
+          indexAxis = 'y';
+        } else if (typeVal === 'radar') {
+          chartType = 'radar';
+        } else if (typeVal === 'line') {
+          chartType = 'line';
+        }
+
+        const fill = (chartType === 'radar');
+
         const ctx = document.getElementById('rateChartCanvas').getContext('2d');
         rateChartInstance = new Chart(ctx, {
-          type: 'bar',
+          type: chartType,
           data: {
             labels: labels,
             datasets: [
               {
                 label: currentLang === 'en' ? 'Accuracy (%)' : '正解率 (%)',
                 data: dataRates,
-                backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
+                backgroundColor: fill ? 'rgba(75, 192, 192, 0.2)' : 'rgba(75, 192, 192, 0.6)',
+                borderColor: borderColors,
+                borderWidth: borderWidths
+                fill: fill
               }
             ]
           },
           options: {
+            indexAxis: indexAxis,
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-              y: { beginAtZero: true, max: 100 }
+              ...(chartType !== 'radar' ? {
+                y: { beginAtZero: true, max: 100 }
+              } : {
+                r: { beginAtZero: true, max: 100 }
+              })
             }
           }
         });
@@ -736,9 +927,13 @@
         
         categories.forEach(catJa => {
           const s = globalCategoryStats[catJa];
-          const catLabel = currentLang === 'en' ? 
+          let catLabel = currentLang === 'en' ? 
             (globalQuestions.find(q => q.categoryJa === catJa)?.categoryEn || catJa) : catJa;
           
+          if (weakCategories.has(catJa)) {
+            catLabel = '⚠️ ' + catLabel;
+          }
+
           const totalAns = s.correct + s.wrong;
           const rate = totalAns > 0 ? Math.round((s.correct / totalAns) * 100) : 0;
           
@@ -961,6 +1156,10 @@ ${summaryText}
           <option value="month" id="opt-month">直近1ヶ月</option>
           <option value="year" id="opt-year">直近1年</option>
         </select>
+        <label style="font-size:0.85rem; color:var(--text-muted); display:flex; align-items:center; gap:4px; cursor:pointer; margin-left:8px;">
+          <input type="checkbox" id="weak-filter">
+          <span id="label-weak-filter">苦手カテゴリのみ</span>
+        </label>
       </div>
     </div>
 
@@ -991,25 +1190,98 @@ ${summaryText}
         </div>
       </div>
 
-      <h3 id="chart-title" style="margin-top:0; color:var(--text-muted); font-size:1rem;">カテゴリ別 正解・不正解数</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h3 id="chart-title" style="margin:0; color:var(--text-muted); font-size:1rem;">カテゴリ別 正解・不正解数</h3>
+        <div style="font-size:0.8rem; display:flex; gap:8px; align-items:center;">
+          <div>
+            <span id="label-chart-type-1">グラフ:</span>
+            <select id="chart-type-select" style="border:1px solid #ddd; border-radius:4px; padding:2px;">
+              <option value="bar">縦棒</option>
+              <option value="horizontalBar">横棒</option>
+              <option value="radar">レーダー</option>
+            </select>
+          </div>
+          <button id="btn-download-chart-1" class="btn-secondary" style="padding:4px 8px; font-size:0.75rem;">📷 画像保存</button>
+        </div>
+      </div>
       <div class="chart-wrapper">
         <canvas id="chartCanvas"></canvas>
       </div>
 
       <hr style="margin: 24px 0; border: 0; border-top: 1px solid var(--border-soft);">
 
-      <h3 id="rate-chart-title" style="margin-top:0; color:var(--text-muted); font-size:1rem;">カテゴリ別 正解率 (%)</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h3 id="rate-chart-title" style="margin:0; color:var(--text-muted); font-size:1rem;">カテゴリ別 正解率 (%)</h3>
+        <div style="font-size:0.8rem; display:flex; gap:8px; align-items:center;">
+          <div>
+            <span id="label-chart-type-2">グラフ:</span>
+            <select id="rate-chart-type-select" style="border:1px solid #ddd; border-radius:4px; padding:2px;">
+              <option value="bar">縦棒</option>
+              <option value="horizontalBar">横棒</option>
+              <option value="radar">レーダー</option>
+              <option value="line">折れ線</option>
+            </select>
+          </div>
+          <button id="btn-download-chart-2" class="btn-secondary" style="padding:4px 8px; font-size:0.75rem;">📷 画像保存</button>
+        </div>
+      </div>
       <div class="chart-wrapper">
         <canvas id="rateChartCanvas"></canvas>
       </div>
 
-      <h3 id="trend-chart-title" style="margin-top:24px; color:var(--text-muted); font-size:1rem;">正解率の推移 (日別/月別)</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; margin-bottom:8px;">
+        <h3 id="trend-chart-title" style="margin:0; color:var(--text-muted); font-size:1rem;">正解率の推移 (日別/月別)</h3>
+        <button id="btn-download-chart-3" class="btn-secondary" style="padding:4px 8px; font-size:0.75rem;">📷 画像保存</button>
+      </div>
       <div class="chart-wrapper">
         <canvas id="trendChartCanvas"></canvas>
       </div>
 
       <h3 id="cat-table-title" style="margin-top:24px; color:var(--primary); font-size:1.1rem;">カテゴリ別 集計レポート</h3>
       <div class="table-wrapper">
+        <table class="analysis-table">
+          <thead>
+            <tr>
+              <th id="th-cat-cat">カテゴリ</th>
+              <th id="th-cat-progress" style="text-align:center;">進捗</th>
+              <th id="th-cat-answers" style="text-align:center;">回答数</th>
+              <th id="th-cat-rate">正解率</th>
+            </tr>
+          </thead>
+          <tbody id="category-analysis-body">
+            <tr><td colspan="4" style="padding:20px;text-align:center;">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 id="table-title" style="margin:0; color:var(--primary); font-size:1.1rem;">問題別 詳細レポート</h3>
+        <button id="btn-export" class="btn-secondary">📥 CSVエクスポート</button>
+      </div>
+      
+      <div class="table-wrapper">
+        <table class="analysis-table">
+          <thead>
+            <tr>
+              <th id="th-cat">カテゴリ</th>
+              <th id="th-title">タイトル</th>
+              <th id="th-count" style="text-align:center;">回数</th>
+              <th id="th-correct" style="text-align:center;">正解</th>
+              <th id="th-wrong" style="text-align:center;">不正解</th>
+              <th id="th-rate">正解率</th>
+            </tr>
+          </thead>
+          <tbody id="analysis-body">
+            <tr><td colspan="6" style="padding:20px;text-align:center;">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>div class="table-wrapper">
         <table class="analysis-table">
           <thead>
             <tr>

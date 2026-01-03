@@ -36,6 +36,7 @@ const i18n = {
     'filter-unlearned': '未学習のみ',
     'filter-not-cleared': '未修得のみ',
     'filter-review': '復習（ミスあり）',
+    'filter-weak-only': '苦手優先',
     'filter-drill': '特訓モード',
     'drill-info': '特訓中: 連続3回正解でクリア',
     'drill-cleared': '★クリア済',
@@ -73,6 +74,7 @@ const i18n = {
     'nav-contents': '動画・スライドを見る',
     'nav-history': '学習履歴ページへ',
     'nav-analytics': '学習分析',
+    'nav-quiz': '勘定科目クイズ',
 
     // メッセージ系
     'msg-input-required': '科目と金額を入力してください。',
@@ -102,8 +104,19 @@ const i18n = {
     'btn-font-size-0': '文字サイズ: 標準',
     'btn-font-size-1': '文字サイズ: 大',
     'btn-font-size-2': '文字サイズ: 特大',
+    'btn-line-height-0': '行間: 標準',
+    'btn-line-height-1': '行間: 広め',
+    'btn-line-height-2': '行間: 特広',
+    'btn-font-family-0': 'フォント: ゴシック',
+    'btn-font-family-1': 'フォント: 明朝',
+    'btn-font-family-2': 'フォント: 丸ゴシック',
     'btn-speech-start': '🔊 読み上げ',
-    'btn-speech-stop': '⏹ 停止'
+    'btn-speech-stop': '⏹ 停止',
+    'btn-weak-settings': '苦手設定',
+    'weak-modal-title': '苦手カテゴリの設定',
+    'weak-modal-desc': '重点的に学習したいカテゴリを選択してください。',
+    'btn-save': '保存',
+    'btn-cancel': 'キャンセル'
   },
   en: {
     'app-title': 'Liberty Bookkeeping Trainer',
@@ -116,6 +129,7 @@ const i18n = {
     'filter-unlearned': 'Unlearned only',
     'filter-not-cleared': 'Not cleared only',
     'filter-review': 'Review (Mistakes)',
+    'filter-weak-only': 'Weak Priority',
     'filter-drill': 'Drill Mode',
     'drill-info': 'Drill: 3 consecutive correct answers to clear',
     'drill-cleared': '★Cleared',
@@ -153,6 +167,7 @@ const i18n = {
     'nav-contents': 'Videos & Slides',
     'nav-history': 'Study History',
     'nav-analytics': 'Analytics',
+    'nav-quiz': 'Account Quiz',
 
     'msg-input-required': 'Please enter both account names and amounts.',
     'msg-not-balanced': 'Debit total and credit total do not match. Please check again.',
@@ -181,8 +196,19 @@ const i18n = {
     'btn-font-size-0': 'Font: Normal',
     'btn-font-size-1': 'Font: Large',
     'btn-font-size-2': 'Font: X-Large',
+    'btn-line-height-0': 'Line: Normal',
+    'btn-line-height-1': 'Line: Wide',
+    'btn-line-height-2': 'Line: X-Wide',
+    'btn-font-family-0': 'Font: Gothic',
+    'btn-font-family-1': 'Font: Serif',
+    'btn-font-family-2': 'Font: Rounded',
     'btn-speech-start': '🔊 Read Aloud',
-    'btn-speech-stop': '⏹ Stop'
+    'btn-speech-stop': '⏹ Stop',
+    'btn-weak-settings': 'Weak Settings',
+    'weak-modal-title': 'Weak Category Settings',
+    'weak-modal-desc': 'Select categories you want to focus on.',
+    'btn-save': 'Save',
+    'btn-cancel': 'Cancel'
   }
 };
 
@@ -204,6 +230,7 @@ let questions = [];
 let learnedQuestionIds = new Set();
 let clearedQuestionIds = new Set(); // 直近3回連続正解したID
 let wrongQuestionIds = new Set();   // 一度でも間違えたことがあるID
+let weakCategories = new Set();     // ユーザーが設定した苦手カテゴリ(日本語名)
 // 特訓モード管理
 let isDrillMode = false;
 let drillStreaks = {}; // { id: count }
@@ -290,6 +317,18 @@ let kuroshiroInitPromise = null;
 let currentFontSizeLevel = 0; // 0:標準, 1:大, 2:特大
 const fontSizes = ['0.9rem', '1.3rem', '1.6rem'];
 
+// 行間管理
+let currentLineHeightLevel = 0;
+const lineHeights = ['1.6', '2.2', '2.8'];
+
+// フォント種類管理
+let currentFontFamilyLevel = 0;
+const fontFamilies = [
+  '', // デフォルト(ゴシック系)
+  '"Times New Roman", "YuMincho", "Hiragino Mincho ProN", "Yu Mincho", "MS PMincho", serif', // 明朝系
+  '"Arial Rounded MT Bold", "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", sans-serif' // 丸ゴシック系
+];
+
 // 音声読み上げ管理
 let isSpeaking = false;
 
@@ -357,7 +396,7 @@ function furiganaTextToRubyHtml(str) {
 // DOM 取得（後で埋まるので let で宣言だけしておく）
 let questionLabel, categoryLabel, idLabel, randomLabel;
 let questionTextJa, questionTextEn;
-let langJaBtn, langEnBtn, randomModeCheckbox, unlearnedCheckbox, notClearedCheckbox, reviewCheckbox, drillModeCheckbox, btnFontSize, btnSpeech, speechRateInput, speechRateVal;
+let langJaBtn, langEnBtn, randomModeCheckbox, unlearnedCheckbox, notClearedCheckbox, reviewCheckbox, drillModeCheckbox, weakOnlyCheckbox, btnFontSize, btnLineHeight, btnFontFamily, btnSpeech, speechRateInput, speechRateVal;
 let prevBtn, nextBtn, checkBtn;
 let resultMessage, answerPanel, answerJa, answerEn, scorePill;
 let categoryFilterSelect, questionCountSelect, historyListEl;
@@ -411,6 +450,7 @@ async function signIn() {
   updateAuthUI();
   loadMyHistory();
   loadLearnedHistory(); // ログイン時に学習済みデータを取得
+  loadWeakCategories(); // 苦手カテゴリ読み込み
   alert('ログインしました。');
 }
 
@@ -420,6 +460,7 @@ async function signOut() {
   updateAuthUI();
   loadMyHistory();
   learnedQuestionIds.clear(); // ログアウト時はクリア
+  loadWeakCategories(); // ゲスト用に切り替え
   alert('ログアウトしました。');
 }
 
@@ -601,6 +642,7 @@ function createQuestionSetFromUI() {
   const unlearnedOnly = unlearnedCheckbox ? unlearnedCheckbox.checked : false;
   const notClearedOnly = notClearedCheckbox ? notClearedCheckbox.checked : false;
   const reviewOnly = reviewCheckbox ? reviewCheckbox.checked : false;
+  const weakOnly = weakOnlyCheckbox ? weakOnlyCheckbox.checked : false;
   const drillMode = drillModeCheckbox ? drillModeCheckbox.checked : false;
 
   let pool = allQuestions;
@@ -634,6 +676,15 @@ function createQuestionSetFromUI() {
       alert(currentLang === 'en' ? 'Please log in to use "Review mode".' : '「復習モード」機能を使うにはログインしてください。');
     } else {
       pool = pool.filter(q => wrongQuestionIds.has(q.id));
+    }
+  }
+
+  // 苦手カテゴリ優先
+  if (weakOnly) {
+    if (weakCategories.size === 0) {
+      alert(currentLang === 'en' ? 'No weak categories set. Please configure them in "Weak Settings".' : '苦手カテゴリが設定されていません。「苦手設定」ボタンから設定してください。');
+    } else {
+      pool = pool.filter(q => weakCategories.has(q.categoryJa));
     }
   }
 
@@ -702,6 +753,40 @@ function applyFontSize() {
   }
 }
 
+// 行間変更
+function toggleLineHeight() {
+  currentLineHeightLevel = (currentLineHeightLevel + 1) % lineHeights.length;
+  applyLineHeight();
+}
+
+function applyLineHeight() {
+  const lh = lineHeights[currentLineHeightLevel];
+  if (questionTextJa) questionTextJa.style.lineHeight = lh;
+  if (questionTextEn) questionTextEn.style.lineHeight = lh;
+  
+  if (btnLineHeight) {
+    const t = i18n[currentLang];
+    btnLineHeight.textContent = t[`btn-line-height-${currentLineHeightLevel}`];
+  }
+}
+
+// フォント変更
+function toggleFontFamily() {
+  currentFontFamilyLevel = (currentFontFamilyLevel + 1) % fontFamilies.length;
+  applyFontFamily();
+}
+
+function applyFontFamily() {
+  const ff = fontFamilies[currentFontFamilyLevel];
+  if (questionTextJa) questionTextJa.style.fontFamily = ff;
+  if (questionTextEn) questionTextEn.style.fontFamily = ff;
+  
+  if (btnFontFamily) {
+    const t = i18n[currentLang];
+    btnFontFamily.textContent = t[`btn-font-family-${currentFontFamilyLevel}`];
+  }
+}
+
 // 音声読み上げ機能
 function stopSpeech() {
   if (window.speechSynthesis) {
@@ -762,6 +847,97 @@ function updateSpeechButton() {
   }
 }
 
+// --- 苦手カテゴリ設定関連 ---
+function loadWeakCategories() {
+  const key = window.sessionUser ? `liberty_weak_${window.sessionUser.id}` : 'liberty_weak_guest';
+  try {
+    const json = localStorage.getItem(key);
+    if (json) {
+      weakCategories = new Set(JSON.parse(json));
+    } else {
+      weakCategories = new Set();
+    }
+  } catch (e) {
+    console.error(e);
+    weakCategories = new Set();
+  }
+}
+
+function saveWeakCategories() {
+  const key = window.sessionUser ? `liberty_weak_${window.sessionUser.id}` : 'liberty_weak_guest';
+  const arr = Array.from(weakCategories);
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+function openWeakSettingsModal() {
+  const modal = document.getElementById('weak-modal');
+  const list = document.getElementById('weak-cat-list');
+  if (!modal || !list) return;
+
+  // カテゴリ一覧生成
+  const catsSet = new Set();
+  allQuestions.forEach(q => { if (q.categoryJa) catsSet.add(q.categoryJa); });
+  
+  // ソート
+  const cats = [...catsSet].sort((a, b) => {
+    const ia = CATEGORY_ORDER.indexOf(a);
+    const ib = CATEGORY_ORDER.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b, "ja");
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  list.innerHTML = '';
+  cats.forEach(catJa => {
+    const div = document.createElement('div');
+    div.style.marginBottom = '6px';
+    
+    const label = document.createElement('label');
+    label.style.display = 'flex';
+    label.style.alignItems = 'center';
+    label.style.gap = '6px';
+    label.style.cursor = 'pointer';
+
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.value = catJa;
+    if (weakCategories.has(catJa)) chk.checked = true;
+
+    // 表示名（英語対応）
+    const q = allQuestions.find(x => x.categoryJa === catJa);
+    const dispName = (currentLang === 'en' && q && q.categoryEn) ? q.categoryEn : catJa;
+
+    label.appendChild(chk);
+    label.appendChild(document.createTextNode(dispName));
+    div.appendChild(label);
+    list.appendChild(div);
+  });
+
+  modal.style.display = 'flex';
+}
+
+function closeWeakSettingsModal() {
+  document.getElementById('weak-modal').style.display = 'none';
+}
+
+function saveWeakSettingsFromModal() {
+  const list = document.getElementById('weak-cat-list');
+  if (!list) return;
+  
+  const checkboxes = list.querySelectorAll('input[type="checkbox"]');
+  weakCategories.clear();
+  checkboxes.forEach(chk => {
+    if (chk.checked) weakCategories.add(chk.value);
+  });
+  
+  saveWeakCategories();
+  closeWeakSettingsModal();
+  
+  // もし「苦手優先」にチェックが入っていたら、即座に反映するか、
+  // ユーザーに「出題開始」を押させるか。ここではアラート等は出さず保存のみ。
+}
+
 //言語適用関数 applyLanguage を作る
 function applyLanguage() {
   const t = i18n[currentLang];
@@ -796,6 +972,10 @@ function applyLanguage() {
   
   // 文字サイズボタンのラベル更新
   applyFontSize();
+  
+  // 行間・フォントボタンのラベル更新
+  applyLineHeight();
+  applyFontFamily();
   
   // 読み上げボタンのラベル更新
   updateSpeechButton();
@@ -1441,7 +1621,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   notClearedCheckbox = document.getElementById("filter-not-cleared");
   reviewCheckbox = document.getElementById("filter-review");
   drillModeCheckbox = document.getElementById("mode-drill");
+  weakOnlyCheckbox = document.getElementById("filter-weak-only");
   btnFontSize = document.getElementById("btn-font-size");
+  btnLineHeight = document.getElementById("btn-line-height");
+  btnFontFamily = document.getElementById("btn-font-family");
   btnSpeech = document.getElementById("btn-speech");
   speechRateInput = document.getElementById("speech-rate");
   speechRateVal = document.getElementById("speech-rate-val");
@@ -1465,12 +1648,19 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (btnLogout) btnLogout.addEventListener('click', signOut);
   if (btnStart) btnStart.addEventListener('click', startNewSessionFromUI);
   if (btnFontSize) btnFontSize.addEventListener('click', toggleFontSize);
+  if (btnLineHeight) btnLineHeight.addEventListener('click', toggleLineHeight);
+  if (btnFontFamily) btnFontFamily.addEventListener('click', toggleFontFamily);
   if (btnSpeech) btnSpeech.addEventListener('click', toggleSpeech);
   if (speechRateInput && speechRateVal) {
     speechRateInput.addEventListener('input', (e) => {
       speechRateVal.textContent = e.target.value;
     });
   }
+
+  const btnWeakSettings = document.getElementById('btn-weak-settings');
+  if (btnWeakSettings) btnWeakSettings.addEventListener('click', openWeakSettingsModal);
+  document.getElementById('btn-weak-cancel')?.addEventListener('click', closeWeakSettingsModal);
+  document.getElementById('btn-weak-save')?.addEventListener('click', saveWeakSettingsFromModal);
 
   const btnAiExplain = document.getElementById("btn-ai-explain");
   const btnAiClear = document.getElementById("btn-ai-clear");
@@ -1680,6 +1870,7 @@ allQuestions = hardcodedQuestions;
 
     loadMyHistory();
     loadLearnedHistory();
+    loadWeakCategories();
   } catch (e) {
     console.error('初期処理エラー:', e);
     console.error('初期処理エラー (Fallback to hardcoded):', e);

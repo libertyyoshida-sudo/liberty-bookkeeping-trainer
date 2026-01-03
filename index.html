@@ -86,6 +86,12 @@
           <span data-i18n="nav-analytics">学習分析</span>
         </button>
       </a>
+      <a href="quiz.html">
+        <button class="top-nav-btn">
+          <span class="icon">🧩</span>
+          <span data-i18n="nav-quiz">勘定科目クイズ</span>
+        </button>
+      </a>
     </div>
 
     <div class="layout">
@@ -112,6 +118,14 @@
 
           <button id="btn-font-size" class="auth-small-btn" style="margin-left:8px;">
             文字サイズ: 標準
+          </button>
+
+          <button id="btn-line-height" class="auth-small-btn" style="margin-left:8px;">
+            行間: 標準
+          </button>
+
+          <button id="btn-font-family" class="auth-small-btn" style="margin-left:8px;">
+            フォント: ゴシック
           </button>
 
           <button id="btn-speech" class="auth-small-btn" style="margin-left:8px;">
@@ -148,6 +162,13 @@
             <input type="checkbox" id="mode-drill" />
             <span data-i18n="filter-drill">特訓モード</span>
           </label>
+          
+          <button id="btn-weak-settings" class="auth-small-btn" style="background:#fff; border:1px solid #ccc; margin-left:4px;" data-i18n="btn-weak-settings">苦手設定</button>
+          <label>
+            <input type="checkbox" id="filter-weak-only" />
+            <span data-i18n="filter-weak-only">苦手優先</span>
+          </label>
+
           <button id="btn-start-session" data-i18n="filter-start">出題開始</button>
         </div>
 
@@ -293,6 +314,19 @@
     <footer>
       &copy; Liberty Co., Ltd. Bookkeeping Trainer 2.0
     </footer>
+  </div>
+
+  <!-- 苦手カテゴリ設定モーダル -->
+  <div id="weak-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <h3 data-i18n="weak-modal-title" style="margin-top:0;">苦手カテゴリの設定</h3>
+      <p data-i18n="weak-modal-desc" style="font-size:0.85rem; color:#666; margin-bottom:10px;">重点的に学習したいカテゴリを選択してください。</p>
+      <div id="weak-cat-list" style="max-height:300px; overflow-y:auto; margin-bottom:16px; border:1px solid #eee; padding:10px; border-radius:8px;"></div>
+      <div style="text-align:right; gap:8px; display:flex; justify-content:flex-end;">
+        <button id="btn-weak-cancel" class="btn btn-secondary" data-i18n="btn-cancel">キャンセル</button>
+        <button id="btn-weak-save" class="btn btn-primary" data-i18n="btn-save">保存</button>
+      </div>
+    </div>
   </div>
 </body>
 </html>
