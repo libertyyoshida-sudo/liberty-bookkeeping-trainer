@@ -208,7 +208,10 @@
         btnAiExplain.disabled = false;
         btnAiExplain.textContent = "🤖 なぜ？ (AI解説)";
 
-        const { data, error } = await supabaseClient.rpc("get_accounts_quiz");
+        const { data, error } = await supabaseClient.rpc("get_accounts_quiz", {
+          language: langEl.value,
+          mode: modeEl.value
+        });
 
         // ローディング終了
         loadingContainer.style.display = "none";
