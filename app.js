@@ -1780,7 +1780,7 @@ if (!rubyEnabled) {
     
     // quiz_questions 取得（account_options カラムも一緒に返ってくる）
     const { data, error } = await supabaseClient
-      .from('quiz_questions')
+      .from('accountsquiz_questions')
       .select('*');
     if (error) {
       console.error('Supabase quiz_questions error:', error);
