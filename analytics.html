@@ -246,6 +246,7 @@
         title: '学習分析',
         back: '← トップ（問題）へ戻る',
         toHistory: '📊 学習履歴（ログ）へ',
+        toQuiz: '🧩 勘定科目クイズへ',
         notLogin: '未ログインです。分析を表示するにはログインしてください。',
         login: 'ログイン中: ',
         statProgress: '学習済み問題数',
@@ -291,6 +292,7 @@
         title: 'Learning Analytics',
         back: '← Back to Top',
         toHistory: '📊 To History',
+        toQuiz: '🧩 To Account Quiz',
         notLogin: 'Not logged in. Please log in to view analytics.',
         login: 'Logged in: ',
         statProgress: 'Learned Questions',
@@ -603,6 +605,7 @@
         document.getElementById('page-title').textContent = t.title;
         document.getElementById('back-link').textContent = t.back;
         document.getElementById('history-link').textContent = t.toHistory;
+        document.getElementById('quiz-link').textContent = t.toQuiz;
         document.getElementById('label-stat-progress').textContent = t.statProgress;
         document.getElementById('label-stat-accuracy').textContent = t.statAccuracy;
         document.getElementById('label-stat-total').textContent = t.statTotal;
@@ -754,6 +757,7 @@
                 backgroundColor: fill ? 'rgba(54, 162, 235, 0.2)' : '#36a2eb',
                 borderColor: borderColors,
                 borderWidth: borderWidths
+                borderWidth: borderWidths,
                 fill: fill
               },
               { 
@@ -762,6 +766,7 @@
                 backgroundColor: fill ? 'rgba(255, 99, 132, 0.2)' : '#ff6384',
                 borderColor: borderColors,
                 borderWidth: borderWidths
+                borderWidth: borderWidths,
                 fill: fill
               }
             ]
@@ -832,6 +837,7 @@
                 backgroundColor: fill ? 'rgba(75, 192, 192, 0.2)' : 'rgba(75, 192, 192, 0.6)',
                 borderColor: borderColors,
                 borderWidth: borderWidths
+                borderWidth: borderWidths,
                 fill: fill
               }
             ]
@@ -1147,6 +1153,7 @@ ${summaryText}
       <div>
         <a href="index.html" class="back-link" id="back-link">← トップ（問題）へ戻る</a>
         <a href="history.html" class="back-link" id="history-link" style="margin-left:16px;">📊 学習履歴（ログ）へ</a>
+        <a href="quiz.html" class="back-link" id="quiz-link" style="margin-left:16px;">🧩 勘定科目クイズへ</a>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
         <span id="label-period" style="font-size:0.85rem; color:var(--text-muted);">集計期間:</span>

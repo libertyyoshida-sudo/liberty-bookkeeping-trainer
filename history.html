@@ -196,6 +196,7 @@
         title: '学習履歴',
         back: '← トップ（問題）へ戻る',
         toAnalytics: '📈 学習分析（グラフ）へ →',
+        toQuiz: '🧩 勘定科目クイズへ',
         aiTitle: 'AI学習アドバイザー',
         aiDesc: 'こんにちは！あなたの学習履歴から、得意・不得意を分析してアドバイスします。「分析してアドバイスをください」ボタンを押してください。',
         aiBtn: '分析してアドバイスをください',
@@ -226,6 +227,7 @@
         title: 'Study History',
         back: '← Back to Top',
         toAnalytics: '📈 To Analytics →',
+        toQuiz: '🧩 To Account Quiz',
         aiTitle: 'AI Study Advisor',
         aiDesc: 'Hello! I will analyze your study history and give you advice on your strengths and weaknesses. Please click the button below.',
         aiBtn: 'Analyze & Get Advice',
@@ -358,6 +360,7 @@
         document.getElementById('page-title').textContent = t.title;
         document.getElementById('back-link').textContent = t.back;
         document.getElementById('analytics-link').textContent = t.toAnalytics;
+        document.getElementById('quiz-link').textContent = t.toQuiz;
         document.getElementById('ai-title').textContent = t.aiTitle;
         
         // AI説明文（チャットボックス内の初期メッセージは書き換えない方が自然だが、初期状態なら書き換える）
@@ -599,6 +602,7 @@ ${summaryText}
 
     <div style="display:flex; gap:16px; margin-bottom:16px; align-items:center; flex-wrap:wrap;">
       <a href="index.html" class="back-link" id="back-link" style="margin-bottom:0;">← トップ（問題）へ戻る</a>
+      <a href="quiz.html" class="back-link" id="quiz-link" style="margin-bottom:0;">🧩 勘定科目クイズへ</a>
       <a href="analytics.html" class="back-link" id="analytics-link" style="margin-bottom:0; margin-left:auto;">📈 学習分析（グラフ）へ →</a>
     </div>
 
