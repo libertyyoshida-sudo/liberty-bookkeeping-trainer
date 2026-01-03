@@ -22,8 +22,8 @@
       --text-main: #222;
       --text-muted: #666;
       --border-soft: #dde3f0;
-      --danger: #d9534f;
-      --success: #28a745;
+      --danger: #ff6384;
+      --success: #36a2eb;
       --warning: #ffc107;
       --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.06);
       --radius-xl: 18px;
@@ -252,6 +252,11 @@
         statAccuracy: '総正解率',
         statTotal: '総回答回数',
         chartTitle: 'カテゴリ別 正解・不正解数',
+        rateChartTitle: 'カテゴリ別 正解率 (%)',
+        trendChartTitle: '正解率の推移 (日別/月別)',
+        catTableTitle: 'カテゴリ別 集計レポート',
+        thProgress: '進捗',
+        thAnswers: '回答数',
         tableTitle: '問題別 詳細レポート',
         thCat: 'カテゴリ',
         thTitle: 'タイトル',
@@ -260,6 +265,11 @@
         thWrong: '不正解',
         thRate: '正解率',
         unlearned: '未学習',
+        filterPeriod: '集計期間:',
+        periodAll: '全期間',
+        periodWeek: '直近1週間',
+        periodMonth: '直近1ヶ月',
+        periodYear: '直近1年',
         aiTitle: 'AI学習アドバイザー',
         aiDesc: 'あなたの学習状況を分析して、次のステップをアドバイスします。',
         aiBtn: '分析してアドバイスをください',
@@ -280,6 +290,11 @@
         statAccuracy: 'Total Accuracy',
         statTotal: 'Total Attempts',
         chartTitle: 'Correct & Wrong by Category',
+        rateChartTitle: 'Accuracy Rate by Category (%)',
+        trendChartTitle: 'Accuracy Trend (Daily/Monthly)',
+        catTableTitle: 'Category Summary Report',
+        thProgress: 'Progress',
+        thAnswers: 'Answers',
         tableTitle: 'Detailed Report by Question',
         thCat: 'Category',
         thTitle: 'Title',
@@ -288,6 +303,11 @@
         thWrong: 'Wrong',
         thRate: 'Rate',
         unlearned: 'Not learned',
+        filterPeriod: 'Period:',
+        periodAll: 'All Time',
+        periodWeek: 'Last 7 Days',
+        periodMonth: 'Last 30 Days',
+        periodYear: 'Last Year',
         aiTitle: 'AI Study Advisor',
         aiDesc: 'I will analyze your learning status and advise you on the next steps.',
         aiBtn: 'Analyze & Get Advice',
@@ -302,10 +322,13 @@
 
     let currentLang = 'ja';
     let currentUser = null;
+    let globalLogs = []; // 生ログ保持用
     let globalQuestions = [];
     let globalStatsMap = {};
     let globalCategoryStats = {};
     let chartInstance = null;
+    let rateChartInstance = null;
+    let trendChartInstance = null;
 
     const { createClient } = supabase;
     
@@ -325,10 +348,17 @@
       const btnAnalyze = document.getElementById('btn-ai-analyze');
       const chatBox = document.getElementById('ai-chat-box');
       const btnExport = document.getElementById('btn-export');
+      const periodFilter = document.getElementById('period-filter');
 
       // 言語切り替え
       langJaBtn.addEventListener('click', () => { currentLang = 'ja'; updateUI(); });
       langEnBtn.addEventListener('click', () => { currentLang = 'en'; updateUI(); });
+      
+      // 期間フィルタ切り替え
+      periodFilter.addEventListener('change', () => {
+        aggregateLogs();
+        updateUI();
+      });
 
       // 1. ログインチェック
       const { data: sessionData } = await supabaseClient.auth.getSession();
@@ -361,7 +391,7 @@
       // 学習ログ (自分のクイズ回答のみ, 直近5000件程度)
       const { data: logs, error: lError } = await supabaseClient
         .from('study_logs')
-        .select('content_id, is_correct')
+        .select('content_id, is_correct, created_at')
         .eq('user_id', user.id)
         .eq('content_type', 'quiz')
         .limit(5000);
@@ -370,65 +400,82 @@
         console.error('logs error', lError);
         return;
       }
+      globalLogs = logs || [];
 
       // 3. 集計処理
-      // マスタをベースに集計オブジェクトを作成
-      const statsMap = {}; // id -> { title, category, total, correct, wrong }
-      const categoryStats = {}; // category -> { totalQuestions, learnedQuestions, correctCount, wrongCount }
+      aggregateLogs();
 
-      // マスタ初期化
-      questions.forEach(q => {
-        statsMap[q.id] = {
-          id: q.id,
-          title: q.titleJa || '(無題)',
-          titleEn: q.titleEn || '(Untitled)',
-          category: q.categoryJa || 'その他',
-          categoryEn: q.categoryEn || 'Other',
-          total: 0,
-          correct: 0,
-          wrong: 0,
-          ref_links: q.ref_links // ✅ リンク情報を保持
-        };
-
-        const cat = q.categoryJa || 'その他'; // 集計キーは日本語カテゴリで統一しておく（表示時に変換）
-        if (!categoryStats[cat]) {
-          categoryStats[cat] = { totalQ: 0, learnedQ: 0, correct: 0, wrong: 0 };
+      // 集計関数
+      function aggregateLogs() {
+        const period = periodFilter.value;
+        const now = new Date();
+        let cutoff = null;
+        
+        if (period === 'week') {
+          cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        } else if (period === 'month') {
+          cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        } else if (period === 'year') {
+          cutoff = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
         }
-        categoryStats[cat].totalQ++;
-      });
 
-      // ログ集計
-      const learnedIds = new Set();
-      let totalCorrect = 0;
-      let totalAnswered = 0;
+        // マスタをベースに集計オブジェクトを作成
+        const statsMap = {}; // id -> { title, category, total, correct, wrong }
+        const categoryStats = {}; // category -> { totalQuestions, learnedQuestions, correctCount, wrongCount }
 
-      logs.forEach(log => {
-        const s = statsMap[log.content_id];
-        if (s) {
-          s.total++;
-          totalAnswered++;
-          if (log.is_correct) {
-            s.correct++;
-            totalCorrect++;
-          } else {
-            s.wrong++;
+        // マスタ初期化
+        globalQuestions.forEach(q => {
+          statsMap[q.id] = {
+            id: q.id,
+            title: q.titleJa || '(無題)',
+            titleEn: q.titleEn || '(Untitled)',
+            category: q.categoryJa || 'その他',
+            categoryEn: q.categoryEn || 'Other',
+            total: 0,
+            correct: 0,
+            wrong: 0,
+            ref_links: q.ref_links
+          };
+
+          const cat = q.categoryJa || 'その他';
+          if (!categoryStats[cat]) {
+            categoryStats[cat] = { totalQ: 0, learnedQ: 0, correct: 0, wrong: 0 };
           }
-          learnedIds.add(log.content_id);
-        }
-      });
+          categoryStats[cat].totalQ++;
+        });
 
-      // カテゴリ集計の更新
-      Object.values(statsMap).forEach(s => {
-        const cat = s.category;
-        if (s.total > 0) {
-          categoryStats[cat].learnedQ++;
-          categoryStats[cat].correct += s.correct;
-          categoryStats[cat].wrong += s.wrong;
-        }
-      });
+        // ログ集計
+        globalLogs.forEach(log => {
+          // 期間フィルタ
+          if (cutoff) {
+            const logDate = new Date(log.created_at);
+            if (logDate < cutoff) return;
+          }
 
-      globalStatsMap = statsMap;
-      globalCategoryStats = categoryStats;
+          const s = statsMap[log.content_id];
+          if (s) {
+            s.total++;
+            if (log.is_correct) {
+              s.correct++;
+            } else {
+              s.wrong++;
+            }
+          }
+        });
+
+        // カテゴリ集計の更新
+        Object.values(statsMap).forEach(s => {
+          const cat = s.category;
+          if (s.total > 0) {
+            categoryStats[cat].learnedQ++;
+            categoryStats[cat].correct += s.correct;
+            categoryStats[cat].wrong += s.wrong;
+          }
+        });
+
+        globalStatsMap = statsMap;
+        globalCategoryStats = categoryStats;
+      }
 
       // データが揃ったのでUI更新
       updateUI();
@@ -451,6 +498,13 @@
         document.getElementById('label-stat-accuracy').textContent = t.statAccuracy;
         document.getElementById('label-stat-total').textContent = t.statTotal;
         document.getElementById('chart-title').textContent = t.chartTitle;
+        document.getElementById('rate-chart-title').textContent = t.rateChartTitle;
+        document.getElementById('trend-chart-title').textContent = t.trendChartTitle;
+        document.getElementById('cat-table-title').textContent = t.catTableTitle;
+        document.getElementById('th-cat-cat').textContent = t.thCat;
+        document.getElementById('th-cat-progress').textContent = t.thProgress;
+        document.getElementById('th-cat-answers').textContent = t.thAnswers;
+        document.getElementById('th-cat-rate').textContent = t.thRate;
         document.getElementById('table-title').textContent = t.tableTitle;
         document.getElementById('th-cat').textContent = t.thCat;
         document.getElementById('th-title').textContent = t.thTitle;
@@ -461,6 +515,11 @@
         document.getElementById('ai-title').textContent = t.aiTitle;
         document.getElementById('btn-ai-analyze').textContent = t.aiBtn;
         document.getElementById('btn-export').textContent = t.exportBtn;
+        document.getElementById('label-period').textContent = t.filterPeriod;
+        document.getElementById('opt-all').textContent = t.periodAll;
+        document.getElementById('opt-week').textContent = t.periodWeek;
+        document.getElementById('opt-month').textContent = t.periodMonth;
+        document.getElementById('opt-year').textContent = t.periodYear;
 
         // AI初期メッセージ（チャットボックスが初期状態なら）
         const aiChatBox = document.getElementById('ai-chat-box');
@@ -470,10 +529,12 @@
 
         const authLabel = document.getElementById('auth-label');
         const tbody = document.getElementById('analysis-body');
+        const catTbody = document.getElementById('category-analysis-body');
 
         if (!currentUser) {
           authLabel.textContent = t.notLogin;
           tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;">${t.loginRequired}</td></tr>`;
+          catTbody.innerHTML = `<tr><td colspan="4" style="padding:20px;text-align:center;">${t.loginRequired}</td></tr>`;
           document.getElementById('stat-progress-val').textContent = '- / -';
           document.getElementById('stat-accuracy-val').textContent = '-';
           document.getElementById('stat-total-val').textContent = '-';
@@ -484,6 +545,7 @@
         // データがない場合（読み込み前など）
         if (globalQuestions.length === 0) {
           tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;">${t.loading}</td></tr>`;
+          catTbody.innerHTML = `<tr><td colspan="4" style="padding:20px;text-align:center;">${t.loading}</td></tr>`;
           return;
         }
 
@@ -505,6 +567,9 @@
 
         // チャート更新
         renderChart();
+        renderRateChart();
+        renderTrendChart();
+        renderCategoryTable(catTbody);
 
         // テーブル更新
         renderTable(tbody, t);
@@ -537,8 +602,8 @@
           data: {
             labels: labels,
             datasets: [
-              { label: currentLang === 'en' ? 'Correct' : '正解数', data: dataCorrect, backgroundColor: '#28a745' },
-              { label: currentLang === 'en' ? 'Wrong' : '不正解数', data: dataWrong, backgroundColor: '#d9534f' }
+              { label: currentLang === 'en' ? 'Correct' : '正解数', data: dataCorrect, backgroundColor: '#36a2eb' },
+              { label: currentLang === 'en' ? 'Wrong' : '不正解数', data: dataWrong, backgroundColor: '#ff6384' }
             ]
           },
           options: {
@@ -549,6 +614,145 @@
               y: { stacked: true }
             }
           }
+        });
+      }
+
+      function renderRateChart() {
+        const categories = Object.keys(globalCategoryStats);
+        const labels = categories.map(catJa => {
+          if (currentLang === 'ja') return catJa;
+          const q = globalQuestions.find(q => q.categoryJa === catJa);
+          return q ? (q.categoryEn || catJa) : catJa;
+        });
+
+        const dataRates = categories.map(c => {
+          const s = globalCategoryStats[c];
+          const total = s.correct + s.wrong;
+          return total > 0 ? Math.round((s.correct / total) * 100) : 0;
+        });
+
+        if (rateChartInstance) {
+          rateChartInstance.destroy();
+        }
+
+        const ctx = document.getElementById('rateChartCanvas').getContext('2d');
+        rateChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: currentLang === 'en' ? 'Accuracy (%)' : '正解率 (%)',
+                data: dataRates,
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { beginAtZero: true, max: 100 }
+            }
+          }
+        });
+      }
+
+      function renderTrendChart() {
+        const period = document.getElementById('period-filter').value;
+        // 粒度決定: week/month -> day, year/all -> month
+        const unit = (period === 'week' || period === 'month') ? 'day' : 'month';
+        
+        // 集計用マップ: key -> { correct, total }
+        const trendMap = {};
+        
+        // 期間フィルタ用のカットオフ日時
+        const now = new Date();
+        let cutoff = null;
+        if (period === 'week') cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        else if (period === 'month') cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        else if (period === 'year') cutoff = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+
+        globalLogs.forEach(log => {
+          const d = new Date(log.created_at);
+          if (cutoff && d < cutoff) return;
+
+          let key;
+          if (unit === 'day') {
+            // YYYY-MM-DD
+            key = d.toISOString().slice(0, 10);
+          } else {
+            // YYYY-MM
+            key = d.toISOString().slice(0, 7);
+          }
+
+          if (!trendMap[key]) trendMap[key] = { correct: 0, total: 0 };
+          trendMap[key].total++;
+          if (log.is_correct) trendMap[key].correct++;
+        });
+
+        const sortedKeys = Object.keys(trendMap).sort();
+        const labels = sortedKeys;
+        const dataRates = sortedKeys.map(k => {
+          const t = trendMap[k];
+          return t.total > 0 ? Math.round((t.correct / t.total) * 100) : 0;
+        });
+
+        if (trendChartInstance) {
+          trendChartInstance.destroy();
+        }
+
+        const ctx = document.getElementById('trendChartCanvas').getContext('2d');
+        trendChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: currentLang === 'en' ? 'Accuracy (%)' : '正解率 (%)',
+                data: dataRates,
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                fill: true,
+                tension: 0.3
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { beginAtZero: true, max: 100 }
+            }
+          }
+        });
+      }
+
+      function renderCategoryTable(tbody) {
+        tbody.innerHTML = '';
+        const categories = Object.keys(globalCategoryStats);
+        
+        categories.forEach(catJa => {
+          const s = globalCategoryStats[catJa];
+          const catLabel = currentLang === 'en' ? 
+            (globalQuestions.find(q => q.categoryJa === catJa)?.categoryEn || catJa) : catJa;
+          
+          const totalAns = s.correct + s.wrong;
+          const rate = totalAns > 0 ? Math.round((s.correct / totalAns) * 100) : 0;
+          
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><span class="badge badge-blue">${catLabel}</span></td>
+            <td style="text-align:center;">${s.learnedQ} / ${s.totalQ}</td>
+            <td style="text-align:center;">${totalAns}</td>
+            <td>
+              <div class="bar-container"><div class="bar-fill" style="width:${rate}%"></div></div>
+              <span>${rate}%</span>
+            </td>
+          `;
+          tbody.appendChild(tr);
         });
       }
 
@@ -744,9 +948,20 @@ ${summaryText}
       </div>
     </header>
 
-    <div class="nav-links">
-      <a href="index.html" class="back-link" id="back-link">← トップ（問題）へ戻る</a>
-      <a href="history.html" class="back-link" id="history-link">📊 学習履歴（ログ）へ</a>
+    <div class="nav-links" style="justify-content: space-between; align-items: center;">
+      <div>
+        <a href="index.html" class="back-link" id="back-link">← トップ（問題）へ戻る</a>
+        <a href="history.html" class="back-link" id="history-link" style="margin-left:16px;">📊 学習履歴（ログ）へ</a>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span id="label-period" style="font-size:0.85rem; color:var(--text-muted);">集計期間:</span>
+        <select id="period-filter" style="padding:6px; border-radius:8px; border:1px solid var(--border-soft); font-size:0.85rem;">
+          <option value="all" id="opt-all">全期間</option>
+          <option value="week" id="opt-week">直近1週間</option>
+          <option value="month" id="opt-month">直近1ヶ月</option>
+          <option value="year" id="opt-year">直近1年</option>
+        </select>
+      </div>
     </div>
 
     <!-- AIアドバイスエリア -->
@@ -779,6 +994,35 @@ ${summaryText}
       <h3 id="chart-title" style="margin-top:0; color:var(--text-muted); font-size:1rem;">カテゴリ別 正解・不正解数</h3>
       <div class="chart-wrapper">
         <canvas id="chartCanvas"></canvas>
+      </div>
+
+      <hr style="margin: 24px 0; border: 0; border-top: 1px solid var(--border-soft);">
+
+      <h3 id="rate-chart-title" style="margin-top:0; color:var(--text-muted); font-size:1rem;">カテゴリ別 正解率 (%)</h3>
+      <div class="chart-wrapper">
+        <canvas id="rateChartCanvas"></canvas>
+      </div>
+
+      <h3 id="trend-chart-title" style="margin-top:24px; color:var(--text-muted); font-size:1rem;">正解率の推移 (日別/月別)</h3>
+      <div class="chart-wrapper">
+        <canvas id="trendChartCanvas"></canvas>
+      </div>
+
+      <h3 id="cat-table-title" style="margin-top:24px; color:var(--primary); font-size:1.1rem;">カテゴリ別 集計レポート</h3>
+      <div class="table-wrapper">
+        <table class="analysis-table">
+          <thead>
+            <tr>
+              <th id="th-cat-cat">カテゴリ</th>
+              <th id="th-cat-progress" style="text-align:center;">進捗</th>
+              <th id="th-cat-answers" style="text-align:center;">回答数</th>
+              <th id="th-cat-rate">正解率</th>
+            </tr>
+          </thead>
+          <tbody id="category-analysis-body">
+            <tr><td colspan="4" style="padding:20px;text-align:center;">読み込み中...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 

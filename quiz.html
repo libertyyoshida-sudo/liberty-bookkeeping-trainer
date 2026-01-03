@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>勘定科目クイズ</title>
+  <!-- ✅ config.js を読み込む -->
+  <script src="config.js"></script>
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;margin:0;background:#f6f7fb;color:#111;}
+    .wrap{max-width:720px;margin:0 auto;padding:24px;}
+    .card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 6px 20px rgba(0,0,0,.08);}
+    h1{font-size:20px;margin:0 0 12px;}
+    .prompt{font-size:18px;line-height:1.6;margin:12px 0 16px;}
+    .grid{display:grid;gap:10px;}
+    button.choice{padding:14px 12px;border-radius:12px;border:1px solid #e3e6ef;background:#fff;font-size:16px;cursor:pointer;text-align:left;}
+    button.choice:hover{background:#f2f4ff;}
+    .result{margin-top:14px;font-size:16px;font-weight:700;}
+    .ok{color:#1a7f37;}
+    .ng{color:#b42318;}
+    .row{display:flex;gap:10px;margin-top:16px;}
+    .small{font-size:13px;color:#666;}
+    select{padding:10px;border-radius:10px;border:1px solid #e3e6ef;}
+    .btn{padding:10px 12px;border-radius:10px;border:1px solid #e3e6ef;background:#111;color:#fff;cursor:pointer;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>勘定科目クイズ</h1>
+
+      <div class="row">
+        <label class="small">Language:
+          <select id="lang">
+            <option value="ja" selected>日本語</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+
+        <label class="small">Mode:
+          <select id="mode">
+            <option value="statement" selected>やさしい（BS/PLで選択肢）</option>
+            <option value="category">むずかしい（カテゴリ優先）</option>
+          </select>
+        </label>
+
+        <button class="btn" id="nextBtn">次の問題</button>
+      </div>
+
+      <div class="prompt" id="prompt">読み込み中...</div>
+
+      <div class="grid" id="choices"></div>
+
+      <div class="result" id="result"></div>
+      <div class="small" id="debug"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+    // config.js の値を利用
+    const supabaseUrl = window.SUPABASE_URL;
+    const supabaseKey = window.SUPABASE_ANON_KEY;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const promptEl = document.getElementById("prompt");
+    const choicesEl = document.getElementById("choices");
+    const resultEl = document.getElementById("result");
+    const debugEl = document.getElementById("debug");
+    const langEl = document.getElementById("lang");
+    const modeEl = document.getElementById("mode");
+    const nextBtn = document.getElementById("nextBtn");
+
+    let current = null;
+
+    async function loadQuiz(){
+      resultEl.textContent = "";
+      choicesEl.innerHTML = "";
+      promptEl.textContent = "読み込み中...";
+
+      const { data, error } = await supabase.rpc("get_accounts_quiz", {
+        p_language: langEl.value,
+        p_mode: modeEl.value
+      });
+
+      if(error){
+        promptEl.textContent = "エラーが起きました。";
+        debugEl.textContent = error.message;
+        return;
+      }
+
+      current = data;
+      promptEl.textContent = data.prompt;
+
+      data.choices.forEach(c => {
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.textContent = c.label;
+        btn.onclick = () => answer(c.id);
+        choicesEl.appendChild(btn);
+      });
+
+      // デバッグ用（運用時は消してください）
+      debugEl.textContent = `question_id=${data.question_id} / correct=${data.correct_account_code}`;
+    }
+
+    function answer(selectedId){
+      const ok = String(selectedId) === String(current.correct_account_id);
+      resultEl.className = "result " + (ok ? "ok" : "ng");
+      resultEl.textContent = ok ? "✅ 正解！" : "❌ ちがいます";
+    }
+
+    nextBtn.addEventListener("click", loadQuiz);
+    loadQuiz();
+  </script>
+</body>
+</html>

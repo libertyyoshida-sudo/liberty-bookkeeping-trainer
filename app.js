@@ -35,6 +35,7 @@ const i18n = {
     'filter-start': '出題開始',
     'filter-unlearned': '未学習のみ',
     'filter-not-cleared': '未修得のみ',
+    'filter-review': '復習（ミスあり）',
     'filter-drill': '特訓モード',
     'drill-info': '特訓中: 連続3回正解でクリア',
     'drill-cleared': '★クリア済',
@@ -64,12 +65,30 @@ const i18n = {
       '・ランダム出題をONにすると、順番をシャッフルします。\n' +
       '・日本語 / 英語はいつでも切り替え可能です。',
     'history-title': '直近の学習履歴',
+    'btn-login': 'ログイン',
+    'btn-logout': 'ログアウト',
+    'link-signup': '新規登録',
+    'link-forgot-pass': 'パスワードをお忘れの方はこちら',
+    'account-blank': '（空欄）',
+    'nav-contents': '動画・スライドを見る',
+    'nav-history': '学習履歴ページへ',
+    'nav-analytics': '学習分析',
 
     // メッセージ系
     'msg-input-required': '科目と金額を入力してください。',
     'msg-not-balanced': '借方合計と貸方合計が一致していません。もう一度確認してください。',
-    'msg-correct': '◎ 正解です！ とても良いです。',
-    'msg-wrong': '× 惜しいです。模範仕訳を確認してみましょう。',
+    'msg-correct': [
+      '◎ 正解です！ とても良いです。',
+      '◎ 素晴らしい！ その調子です。',
+      '◎ 完璧です！ よく理解できています。',
+      '◎ 正解！ ナイスです。'
+    ],
+    'msg-wrong': [
+      '× 惜しいです。模範仕訳を確認してみましょう。',
+      '× 残念！ もう一度見直してみましょう。',
+      '× 不正解です。解説を読んで復習しましょう。',
+      '× ドンマイ！ 次は正解できるはずです。'
+    ],
     'msg-drill-cleared': '🎉 この問題はクリアです！(3回連続正解)',
     'msg-drill-reset': '💦 不正解のためカウントリセット',
     'score': (correct, total) => `正解 ${correct} / ${total}`,
@@ -79,7 +98,12 @@ const i18n = {
     'ai-explain-title': 'AI解説（この問題）',
     'btn-ai-explain': 'この問題を解説して',
     'btn-ai-clear': 'クリア',
-    'ai-note': '※AIの解説は学習補助です。最終判断はテキスト等で確認してください。'
+    'ai-note': '※AIの解説は学習補助です。最終判断はテキスト等で確認してください。',
+    'btn-font-size-0': '文字サイズ: 標準',
+    'btn-font-size-1': '文字サイズ: 大',
+    'btn-font-size-2': '文字サイズ: 特大',
+    'btn-speech-start': '🔊 読み上げ',
+    'btn-speech-stop': '⏹ 停止'
   },
   en: {
     'app-title': 'Liberty Bookkeeping Trainer',
@@ -91,6 +115,7 @@ const i18n = {
     'filter-start': 'Start',
     'filter-unlearned': 'Unlearned only',
     'filter-not-cleared': 'Not cleared only',
+    'filter-review': 'Review (Mistakes)',
     'filter-drill': 'Drill Mode',
     'drill-info': 'Drill: 3 consecutive correct answers to clear',
     'drill-cleared': '★Cleared',
@@ -120,11 +145,29 @@ const i18n = {
       '・Turn on "Random order" to shuffle questions.\n' +
       '・You can switch between Japanese / English at any time.',
     'history-title': 'Recent study history',
+    'btn-login': 'Log in',
+    'btn-logout': 'Log out',
+    'link-signup': 'Sign up',
+    'link-forgot-pass': 'Forgot password?',
+    'account-blank': '(Blank)',
+    'nav-contents': 'Videos & Slides',
+    'nav-history': 'Study History',
+    'nav-analytics': 'Analytics',
 
     'msg-input-required': 'Please enter both account names and amounts.',
     'msg-not-balanced': 'Debit total and credit total do not match. Please check again.',
-    'msg-correct': '◎ Correct! Well done.',
-    'msg-wrong': '× Almost. Check the model journal entry.',
+    'msg-correct': [
+      '◎ Correct! Well done.',
+      '◎ Great job! Keep it up.',
+      '◎ Perfect! You got it.',
+      '◎ Correct! Nice work.'
+    ],
+    'msg-wrong': [
+      '× Almost. Check the model journal entry.',
+      '× Incorrect. Let\'s review the answer.',
+      '× Not quite. Try to understand the logic.',
+      '× Don\'t worry! Check the solution.'
+    ],
     'msg-drill-cleared': '🎉 Question Cleared! (3 in a row)',
     'msg-drill-reset': '💦 Count reset due to wrong answer',
     'score': (correct, total) => `Correct ${correct} / ${total}`,
@@ -134,7 +177,12 @@ const i18n = {
     'ai-explain-title': 'AI Explanation (This Question)',
     'btn-ai-explain': 'Explain this question',
     'btn-ai-clear': 'Clear',
-    'ai-note': '* AI explanation is a study aid. Please verify with textbooks.'
+    'ai-note': '* AI explanation is a study aid. Please verify with textbooks.',
+    'btn-font-size-0': 'Font: Normal',
+    'btn-font-size-1': 'Font: Large',
+    'btn-font-size-2': 'Font: X-Large',
+    'btn-speech-start': '🔊 Read Aloud',
+    'btn-speech-stop': '⏹ Stop'
   }
 };
 
@@ -155,6 +203,7 @@ let questions = [];
 // 学習済みID管理
 let learnedQuestionIds = new Set();
 let clearedQuestionIds = new Set(); // 直近3回連続正解したID
+let wrongQuestionIds = new Set();   // 一度でも間違えたことがあるID
 // 特訓モード管理
 let isDrillMode = false;
 let drillStreaks = {}; // { id: count }
@@ -237,6 +286,13 @@ let kuroshiro = null;
 let kuroshiroReady = false;
 let kuroshiroInitPromise = null;
 
+// 文字サイズ管理
+let currentFontSizeLevel = 0; // 0:標準, 1:大, 2:特大
+const fontSizes = ['0.9rem', '1.3rem', '1.6rem'];
+
+// 音声読み上げ管理
+let isSpeaking = false;
+
 function initKuroshiro() {
   // すでに初期化済みならそのまま返す
   if (kuroshiroReady && kuroshiro) {
@@ -301,7 +357,7 @@ function furiganaTextToRubyHtml(str) {
 // DOM 取得（後で埋まるので let で宣言だけしておく）
 let questionLabel, categoryLabel, idLabel, randomLabel;
 let questionTextJa, questionTextEn;
-let langJaBtn, langEnBtn, randomModeCheckbox, unlearnedCheckbox, notClearedCheckbox, drillModeCheckbox;
+let langJaBtn, langEnBtn, randomModeCheckbox, unlearnedCheckbox, notClearedCheckbox, reviewCheckbox, drillModeCheckbox, btnFontSize, btnSpeech, speechRateInput, speechRateVal;
 let prevBtn, nextBtn, checkBtn;
 let resultMessage, answerPanel, answerJa, answerEn, scorePill;
 let categoryFilterSelect, questionCountSelect, historyListEl;
@@ -403,6 +459,7 @@ function buildAccountListFromQuestion(q) {
 
 // 渡された勘定科目リストで、全てのセレクトボックスを再構築
 function setAccountSelectOptions(accountList) {
+  const t = i18n[currentLang];
   const selects = document.querySelectorAll(".account-select");
   selects.forEach((sel) => {
     const currentValue = sel.value; // 一応退避
@@ -411,7 +468,7 @@ function setAccountSelectOptions(accountList) {
     accountList.forEach((name) => {
       const opt = document.createElement("option");
       opt.value = name;
-      opt.textContent = name === "" ? "（空欄）" : name;
+      opt.textContent = name === "" ? t['account-blank'] : name;
       sel.appendChild(opt);
     });
 
@@ -543,6 +600,7 @@ function createQuestionSetFromUI() {
   const countValue = questionCountSelect ? questionCountSelect.value : '10';
   const unlearnedOnly = unlearnedCheckbox ? unlearnedCheckbox.checked : false;
   const notClearedOnly = notClearedCheckbox ? notClearedCheckbox.checked : false;
+  const reviewOnly = reviewCheckbox ? reviewCheckbox.checked : false;
   const drillMode = drillModeCheckbox ? drillModeCheckbox.checked : false;
 
   let pool = allQuestions;
@@ -567,6 +625,15 @@ function createQuestionSetFromUI() {
     } else {
       // クリア済みIDに含まれていないものを残す（未学習も含まれる）
       pool = pool.filter(q => !clearedQuestionIds.has(q.id));
+    }
+  }
+
+  // 復習モード（過去に間違えたことがある問題のみ）
+  if (reviewOnly) {
+    if (!window.sessionUser) {
+      alert(currentLang === 'en' ? 'Please log in to use "Review mode".' : '「復習モード」機能を使うにはログインしてください。');
+    } else {
+      pool = pool.filter(q => wrongQuestionIds.has(q.id));
     }
   }
 
@@ -617,6 +684,84 @@ function startNewSessionFromUI() {
   renderQuestion();
 }
 
+// 文字サイズ変更
+function toggleFontSize() {
+  currentFontSizeLevel = (currentFontSizeLevel + 1) % fontSizes.length;
+  applyFontSize();
+}
+
+function applyFontSize() {
+  const size = fontSizes[currentFontSizeLevel];
+  if (questionTextJa) questionTextJa.style.fontSize = size;
+  if (questionTextEn) questionTextEn.style.fontSize = size;
+  
+  // ボタンラベル更新
+  if (btnFontSize) {
+    const t = i18n[currentLang];
+    btnFontSize.textContent = t[`btn-font-size-${currentFontSizeLevel}`];
+  }
+}
+
+// 音声読み上げ機能
+function stopSpeech() {
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  isSpeaking = false;
+  updateSpeechButton();
+}
+
+function toggleSpeech() {
+  if (isSpeaking) {
+    stopSpeech();
+  } else {
+    playSpeech();
+  }
+}
+
+function playSpeech() {
+  if (!questions || questions.length === 0) return;
+  const q = questions[currentIndex];
+  // 現在の言語に合わせてテキストを選択
+  const text = currentLang === 'ja' ? q.questionJa : q.questionEn;
+  
+  if (!text) return;
+
+  const uttr = new SpeechSynthesisUtterance(text);
+  uttr.lang = currentLang === 'ja' ? 'ja-JP' : 'en-US';
+  uttr.rate = speechRateInput ? parseFloat(speechRateInput.value) : 1.0; // 速度
+
+  uttr.onend = () => {
+    isSpeaking = false;
+    updateSpeechButton();
+  };
+
+  uttr.onerror = (e) => {
+    console.error('Speech error', e);
+    isSpeaking = false;
+    updateSpeechButton();
+  };
+
+  window.speechSynthesis.cancel(); // 前のを止める
+  window.speechSynthesis.speak(uttr);
+  isSpeaking = true;
+  updateSpeechButton();
+}
+
+function updateSpeechButton() {
+  if (!btnSpeech) return;
+  const t = i18n[currentLang];
+  btnSpeech.textContent = isSpeaking ? t['btn-speech-stop'] : t['btn-speech-start'];
+  // 読み上げ中は色を変えるなどのスタイル変更も可能
+  if (isSpeaking) {
+    btnSpeech.style.background = '#ffc107'; // 黄色っぽく
+    btnSpeech.style.color = '#000';
+  } else {
+    btnSpeech.style.background = '';
+    btnSpeech.style.color = '';
+  }
+}
+
 //言語適用関数 applyLanguage を作る
 function applyLanguage() {
   const t = i18n[currentLang];
@@ -647,6 +792,13 @@ function applyLanguage() {
   renderQuestion();
 
   // 履歴エリア（ログインしていないときのメッセージなど）は loadMyHistory 内で t を使う形でもOK
+  loadMyHistory();
+  
+  // 文字サイズボタンのラベル更新
+  applyFontSize();
+  
+  // 読み上げボタンのラベル更新
+  updateSpeechButton();
 }
 
 // 画面へ問題を反映 - 修正後
@@ -655,6 +807,9 @@ function renderQuestion() {
     questionLabel.textContent = '問題がありません。';
     return;
   }
+  
+  // 問題が変わったら読み上げ停止
+  stopSpeech();
   
   const q = questions[currentIndex];
   questionLabel.textContent = `問題 ${currentIndex + 1} / ${questions.length}`;
@@ -1098,9 +1253,15 @@ async function checkAnswer() {
     }
   }
 
+  // メッセージ取得ヘルパー（配列ならランダム）
+  const getMsg = (key) => {
+    const val = t[key];
+    return Array.isArray(val) ? val[Math.floor(Math.random() * val.length)] : val;
+  };
+
   // --- 結果メッセージ表示
   if (isCorrect) {
-    resultMessage.textContent = t['msg-correct'];
+    resultMessage.textContent = getMsg('msg-correct');
     resultMessage.className = "result-message ok";
   } else {
     // ❗不正解の場合は、原因を追加して丁寧に表示
@@ -1108,7 +1269,7 @@ async function checkAnswer() {
       ? "（原因: " + reasonMessages.join(" / ") + "）"
       : "";
 
-    resultMessage.textContent = t['msg-wrong'] + " " + reasonText;
+    resultMessage.textContent = getMsg('msg-wrong') + " " + reasonText;
     resultMessage.className = "result-message ng";
   }
   
@@ -1154,10 +1315,11 @@ async function checkAnswer() {
 // 自分の履歴読み込み
 async function loadMyHistory() {
   if (!historyListEl) return;
+  const t = i18n[currentLang];
 
   if (!window.sessionUser) {
     historyListEl.innerHTML =
-      '<div style="font-size:0.75rem;color:#666;">ログインすると直近の解答履歴が表示されます。</div>';
+      `<div style="font-size:0.75rem;color:#666;">${t['history-not-logged-in']}</div>`;
     return;
   }
 
@@ -1176,7 +1338,7 @@ async function loadMyHistory() {
     }
 
     if (!data || data.length === 0) {
-      historyListEl.innerHTML = '<div style="font-size:0.75rem;color:#666;">まだ履歴がありません。</div>';
+      historyListEl.innerHTML = `<div style="font-size:0.75rem;color:#666;">${t['history-none']}</div>`;
       return;
     }
 
@@ -1235,6 +1397,7 @@ async function loadLearnedHistory() {
       // ✅ 直近3回連続正解（クリア済み）の判定
       const streaks = {}; // { id: current_streak_count }
       clearedQuestionIds = new Set();
+      wrongQuestionIds = new Set();
 
       for (const row of data) {
         const qid = row.content_id;
@@ -1248,6 +1411,8 @@ async function loadLearnedHistory() {
             clearedQuestionIds.add(qid);
           }
         } else {
+          // 不正解履歴があれば記録
+          wrongQuestionIds.add(qid);
           streaks[qid] = -1; // 直近で不正解があったので連続ストップ
         }
       }
@@ -1274,7 +1439,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   randomModeCheckbox = document.getElementById("random-mode");
   unlearnedCheckbox = document.getElementById("filter-unlearned");
   notClearedCheckbox = document.getElementById("filter-not-cleared");
+  reviewCheckbox = document.getElementById("filter-review");
   drillModeCheckbox = document.getElementById("mode-drill");
+  btnFontSize = document.getElementById("btn-font-size");
+  btnSpeech = document.getElementById("btn-speech");
+  speechRateInput = document.getElementById("speech-rate");
+  speechRateVal = document.getElementById("speech-rate-val");
   prevBtn = document.getElementById("prev-question");
   nextBtn = document.getElementById("next-question");
   checkBtn = document.getElementById("check-answer");
@@ -1294,6 +1464,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (btnLogin) btnLogin.addEventListener('click', signIn);
   if (btnLogout) btnLogout.addEventListener('click', signOut);
   if (btnStart) btnStart.addEventListener('click', startNewSessionFromUI);
+  if (btnFontSize) btnFontSize.addEventListener('click', toggleFontSize);
+  if (btnSpeech) btnSpeech.addEventListener('click', toggleSpeech);
+  if (speechRateInput && speechRateVal) {
+    speechRateInput.addEventListener('input', (e) => {
+      speechRateVal.textContent = e.target.value;
+    });
+  }
 
   const btnAiExplain = document.getElementById("btn-ai-explain");
   const btnAiClear = document.getElementById("btn-ai-clear");
@@ -1351,6 +1528,16 @@ alert("横画面モードにできませんでした。端末の設定で横向�
   nextBtn.addEventListener("click", goNextQuestion);
   prevBtn.addEventListener("click", goPrevQuestion);
   checkBtn.addEventListener("click", checkAnswer);
+
+  // ショートカットキー: Enterで次の問題へ（解答済みの場合）
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      if (answerPanel && answerPanel.style.display === 'block') {
+        e.preventDefault();
+        goNextQuestion();
+      }
+    }
+  });
 
   document.querySelector('a[href="signup.html"]').href = window.APP_BASE_URL + "/signup.html";
   document.querySelector('a[href="forgot-password.html"]').href = window.APP_BASE_URL + "/forgot-password.html";

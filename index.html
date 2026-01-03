@@ -16,6 +16,22 @@
   <script src="config.js"></script>
   
   <script src="app.js"></script>
+  <style>
+    /* スマホ表示時にトップナビを横スクロールにする */
+    @media (max-width: 600px) {
+      .top-nav {
+        display: flex;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 8px;
+        padding-bottom: 4px;
+      }
+      .top-nav a {
+        flex: 0 0 auto;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="page">
@@ -36,16 +52,16 @@
        </div>
 
       <div class="auth-actions">
-        <button class="auth-primary-btn" id="btn-login">ログイン</button>
-        <a href="signup.html" class="auth-link">新規登録</a>
-        <a href="forgot-password.html" class="auth-link">パスワードをお忘れの方はこちら</a>
+        <button class="auth-primary-btn" id="btn-login" data-i18n="btn-login">ログイン</button>
+        <a href="signup.html" class="auth-link" data-i18n="link-signup">新規登録</a>
+        <a href="forgot-password.html" class="auth-link" data-i18n="link-forgot-pass">パスワードをお忘れの方はこちら</a>
        </div>
       </div>
 
   <!-- ログイン状態 -->
   <div id="auth-when-logged-in" style="display:none;">
     <span id="auth-user-label" class="auth-status"></span>
-    <button class="auth-small-btn" id="btn-logout">ログアウト</button>
+    <button class="auth-small-btn" id="btn-logout" data-i18n="btn-logout">ログアウト</button>
   </div>
 </div>
 
@@ -55,19 +71,19 @@
       <a href="contents.html">
         <button class="top-nav-btn">
           <span class="icon">🎥</span>
-          <span>動画・スライドを見る</span>
+          <span data-i18n="nav-contents">動画・スライドを見る</span>
         </button>
       </a>
       <a href="history.html">
         <button class="top-nav-btn">
           <span class="icon">📊</span>
-          <span>学習履歴ページへ</span>
+          <span data-i18n="nav-history">学習履歴ページへ</span>
         </button>
       </a>
       <a href="analytics.html">
         <button class="top-nav-btn">
           <span class="icon">📈</span>
-          <span>学習分析</span>
+          <span data-i18n="nav-analytics">学習分析</span>
         </button>
       </a>
     </div>
@@ -93,6 +109,20 @@
           <button id="btn-landscape" class="auth-small-btn" style="margin-left:8px;">
             横画面モード
           </button>
+
+          <button id="btn-font-size" class="auth-small-btn" style="margin-left:8px;">
+            文字サイズ: 標準
+          </button>
+
+          <button id="btn-speech" class="auth-small-btn" style="margin-left:8px;">
+            🔊 読み上げ
+          </button>
+
+          <div style="display:inline-flex; align-items:center; margin-left:8px; gap:4px; font-size:0.75rem; color:var(--text-muted);">
+            <span>Speed</span>
+            <input type="range" id="speech-rate" min="0.5" max="2.0" step="0.1" value="1.0" style="width:50px; vertical-align:middle;">
+            <span id="speech-rate-val">1.0</span>
+          </div>
           
         </div>
 
@@ -109,6 +139,10 @@
           <label>
             <input type="checkbox" id="filter-not-cleared" />
             <span data-i18n="filter-not-cleared">未修得のみ</span>
+          </label>
+          <label>
+            <input type="checkbox" id="filter-review" />
+            <span data-i18n="filter-review">復習（ミスあり）</span>
           </label>
           <label>
             <input type="checkbox" id="mode-drill" />
