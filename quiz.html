@@ -156,172 +156,173 @@
   </div>
 
   <script>
-    // config.js の値を利用
-    const supabaseUrl = window.SUPABASE_URL;
-    const supabaseKey = window.SUPABASE_ANON_KEY;
-    const { createClient } = window.supabase;
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    window.addEventListener('DOMContentLoaded', () => {
+      // config.js の値を利用
+      const supabaseUrl = window.SUPABASE_URL;
+      const supabaseKey = window.SUPABASE_ANON_KEY;
+      const { createClient } = window.supabase;
+      const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-    const promptEl = document.getElementById("prompt");
-    const choicesEl = document.getElementById("choices");
-    const resultEl = document.getElementById("result");
-    const debugEl = document.getElementById("debug");
-    const langEl = document.getElementById("lang");
-    const modeEl = document.getElementById("mode");
-    const nextBtn = document.getElementById("nextBtn");
-    const streakBox = document.getElementById("streak-box");
-    const streakCountEl = document.getElementById("streak-count");
-    const explainArea = document.getElementById("explain-area");
-    const correctDisplay = document.getElementById("correct-display");
-    const btnAiExplain = document.getElementById("btn-ai-explain");
-    const aiExplanation = document.getElementById("ai-explanation");
-    const loadingContainer = document.getElementById("loading-container");
-    const timeAttackCheck = document.getElementById("time-attack");
-    const timerContainer = document.getElementById("timer-container");
-    const timerBar = document.getElementById("timer-bar");
+      const promptEl = document.getElementById("prompt");
+      const choicesEl = document.getElementById("choices");
+      const resultEl = document.getElementById("result");
+      const debugEl = document.getElementById("debug");
+      const langEl = document.getElementById("lang");
+      const modeEl = document.getElementById("mode");
+      const nextBtn = document.getElementById("nextBtn");
+      const streakBox = document.getElementById("streak-box");
+      const streakCountEl = document.getElementById("streak-count");
+      const explainArea = document.getElementById("explain-area");
+      const correctDisplay = document.getElementById("correct-display");
+      const btnAiExplain = document.getElementById("btn-ai-explain");
+      const aiExplanation = document.getElementById("ai-explanation");
+      const loadingContainer = document.getElementById("loading-container");
+      const timeAttackCheck = document.getElementById("time-attack");
+      const timerContainer = document.getElementById("timer-container");
+      const timerBar = document.getElementById("timer-bar");
 
-    let current = null;
-    let currentUser = null;
-    let streak = 0;
-    let timerInterval = null;
-    const TIME_LIMIT = 10; // 秒
+      let current = null;
+      let currentUser = null;
+      let streak = 0;
+      let timerInterval = null;
+      const TIME_LIMIT = 10; // 秒
 
-    // ログインユーザー取得
-    supabaseClient.auth.getUser().then(({ data }) => {
-      currentUser = data?.user;
-    });
-
-    async function loadQuiz(){
-      resultEl.textContent = "";
-      choicesEl.innerHTML = "";
-      stopTimer(); // 前のタイマー停止
-      
-      // ローディング表示開始
-      loadingContainer.style.display = "block";
-      promptEl.style.display = "none";
-      choicesEl.style.display = "none";
-
-      explainArea.style.display = "none";
-      aiExplanation.style.display = "none";
-      aiExplanation.textContent = "";
-      btnAiExplain.disabled = false;
-      btnAiExplain.textContent = "🤖 なぜ？ (AI解説)";
-
-      const { data, error } = await supabaseClient.rpc("get_accounts_quiz", {
-        p_language: langEl.value,
-        p_mode: modeEl.value
+      // ログインユーザー取得
+      supabaseClient.auth.getUser().then(({ data }) => {
+        currentUser = data?.user;
       });
 
-      // ローディング終了
-      loadingContainer.style.display = "none";
-      promptEl.style.display = "block";
-      choicesEl.style.display = "grid";
-
-      if(error){
-        promptEl.textContent = "エラーが起きました。";
-        debugEl.textContent = error.message;
-        return;
-      }
-
-      current = data;
-      promptEl.textContent = data.prompt;
-
-      data.choices.forEach(c => {
-        const btn = document.createElement("button");
-        btn.className = "choice-btn";
-        btn.textContent = c.label;
-        btn.onclick = () => answer(c.id);
-        choicesEl.appendChild(btn);
-      });
-
-      // デバッグ用（運用時は消してください）
-      debugEl.textContent = `question_id=${data.question_id} / correct=${data.correct_account_code}`;
-
-      // タイマースタート
-      startTimer();
-    }
-
-    // Web Audio API で簡易SE再生
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    function playTone(isCorrect) {
-      // ユーザー操作が必要なブラウザ対策でresume
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      const now = audioCtx.currentTime;
-
-      if (isCorrect) {
-        // 正解：ピンポン（サイン波で2音）
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, now); 
-        osc.frequency.setValueAtTime(1100, now + 0.15); 
+      async function loadQuiz(){
+        resultEl.textContent = "";
+        choicesEl.innerHTML = "";
+        stopTimer(); // 前のタイマー停止
         
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.linearRampToValueAtTime(0.1, now + 0.3);
-        gain.gain.linearRampToValueAtTime(0.001, now + 0.6);
-        
-        osc.start(now);
-        osc.stop(now + 0.6);
-      } else {
-        // 不正解：ブブー（ノコギリ波で低音）
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+        // ローディング表示開始
+        loadingContainer.style.display = "block";
+        promptEl.style.display = "none";
+        choicesEl.style.display = "none";
 
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.linearRampToValueAtTime(0.001, now + 0.4);
+        explainArea.style.display = "none";
+        aiExplanation.style.display = "none";
+        aiExplanation.textContent = "";
+        btnAiExplain.disabled = false;
+        btnAiExplain.textContent = "🤖 なぜ？ (AI解説)";
 
-        osc.start(now);
-        osc.stop(now + 0.4);
-      }
-    }
+        const { data, error } = await supabaseClient.rpc("get_accounts_quiz", {
+          p_language: langEl.value,
+          p_mode: modeEl.value
+        });
 
-    // 学習ログ保存
-    async function saveLog(isCorrect) {
-      if (!currentUser || !current) return;
+        // ローディング終了
+        loadingContainer.style.display = "none";
+        promptEl.style.display = "block";
+        choicesEl.style.display = "grid";
 
-      const { error } = await supabaseClient.from('study_logs').insert({
-        user_id: currentUser.id,
-        content_type: 'account_quiz', // 仕訳問題(quiz)と区別
-        content_id: String(current.question_id),
-        is_correct: isCorrect,
-        created_at: new Date().toISOString(),
-        meta: {
-          mode: modeEl.value,
-          lang: langEl.value
+        if(error){
+          promptEl.textContent = "エラーが起きました。";
+          debugEl.textContent = error.message;
+          return;
         }
-      });
 
-      if (error) {
-        console.error('Log save error:', error);
+        current = data;
+        promptEl.textContent = data.prompt;
+
+        data.choices.forEach(c => {
+          const btn = document.createElement("button");
+          btn.className = "choice-btn";
+          btn.textContent = c.label;
+          btn.onclick = () => answer(c.id);
+          choicesEl.appendChild(btn);
+        });
+
+        // デバッグ用（運用時は消してください）
+        debugEl.textContent = `question_id=${data.question_id} / correct=${data.correct_account_code}`;
+
+        // タイマースタート
+        startTimer();
       }
-    }
 
-    // AI解説リクエスト
-    async function askAi() {
-      if (!current) return;
-      const WORKER_URL = window.APP_AI_WORKER_URL;
-      if (!WORKER_URL) {
-        alert("AI Worker URL not configured.");
-        return;
+      // Web Audio API で簡易SE再生
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      function playTone(isCorrect) {
+        // ユーザー操作が必要なブラウザ対策でresume
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (isCorrect) {
+          // 正解：ピンポン（サイン波で2音）
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now); 
+          osc.frequency.setValueAtTime(1100, now + 0.15); 
+          
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.linearRampToValueAtTime(0.1, now + 0.3);
+          gain.gain.linearRampToValueAtTime(0.001, now + 0.6);
+          
+          osc.start(now);
+          osc.stop(now + 0.6);
+        } else {
+          // 不正解：ブブー（ノコギリ波で低音）
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.linearRampToValueAtTime(0.001, now + 0.4);
+
+          osc.start(now);
+          osc.stop(now + 0.4);
+        }
       }
 
-      btnAiExplain.disabled = true;
-      btnAiExplain.textContent = "解説を生成中...";
-      aiExplanation.style.display = "block";
-      aiExplanation.textContent = "考え中...";
+      // 学習ログ保存
+      async function saveLog(isCorrect) {
+        if (!currentUser || !current) return;
 
-      const correctChoice = current.choices.find(c => String(c.id) === String(current.correct_account_id));
-      const correctLabel = correctChoice ? correctChoice.label : "Unknown";
+        const { error } = await supabaseClient.from('study_logs').insert({
+          user_id: currentUser.id,
+          content_type: 'account_quiz', // 仕訳問題(quiz)と区別
+          content_id: String(current.question_id),
+          is_correct: isCorrect,
+          created_at: new Date().toISOString(),
+          meta: {
+            mode: modeEl.value,
+            lang: langEl.value
+          }
+        });
 
-      const prompt = `
+        if (error) {
+          console.error('Log save error:', error);
+        }
+      }
+
+      // AI解説リクエスト
+      async function askAi() {
+        if (!current) return;
+        const WORKER_URL = window.APP_AI_WORKER_URL;
+        if (!WORKER_URL) {
+          alert("AI Worker URL not configured.");
+          return;
+        }
+
+        btnAiExplain.disabled = true;
+        btnAiExplain.textContent = "解説を生成中...";
+        aiExplanation.style.display = "block";
+        aiExplanation.textContent = "考え中...";
+
+        const correctChoice = current.choices.find(c => String(c.id) === String(current.correct_account_id));
+        const correctLabel = correctChoice ? correctChoice.label : "Unknown";
+
+        const prompt = `
 あなたは簿記の先生です。以下の勘定科目クイズの解説をしてください。
 
 【問題】${current.prompt}
@@ -330,128 +331,129 @@
 なぜこの科目が正解なのか、初心者にもわかるように短く解説してください。
 `.trim();
 
-      try {
-        const res = await fetch(WORKER_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: prompt }),
-        });
+        try {
+          const res = await fetch(WORKER_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: prompt }),
+          });
 
-        if (!res.ok) throw new Error(res.statusText);
-        const data = await res.json();
-        const answer = data.answer || data.response || JSON.stringify(data);
-        
-        aiExplanation.textContent = answer;
-      } catch (e) {
-        console.error(e);
-        aiExplanation.textContent = "エラーが発生しました: " + e.message;
-      } finally {
-        btnAiExplain.textContent = "🤖 解説を再生成";
-        btnAiExplain.disabled = false;
+          if (!res.ok) throw new Error(res.statusText);
+          const data = await res.json();
+          const answer = data.answer || data.response || JSON.stringify(data);
+          
+          aiExplanation.textContent = answer;
+        } catch (e) {
+          console.error(e);
+          aiExplanation.textContent = "エラーが発生しました: " + e.message;
+        } finally {
+          btnAiExplain.textContent = "🤖 解説を再生成";
+          btnAiExplain.disabled = false;
+        }
       }
-    }
 
-    btnAiExplain.addEventListener("click", askAi);
+      btnAiExplain.addEventListener("click", askAi);
 
-    // --- タイマー機能 ---
-    function startTimer() {
-      if (!timeAttackCheck.checked) {
-        timerContainer.style.display = "none";
-        return;
-      }
-      timerContainer.style.display = "block";
-      timerBar.style.width = "100%";
-      timerBar.style.backgroundColor = "#28a745";
-
-      const startTime = Date.now();
-      const limitMs = TIME_LIMIT * 1000;
-
-      if (timerInterval) clearInterval(timerInterval);
-
-      timerInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const remain = limitMs - elapsed;
-        
-        if (remain <= 0) {
-          stopTimer();
-          handleTimeUp();
+      // --- タイマー機能 ---
+      function startTimer() {
+        if (!timeAttackCheck.checked) {
+          timerContainer.style.display = "none";
           return;
         }
+        timerContainer.style.display = "block";
+        timerBar.style.width = "100%";
+        timerBar.style.backgroundColor = "#28a745";
 
-        const pct = (remain / limitMs) * 100;
-        timerBar.style.width = `${pct}%`;
+        const startTime = Date.now();
+        const limitMs = TIME_LIMIT * 1000;
 
-        // 色変化
-        if (pct < 30) timerBar.style.backgroundColor = "#d9534f"; // 赤
-        else if (pct < 60) timerBar.style.backgroundColor = "#ffc107"; // 黄
-      }, 100);
-    }
+        if (timerInterval) clearInterval(timerInterval);
 
-    function stopTimer() {
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
+        timerInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const remain = limitMs - elapsed;
+          
+          if (remain <= 0) {
+            stopTimer();
+            handleTimeUp();
+            return;
+          }
+
+          const pct = (remain / limitMs) * 100;
+          timerBar.style.width = `${pct}%`;
+
+          // 色変化
+          if (pct < 30) timerBar.style.backgroundColor = "#d9534f"; // 赤
+          else if (pct < 60) timerBar.style.backgroundColor = "#ffc107"; // 黄
+        }, 100);
       }
-    }
 
-    function handleTimeUp() {
-      answer(null, true); // nullID, isTimeUp=true
-    }
-
-    function answer(selectedId, isTimeUp = false){
-      stopTimer(); // 回答したらタイマー停止
-
-      // 選択ボタンの無効化
-      const btns = document.querySelectorAll(".choice-btn");
-      btns.forEach(b => b.disabled = true);
-
-      const ok = String(selectedId) === String(current.correct_account_id);
-      
-      // 音を鳴らす
-      playTone(ok && !isTimeUp);
-      // ログ保存
-      saveLog(ok && !isTimeUp);
-
-      // ストリーク更新
-      if (ok && !isTimeUp) {
-        streak++;
-        streakBox.style.display = "inline-flex";
-        streakCountEl.textContent = streak;
-
-        // 5回連続正解ごとに紙吹雪でお祝い
-        if (streak > 0 && streak % 5 === 0) {
-          confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
+      function stopTimer() {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
         }
-      } else {
-        streak = 0;
-        streakBox.style.display = "none";
       }
 
-      if (isTimeUp) {
-        resultEl.className = "result-area ng";
-        resultEl.textContent = "⏰ 時間切れ！";
-      } else {
-        resultEl.className = "result-area " + (ok ? "ok" : "ng");
-        resultEl.textContent = ok ? "✅ 正解！" : "❌ ちがいます";
+      function handleTimeUp() {
+        answer(null, true); // nullID, isTimeUp=true
       }
 
-      // 解説エリア表示
-      explainArea.style.display = "block";
-      if (!ok || isTimeUp) {
-        const correctChoice = current.choices.find(c => String(c.id) === String(current.correct_account_id));
-        correctDisplay.style.display = "block";
-        correctDisplay.textContent = `正解は: ${correctChoice ? correctChoice.label : '???'}`;
-      } else {
-        correctDisplay.style.display = "none";
-      }
-    }
+      function answer(selectedId, isTimeUp = false){
+        stopTimer(); // 回答したらタイマー停止
 
-    nextBtn.addEventListener("click", loadQuiz);
-    loadQuiz();
+        // 選択ボタンの無効化
+        const btns = document.querySelectorAll(".choice-btn");
+        btns.forEach(b => b.disabled = true);
+
+        const ok = String(selectedId) === String(current.correct_account_id);
+        
+        // 音を鳴らす
+        playTone(ok && !isTimeUp);
+        // ログ保存
+        saveLog(ok && !isTimeUp);
+
+        // ストリーク更新
+        if (ok && !isTimeUp) {
+          streak++;
+          streakBox.style.display = "inline-flex";
+          streakCountEl.textContent = streak;
+
+          // 5回連続正解ごとに紙吹雪でお祝い
+          if (streak > 0 && streak % 5 === 0) {
+            confetti({
+              particleCount: 150,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+          }
+        } else {
+          streak = 0;
+          streakBox.style.display = "none";
+        }
+
+        if (isTimeUp) {
+          resultEl.className = "result-area ng";
+          resultEl.textContent = "⏰ 時間切れ！";
+        } else {
+          resultEl.className = "result-area " + (ok ? "ok" : "ng");
+          resultEl.textContent = ok ? "✅ 正解！" : "❌ ちがいます";
+        }
+
+        // 解説エリア表示
+        explainArea.style.display = "block";
+        if (!ok || isTimeUp) {
+          const correctChoice = current.choices.find(c => String(c.id) === String(current.correct_account_id));
+          correctDisplay.style.display = "block";
+          correctDisplay.textContent = `正解は: ${correctChoice ? correctChoice.label : '???'}`;
+        } else {
+          correctDisplay.style.display = "none";
+        }
+      }
+
+      nextBtn.addEventListener("click", loadQuiz);
+      loadQuiz();
+    });
   </script>
 </body>
 </html>
