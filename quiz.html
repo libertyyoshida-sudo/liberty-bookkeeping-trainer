@@ -209,7 +209,7 @@
         btnAiExplain.textContent = "🤖 なぜ？ (AI解説)";
 
         const { data, error } = await supabaseClient.rpc("get_accounts_quiz", {
-          language: langEl.value,
+          lang: langEl.value,
           mode: modeEl.value
         });
 
