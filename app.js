@@ -1778,14 +1778,6 @@ if (!rubyEnabled) {
 }
   
   try {
-    function showErrorBanner(message) {
-      const banner = document.getElementById('error-banner');
-      if (banner) {
-        banner.innerHTML = message;
-        banner.style.display = 'block';
-      }
-    }
-
     if (!supabaseClient) {
       throw new Error("Supabase client not initialized");
     }
@@ -1802,63 +1794,61 @@ if (!rubyEnabled) {
     if (error) {
       console.error('Supabase quiz_questions error:', error);
       allQuestions = hardcodedQuestions;
-      showErrorBanner('クイズの読み込みに失敗しました。オフラインモードで実行します。(エラー: ' + error.message + ')');
-    } else if (data && data.length > 0) {
+    }else if (data && data.length > 0) {
       console.log('取得したクイズ件数:', data.length);
       
       // ★ ここで solution をオブジェクトに直しておく
       allQuestions = data.map((row) => {
         let solution = row.solution;
 
-        // solution が文字列なら JSON としてパース
-        if (typeof solution === 'string') {
-          try {
-            solution = JSON.parse(solution);
-          } catch (e) {
-            console.error('solution JSON parse error for id =', row.id, solution, e);
-            solution = null;  // 壊れている場合は一旦 null
-          }
-        }
+// solution が文字列なら JSON としてパース
+if (typeof solution === 'string') {
+  try {
+    solution = JSON.parse(solution);
+  } catch (e) {
+    console.error('solution JSON parse error for id =', row.id, solution, e);
+    solution = null;  // 壊れている場合は一旦 null
+  }
+}
 
-        // 必要に応じて account_options を配列化（既に文字列で扱えているので必須ではない）
-        let account_options = row.account_options;
-        if (typeof account_options === 'string') {
-          account_options = account_options
-            .split(',')
-            .map(s => s.trim())
-            .filter(Boolean);
-        }
+// 必要に応じて account_options を配列化（既に文字列で扱えているので必須ではない）
+let account_options = row.account_options;
+if (typeof account_options === 'string') {
+  account_options = account_options
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
 
-        // account_optionsEn も配列化
-        let account_optionsEn = row.account_optionsEn;
-        if (typeof account_optionsEn === 'string') {
-          account_optionsEn = account_optionsEn.split(',').map(s => s.trim()).filter(Boolean);
-        }
+// account_optionsEn も配列化
+let account_optionsEn = row.account_optionsEn;
+if (typeof account_optionsEn === 'string') {
+  account_optionsEn = account_optionsEn.split(',').map(s => s.trim()).filter(Boolean);
+}
 
-        // ref_links が文字列で来ている場合のパース処理（念のため）
-        let ref_links = row.ref_links;
-        if (typeof ref_links === 'string') {
-          try {
-            ref_links = JSON.parse(ref_links);
-          } catch (e) {
-            console.error('ref_links JSON parse error', e);
-          }
-        }
+// ref_links が文字列で来ている場合のパース処理（念のため）
+let ref_links = row.ref_links;
+if (typeof ref_links === 'string') {
+  try {
+    ref_links = JSON.parse(ref_links);
+  } catch (e) {
+    console.error('ref_links JSON parse error', e);
+  }
+}
 
-        return {
-          ...row,
-          solution,
-          account_options,
-          account_optionsEn,
-          ref_links,
-        };
-      });
+return {
+  ...row,
+  solution,
+  account_options,
+  account_optionsEn,
+  ref_links,
+};
+});
 
-    } else {
-      console.log('Supabase quiz_questions が空のためハードコード問題を使用します');
-      allQuestions = hardcodedQuestions;
-      showErrorBanner('クイズデータが空です。オフラインモードで実行します。(SupabaseのRLS設定を確認してください)');
-    }
+} else {
+console.log('Supabase quiz_questions が空のためハードコード問題を使用します');
+allQuestions = hardcodedQuestions;
+}
 
 
     setupCategoryFilterOptions(allQuestions);
@@ -1892,7 +1882,7 @@ if (!rubyEnabled) {
     loadWeakCategories();
   } catch (e) {
     console.error('初期処理エラー:', e);
-    showErrorBanner('アプリの初期化に失敗しました。オフラインモードで実行します。(エラー: ' + e.message + ')');
+    console.error('初期処理エラー (Fallback to hardcoded):', e);
     allQuestions = hardcodedQuestions;
     setupCategoryFilterOptions(allQuestions);
     startNewSessionFromUI();
