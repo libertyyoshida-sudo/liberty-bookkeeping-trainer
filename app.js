@@ -1268,9 +1268,13 @@ function checkAnswer() {
   }
 
   if (!q || !q.solution || !q.solution.debit || !q.solution.credit) {
-    console.error("Current question or its solution is missing/invalid.");
-    resultMessage.textContent = "エラー: 現在の問題または解答データがありません。";
+    console.error("Current question or its solution is missing/invalid.", q);
+    resultMessage.textContent = "エラー: この問題の正解データが壊れているか、存在しません。管理者に連絡してください。\n(Error: The solution data for this question is corrupt or missing.)";
     resultMessage.className = "result-message wrong";
+    // Also display the answer panel to show what we have
+    if(answerJa) answerJa.innerHTML = (q && q.journalJa) ? q.journalJa : '<i>No model answer available.</i>';
+    if(answerEn) answerEn.innerHTML = (q && q.journalEn) ? q.journalEn : '<i>No model answer available.</i>';
+    if(answerPanel) answerPanel.style.display = "block";
     return;
   }
 
