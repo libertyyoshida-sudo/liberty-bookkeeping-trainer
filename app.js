@@ -1298,47 +1298,49 @@ function checkAnswer() {
       resultMessage.className = "result-message wrong";
       return;
   }
+  
   const correctSolution = q.solution;
+  let userEntries = user;
+  let solutionToCheck = correctSolution;
 
-  // Entries to check, potentially translated to Japanese
-  let entriesToCheck = user;
-
+  // When in English mode, the user's entries are in English.
+  // The canonical solution (correctSolution) is always in Japanese.
+  // Therefore, we translate the solution to English before comparing.
   if (currentLang === 'en') {
-    // In English mode, user entries have English account names.
-    // The correct solution has Japanese account names.
-    // We convert the user's English names to Japanese before comparison.
     const jaOptions = (q.account_options || '').split(',').map(s => s.trim()).filter(Boolean);
     const enOptions = (q.account_optionsEn || '').split(',').map(s => s.trim()).filter(Boolean);
 
-    const toJapanese = (enName) => {
+    const toEnglish = (jaName) => {
       // 1. Try question-specific options first
-      if (enOptions.length > 0 && jaOptions.length > 0) {
-        const index = enOptions.indexOf(enName);
-        if (index !== -1 && index < jaOptions.length) {
-          return jaOptions[index];
+      if (jaOptions.length > 0 && enOptions.length > 0) {
+        const index = jaOptions.indexOf(jaName);
+        if (index !== -1 && index < enOptions.length) {
+          return enOptions[index];
         }
       }
       // 2. Fallback to global map
-      return enToJaMap.get(enName) || enName;
+      return jaToEnMap.get(jaName) || jaName;
     };
 
-    entriesToCheck = {
-      debit: user.debit.map(e => ({ ...e, account: toJapanese(e.account) })),
-      credit: user.credit.map(e => ({ ...e, account: toJapanese(e.account) })),
+    solutionToCheck = {
+      debit: correctSolution.debit.map(e => ({ ...e, account: toEnglish(e.account) })),
+      credit: correctSolution.credit.map(e => ({ ...e, account: toEnglish(e.account) })),
     };
   }
 
-
-    // ★★★ デバッグログ追加 ★★★
-    console.log("Correct Debit:", JSON.stringify(correctSolution.debit));
-    console.log("User Credit:", JSON.stringify(entriesToCheck.credit));
-    console.log("Correct Credit:", JSON.stringify(correctSolution.credit));
+  // ★★★ デバッグログ ★★★
+  console.log("--- Checking Answer ---");
+  console.log("User Debit:", JSON.stringify(userEntries.debit));
+  console.log("Solution Debit to Check:", JSON.stringify(solutionToCheck.debit));
+  console.log("User Credit:", JSON.stringify(userEntries.credit));
+  console.log("Solution Credit to Check:", JSON.stringify(solutionToCheck.credit));
     
-    const isCorrect =
-      compareSide(entriesToCheck.debit, correctSolution.debit) &&
-      compareSide(entriesToCheck.credit, correctSolution.credit);
+  const isCorrect =
+    compareSide(userEntries.debit, solutionToCheck.debit) &&
+    compareSide(userEntries.credit, solutionToCheck.credit);
       
-    console.log("Result:", isCorrect ? "Correct" : "Incorrect");
+  console.log("Result:", isCorrect ? "Correct" : "Incorrect");
+  console.log("-----------------------");
     
   totalAnswered++;
   if (isCorrect) {
