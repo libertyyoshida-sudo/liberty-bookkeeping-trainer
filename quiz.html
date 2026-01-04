@@ -224,6 +224,13 @@
           return;
         }
 
+        // Add robust check for data and data.choices
+        if (!data || !Array.isArray(data.choices)) {
+          promptEl.textContent = "クイズデータの取得に失敗しました。";
+          debugEl.textContent = "RPC 'get_accounts_quiz' did not return valid choices. Check RLS policies on the underlying tables.";
+          return;
+        }
+
         current = data;
         promptEl.textContent = data.prompt;
 

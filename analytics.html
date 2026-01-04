@@ -431,7 +431,7 @@
       // 問題マスタ全件
       const { data: questions, error: qError } = await supabaseClient
         .from('accountsquiz_questions')
-        .select('id, categoryJa, titleJa, categoryEn, titleEn, ref_links')
+        .select('id, categoryJa:category_ja, titleJa:title_ja, categoryEn:category_en, titleEn:title_en, ref_links')
         .order('id');
 
       if (qError) {
