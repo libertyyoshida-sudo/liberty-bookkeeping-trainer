@@ -213,6 +213,10 @@
           mode: modeEl.value
         });
 
+        // ★★★ デバッグ用ログ ★★★
+        console.log("Supabase RPC 'get_accounts_quiz' response:", { data, error });
+        // ★★★ デバッグ用ログ終了 ★★★
+
         // ローディング終了
         loadingContainer.style.display = "none";
         promptEl.style.display = "block";
