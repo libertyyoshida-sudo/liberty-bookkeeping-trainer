@@ -98,16 +98,10 @@ const i18n = {
     'history-not-logged-in': 'ログインすると直近の解答履歴が表示されます。',
     'history-none': 'まだ履歴がありません。',
     'footer': '© Liberty Co., Ltd. Bookkeeping Trainer 2.0',
-    'progress-title': '進捗 / Progress',
-    'progress-help':
-      '・「出題開始」で選択した条件の問題セットを開始します。
-' +
-      '・「答え合わせ」で自動判定します。
-' +
-      '・ランダム出題をONにすると、順番をシャッフルします。
-' +
-      '・日本語 / 英語はいつでも切り替え可能です。',
-    'history-title': '直近の学習履歴',
+    'progress-help': `・「出題開始」で選択した条件の問題セットを開始します。
+・「答え合わせ」で自動判定します。
+・ランダム出題をONにすると、順番をシャッフルします。
+・日本語 / 英語はいつでも切り替え可能です。`,
     'btn-login': 'ログイン',
     'btn-logout': 'ログアウト',
     'link-signup': '新規登録',
@@ -195,15 +189,10 @@ If a row is not needed, leave both the account and amount blank.',
     'history-not-logged-in': 'Log in to see your recent answer history.',
     'history-none': 'No history yet.',
     'footer': '© Liberty Co., Ltd. Bookkeeping Trainer 2.0',
-    'progress-title': 'Progress',
-    'progress-help':
-      '・Click "Start" to begin questions with the selected conditions.
-' + 
-      '・Click "Check answer" to auto-grade your entry.
-' + 
-      '・Turn on "Random order" to shuffle questions.
-' + 
-      '・You can switch between Japanese / English at any time.',
+    'progress-help': `・Click "Start" to begin questions with the selected conditions.
+・Click "Check answer" to auto-grade your entry.
+・Turn on "Random order" to shuffle questions.
+・You can switch between Japanese / English at any time.`,
     'history-title': 'Recent study history',
     'btn-login': 'Log in',
     'btn-logout': 'Log out',
