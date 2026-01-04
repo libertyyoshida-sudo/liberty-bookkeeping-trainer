@@ -432,13 +432,14 @@
       const { data: questions, error: qError } = await supabaseClient
         .from('accountsquiz_questions')
         .select('id, categoryJa:category_ja, titleJa:title_ja, categoryEn:category_en, titleEn:title_en, ref_links')
-        .order('id', { ascending: true });
+
 
       if (qError) {
         console.error('questions error', qError);
         return;
       }
       globalQuestions = questions;
+      globalQuestions.sort((a, b) => a.id - b.id);
 
       // ログ取得前に一旦UI更新（読み込み中など）
       // ここでは省略するが、必要ならローディング表示を入れる
