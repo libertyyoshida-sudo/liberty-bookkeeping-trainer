@@ -208,15 +208,14 @@
         btnAiExplain.disabled = false;
         btnAiExplain.textContent = "🤖 なぜ？ (AI解説)";
 
-        const { data, error } = await supabaseClient.rpc("get_accounts_quiz", {
+        const { data: rawData, error } = await supabaseClient.rpc("get_accounts_quiz", {
           lang: langEl.value,
           mode: modeEl.value
         });
 
-        // ★★★ デバッグ用ログ ★★★
-        console.log("Supabase RPC 'get_accounts_quiz' response:", { data, error });
-        // ★★★ デバッグ用ログ終了 ★★★
-
+        // ★★★ デバッグ用ログ（残しておきます） ★★★
+        console.log("Supabase RPC 'get_accounts_quiz' response:", { data: rawData, error });
+        
         // ローディング終了
         loadingContainer.style.display = "none";
         promptEl.style.display = "block";
@@ -228,10 +227,14 @@
           return;
         }
 
+        // RPCが配列を返す場合に対応
+        const data = (Array.isArray(rawData) && rawData.length > 0) ? rawData[0] : rawData;
+
         // Add robust check for data and data.choices
         if (!data || !Array.isArray(data.choices)) {
+          console.error("Processed data is not valid:", data);
           promptEl.textContent = "クイズデータの取得に失敗しました。";
-          debugEl.textContent = "RPC 'get_accounts_quiz' did not return valid choices. Check RLS policies on the underlying tables.";
+          debugEl.textContent = "RPC 'get_accounts_quiz' did not return a valid quiz object. Check the function's return value in Supabase.";
           return;
         }
 
