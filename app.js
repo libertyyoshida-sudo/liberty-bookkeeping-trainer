@@ -1242,110 +1242,80 @@ function isBalanced(entries) {
   return sum(entries.debit) === sum(entries.credit);
 }
 
-// 片側比較
-function compareSide(userList, correctList) {
-  if (!Array.isArray(correctList)) {
-    console.error("BUG: correctList is not an array", correctList);
-    return false;
-  }
-  if (userList.length !== correctList.length) {
-    console.log("Debug: Length mismatch", {user: userList.length, correct: correctList.length});
-    return false;
-  }
-
-  const remaining = correctList.map((e) => ({ account: (e.account || '').trim(), amount: e.amount }));
-
-  for (const u of userList) {
-    const index = remaining.findIndex(
-      (c) => c.account === u.account && Number(c.amount) === Number(u.amount)
-    );
-    if (index === -1) {
-      console.log('Debug: No match found for user entry:', u);
-      console.log('Debug: Remaining correct entries to match:', remaining);
-      return false;
-    }
-    remaining.splice(index, 1);
-  }
-  return remaining.length === 0;
-}
-
-// 答え合わせ
+// 答え合わせロジック（刷新版）
 function checkAnswer() {
   if (!questions || questions.length === 0) {
     console.log("No questions loaded, cannot check answer.");
     return;
   }
 
-  const user = getUserEntries();
   const t = i18n[currentLang];
+  const q = questions[currentIndex];
 
-  if (user.debit.length === 0 && user.credit.length === 0) {
+  // 1. ユーザー入力取得と基本バリデーション
+  const userEntriesRaw = getUserEntries();
+
+  if (userEntriesRaw.debit.length === 0 && userEntriesRaw.credit.length === 0) {
     resultMessage.textContent = t['msg-input-required'];
     resultMessage.className = "result-message warning";
     return;
   }
 
-  if (!isBalanced(user)) {
+  if (!isBalanced(userEntriesRaw)) {
     resultMessage.textContent = t['msg-not-balanced'];
     resultMessage.className = "result-message warning";
     return;
   }
-
-  const q = questions[currentIndex];
+  
   if (!q || !q.solution) {
       console.error("Current question or its solution is missing.");
       resultMessage.textContent = "エラー: 現在の問題または解答データがありません。";
       resultMessage.className = "result-message wrong";
       return;
   }
-  
-  // Normalize the solution to ensure .debit and .credit are always arrays.
-  // This prevents crashes or incorrect logic if a solution has entries on only one side.
-  const correctSolution = {
-    debit: q.solution.debit || [],
-    credit: q.solution.credit || []
-  };
-  
-  let userEntries = user;
-  let solutionToCheck = correctSolution;
 
-  // When in English mode, translate the Japanese solution to English before comparing.
+  // 2. ユーザー入力と正解データを正規化（比較のため）
+  let userEntries = userEntriesRaw;
+
+  // 英語モードの場合、ユーザーの英語入力を日本語に翻訳する
   if (currentLang === 'en') {
-    const jaOptions = (q.account_options || '').split(',').map(s => s.trim()).filter(Boolean);
-    const enOptions = (q.account_optionsEn || '').split(',').map(s => s.trim()).filter(Boolean);
-
-    const toEnglish = (jaName) => {
-      // 1. Try question-specific options first
+    const toJapanese = (enName) => {
+      const jaOptions = (q.account_options || '').split(',').map(s => s.trim()).filter(Boolean);
+      const enOptions = (q.account_optionsEn || '').split(',').map(s => s.trim()).filter(Boolean);
       if (jaOptions.length > 0 && enOptions.length > 0) {
-        const index = jaOptions.indexOf(jaName);
-        if (index !== -1 && index < enOptions.length) {
-          return enOptions[index];
+        const index = enOptions.indexOf(enName);
+        if (index !== -1 && index < jaOptions.length) {
+          return jaOptions[index];
         }
       }
-      // 2. Fallback to global map
-      return jaToEnMap.get(jaName) || jaName;
+      return enToJaMap.get(enName) || enName;
     };
-
-    solutionToCheck = {
-      debit: correctSolution.debit.map(e => ({ ...e, account: toEnglish(e.account) })),
-      credit: correctSolution.credit.map(e => ({ ...e, account: toEnglish(e.account) })),
+    
+    userEntries = {
+      debit: userEntriesRaw.debit.map(e => ({ ...e, account: toJapanese(e.account) })),
+      credit: userEntriesRaw.credit.map(e => ({ ...e, account: toJapanese(e.account) })),
     };
   }
 
-  // ★★★ デバッグログ ★★★
-  console.log("--- Checking Answer ---");
-  console.log("User Debit:", JSON.stringify(userEntries.debit));
-  console.log("Solution Debit to Check:", JSON.stringify(solutionToCheck.debit));
-  console.log("User Credit:", JSON.stringify(userEntries.credit));
-  console.log("Solution Credit to Check:", JSON.stringify(solutionToCheck.credit));
-    
-  const isCorrect =
-    compareSide(userEntries.debit, solutionToCheck.debit) &&
-    compareSide(userEntries.credit, solutionToCheck.credit);
-      
-  console.log("Result:", isCorrect ? "Correct" : "Incorrect");
-  console.log("-----------------------");
-    
+  // 正解データを安全に取得
+  const correctSolution = {
+    debit: (q.solution.debit || []).map(e => ({ ...e })),
+    credit: (q.solution.credit || []).map(e => ({ ...e }))
+  };
+
+  // 3. 正規化された形式で比較
+  const canonicalize = (entries) => entries.map(e => `${(e.account || '').trim()}|${e.amount}`).sort();
+
+  const userDebitCanon = canonicalize(userEntries.debit);
+  const userCreditCanon = canonicalize(userEntries.credit);
+  const correctDebitCanon = canonicalize(correctSolution.debit);
+  const correctCreditCanon = canonicalize(correctSolution.credit);
+  
+  const isCorrect = 
+       JSON.stringify(userDebitCanon) === JSON.stringify(correctDebitCanon) &&
+       JSON.stringify(userCreditCanon) === JSON.stringify(correctCreditCanon);
+
+  // 4. 結果表示
   totalAnswered++;
   if (isCorrect) {
     totalCorrect++;
@@ -1357,15 +1327,30 @@ function checkAnswer() {
     resultMessage.textContent = wrongMessages[Math.floor(Math.random() * wrongMessages.length)];
     resultMessage.className = "result-message wrong";
   }
+  
+  // ★★★ デバッグログ ★★★
+  console.log("--- Checking Answer (New Logic) ---");
+  console.log("Lang:", currentLang);
+  console.log("User Input (raw):", JSON.stringify(userEntriesRaw));
+  if (currentLang === 'en') {
+    console.log("User Input (translated to JA):", JSON.stringify(userEntries));
+  }
+  console.log("Correct Solution (JA):", JSON.stringify(correctSolution));
+  console.log("User Debit (canonical):", JSON.stringify(userDebitCanon));
+  console.log("Correct Debit (canonical):", JSON.stringify(correctDebitCanon));
+  console.log("User Credit (canonical):", JSON.stringify(userCreditCanon));
+  console.log("Correct Credit (canonical):", JSON.stringify(correctCreditCanon));
+  console.log("Result:", isCorrect ? "Correct" : "Incorrect");
+  console.log("-----------------------");
 
-  // 解答表示（innerHTMLを使用して<br>を解釈させる）
+  // 解答表示
   if(answerJa) answerJa.innerHTML = q.journalJa || '';
   if(answerEn) answerEn.innerHTML = q.journalEn || '';
 
-  // 参考リンク表示ロジックを復活
+  // 参考リンク表示
   const refLinksContainer = document.getElementById('answer-ref-links');
   if (refLinksContainer) {
-    refLinksContainer.innerHTML = ''; // 過去のリンクをクリア
+    refLinksContainer.innerHTML = '';
     if (q.ref_links && typeof q.ref_links === 'object' && Object.keys(q.ref_links).length > 0) {
       const p = document.createElement('p');
       p.style.margin = '8px 0 4px';
@@ -1373,24 +1358,20 @@ function checkAnswer() {
       p.style.fontSize = '0.8rem';
       p.textContent = '📖 参考';
       refLinksContainer.appendChild(p);
-
       for (const [text, url] of Object.entries(q.ref_links)) {
         const link = document.createElement('a');
         link.href = url;
         link.textContent = text;
         link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.style.display = 'block';
-        link.style.marginTop = '4px';
         refLinksContainer.appendChild(link);
       }
     }
   }
   
   if(answerPanel) answerPanel.style.display = "block";
-  
   updateScore();
 
+  // 学習ログ保存
   if (window.sessionUser) {
     logStudyResult_TEST(q, isCorrect);
     learnedQuestionIds.add(q.id);
