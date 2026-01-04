@@ -1312,9 +1312,9 @@ function checkAnswer() {
 
     const toJapanese = (enName) => {
       // 1. Try question-specific options first
-      if (enOptions.length > 0 && jaOptions.length === enOptions.length) {
+      if (enOptions.length > 0 && jaOptions.length > 0) {
         const index = enOptions.indexOf(enName);
-        if (index !== -1) {
+        if (index !== -1 && index < jaOptions.length) {
           return jaOptions[index];
         }
       }
