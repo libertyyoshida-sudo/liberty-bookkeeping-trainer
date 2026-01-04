@@ -1304,7 +1304,10 @@ function checkAnswer() {
   };
 
   // 3. 正規化された形式で比較
-  const canonicalize = (entries) => entries.map(e => `${(e.account || '').trim()}|${e.amount}`).sort();
+  const canonicalize = (entries) => entries
+      .map(e => e && e.account ? `${(e.account || '').trim()}|${e.amount}` : '')
+      .filter(Boolean) //空の文字列を除外
+      .sort();
 
   const userDebitCanon = canonicalize(userEntries.debit);
   const userCreditCanon = canonicalize(userEntries.credit);
