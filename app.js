@@ -1191,6 +1191,65 @@ function compareSide(userList, correctList) {
   return remaining.length === 0;
 }
 
+// 答え合わせ
+function checkAnswer() {
+  if (!questions || questions.length === 0) return;
+
+  const user = getUserEntries();
+  const t = i18n[currentLang];
+
+  // 入力チェック
+  if (user.debit.length === 0 && user.credit.length === 0) {
+    resultMessage.textContent = t['msg-input-required'];
+    resultMessage.className = "result-message warning";
+    return;
+  }
+
+  // 貸借バランスチェック
+  if (!isBalanced(user)) {
+    resultMessage.textContent = t['msg-not-balanced'];
+    resultMessage.className = "result-message warning";
+    return;
+  }
+
+  const q = questions[currentIndex];
+  const correctSolution = q.solution;
+  
+  // 正誤判定
+  const isCorrect =
+    compareSide(user.debit, correctSolution.debit) &&
+    compareSide(user.credit, correctSolution.credit);
+    
+  totalAnswered++;
+  if (isCorrect) {
+    totalCorrect++;
+    const correctMessages = t['msg-correct'] || ['Correct!'];
+    resultMessage.textContent = correctMessages[Math.floor(Math.random() * correctMessages.length)];
+    resultMessage.className = "result-message correct";
+  } else {
+    const wrongMessages = t['msg-wrong'] || ['Incorrect.'];
+    resultMessage.textContent = wrongMessages[Math.floor(Math.random() * wrongMessages.length)];
+    resultMessage.className = "result-message wrong";
+  }
+
+  // 解答表示
+  if(answerJa) answerJa.textContent = q.journalJa || '';
+  if(answerEn) answerEn.textContent = q.journalEn || '';
+  if(answerPanel) answerPanel.style.display = "block";
+  
+  updateScore();
+
+  // 学習ログ保存
+  if (window.sessionUser) {
+    logStudyResult_TEST(q, isCorrect);
+    
+    // 学習済み・間違い履歴の更新
+    learnedQuestionIds.add(q.id);
+    if (!isCorrect) {
+      wrongQuestionIds.add(q.id);
+    }
+  }
+}
 
 // 学習ログ保存（ログイン時のみ）
 async function logStudyResult_TEST(q, isCorrect) {
