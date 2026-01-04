@@ -232,7 +232,13 @@
 
         // Add robust check for data and data.choices
         if (!data || !Array.isArray(data.choices)) {
-          console.error("Processed data is not valid:", data);
+          // 詳細なエラーログを出力
+          if (data && typeof data === 'object' && !Array.isArray(data)) {
+            console.error("クイズデータの形式が不正です。オブジェクトのキー:", Object.keys(data));
+          } else {
+            console.error("クイズデータの形式が不正です。受信したデータ:", data);
+          }
+          
           promptEl.textContent = "クイズデータの取得に失敗しました。";
           debugEl.textContent = "RPC 'get_accounts_quiz' did not return a valid quiz object. Check the function's return value in Supabase.";
           return;
