@@ -1242,7 +1242,7 @@ function isBalanced(entries) {
   return sum(entries.debit) === sum(entries.credit);
 }
 
-// 答え合わせロジック（刷新版）
+// 答え合わせロジック（刷新版 v2）
 function checkAnswer() {
   if (!questions || questions.length === 0) {
     console.log("No questions loaded, cannot check answer.");
@@ -1253,70 +1253,118 @@ function checkAnswer() {
   const q = questions[currentIndex];
 
   // 1. ユーザー入力取得と基本バリデーション
-  const userEntriesRaw = getUserEntries();
+  const userEntries = getUserEntries();
 
-  if (userEntriesRaw.debit.length === 0 && userEntriesRaw.credit.length === 0) {
+  if (userEntries.debit.length === 0 && userEntries.credit.length === 0) {
     resultMessage.textContent = t['msg-input-required'];
     resultMessage.className = "result-message warning";
     return;
   }
 
-  if (!isBalanced(userEntriesRaw)) {
+  if (!isBalanced(userEntries)) {
     resultMessage.textContent = t['msg-not-balanced'];
     resultMessage.className = "result-message warning";
     return;
   }
-  
-  if (!q || !q.solution) {
-      console.error("Current question or its solution is missing.");
-      resultMessage.textContent = "エラー: 現在の問題または解答データがありません。";
-      resultMessage.className = "result-message wrong";
-      return;
+
+  if (!q || !q.solution || !q.solution.debit || !q.solution.credit) {
+    console.error("Current question or its solution is missing/invalid.");
+    resultMessage.textContent = "エラー: 現在の問題または解答データがありません。";
+    resultMessage.className = "result-message wrong";
+    return;
   }
 
-  // 2. ユーザー入力と正解データを正規化（比較のため）
-  let userEntries = userEntriesRaw;
+  // --- デバッグログ準備 ---
+  console.log(`--- Checking Answer (v2) --- [Lang: ${currentLang}]`);
+  console.log("User Input:", JSON.stringify(userEntries));
 
-  // 英語モードの場合、ユーザーの英語入力を日本語に翻訳する
-  if (currentLang === 'en') {
-    const toJapanese = (enName) => {
-      const jaOptions = (q.account_options || '').split(',').map(s => s.trim()).filter(Boolean);
-      const enOptions = (q.account_optionsEn || '').split(',').map(s => s.trim()).filter(Boolean);
-      if (jaOptions.length > 0 && enOptions.length > 0) {
-        const index = enOptions.indexOf(enName);
-        if (index !== -1 && index < jaOptions.length) {
-          return jaOptions[index];
-        }
-      }
-      return enToJaMap.get(enName) || enName;
-    };
-    
-    userEntries = {
-      debit: userEntriesRaw.debit.map(e => ({ ...e, account: toJapanese(e.account) })),
-      credit: userEntriesRaw.credit.map(e => ({ ...e, account: toJapanese(e.account) })),
-    };
-  }
-
-  // 正解データを安全に取得
-  const correctSolution = {
-    debit: (q.solution.debit || []).map(e => ({ ...e })),
-    credit: (q.solution.credit || []).map(e => ({ ...e }))
-  };
-
-  // 3. 正規化された形式で比較
+  // 2. 比較のための正規化関数
   const canonicalize = (entries) => entries
       .map(e => e && e.account ? `${(e.account || '').trim()}|${e.amount}` : '')
-      .filter(Boolean) //空の文字列を除外
+      .filter(Boolean)
       .sort();
 
-  const userDebitCanon = canonicalize(userEntries.debit);
-  const userCreditCanon = canonicalize(userEntries.credit);
-  const correctDebitCanon = canonicalize(correctSolution.debit);
-  const correctCreditCanon = canonicalize(correctSolution.credit);
+  // 3. 言語に応じた正解データとユーザー入力を準備
+  let correctSolution;
+  let isCorrect = false;
+
+  if (currentLang === 'ja') {
+    // ------------------
+    // 日本語モードの判定
+    // ------------------
+    correctSolution = {
+      debit: q.solution.debit.map(e => ({ ...e })),
+      credit: q.solution.credit.map(e => ({ ...e }))
+    };
+
+    const userDebitCanon = canonicalize(userEntries.debit);
+    const userCreditCanon = canonicalize(userEntries.credit);
+    const correctDebitCanon = canonicalize(correctSolution.debit);
+    const correctCreditCanon = canonicalize(correctSolution.credit);
+    
+    console.log("Correct Solution (JA):", JSON.stringify(correctSolution));
+    console.log("User Debit (canon):", JSON.stringify(userDebitCanon));
+    console.log("Correct Debit (canon):", JSON.stringify(correctDebitCanon));
+    console.log("User Credit (canon):", JSON.stringify(userCreditCanon));
+    console.log("Correct Credit (canon):", JSON.stringify(correctCreditCanon));
+
+    isCorrect = JSON.stringify(userDebitCanon) === JSON.stringify(correctDebitCanon) &&
+                JSON.stringify(userCreditCanon) === JSON.stringify(correctCreditCanon);
+
+  } else {
+    // ------------------
+    // 英語モードの判定
+    // ------------------
+    // 問題固有の勘定科目マッピングを作成
+    const jaOptions = (q.account_options || '').split(',').map(s => s.trim());
+    const enOptions = (q.account_optionsEn || '').split(',').map(s => s.trim());
+    const questionSpecificJaToEnMap = new Map();
+    if (jaOptions.length > 0 && jaOptions.length === enOptions.length) {
+      jaOptions.forEach((ja, i) => questionSpecificJaToEnMap.set(ja, enOptions[i]));
+    }
+
+    // 日本語 -> 英語への変換関数
+    const toEnglish = (jaName) => {
+      // 問題固有のマッピングを優先
+      if (questionSpecificJaToEnMap.has(jaName)) {
+        return questionSpecificJaToEnMap.get(jaName);
+      }
+      // グローバルマップを使用
+      return jaToEnMap.get(jaName) || jaName; // マップになければそのまま
+    };
+
+    // 日本語の正解データを英語に変換
+    try {
+      correctSolution = {
+        debit: q.solution.debit.map(e => ({ ...e, account: toEnglish(e.account) })),
+        credit: q.solution.credit.map(e => ({ ...e, account: toEnglish(e.account) }))
+      };
+
+      const userDebitCanon = canonicalize(userEntries.debit);
+      const userCreditCanon = canonicalize(userEntries.credit);
+      const correctDebitCanon = canonicalize(correctSolution.debit);
+      const correctCreditCanon = canonicalize(correctSolution.credit);
+      
+      console.log("Correct Solution (EN):", JSON.stringify(correctSolution));
+      console.log("User Debit (canon):", JSON.stringify(userDebitCanon));
+      console.log("Correct Debit (canon):", JSON.stringify(correctDebitCanon));
+      console.log("User Credit (canon):", JSON.stringify(userCreditCanon));
+      console.log("Correct Credit (canon):", JSON.stringify(correctCreditCanon));
+      
+      isCorrect = JSON.stringify(userDebitCanon) === JSON.stringify(correctDebitCanon) &&
+                  JSON.stringify(userCreditCanon) === JSON.stringify(correctCreditCanon);
+
+    } catch (e) {
+      console.error("Error during English solution conversion:", e);
+      resultMessage.textContent = "Error during answer check. Please contact support.";
+      resultMessage.className = "result-message wrong";
+      isCorrect = false;
+    }
+  }
   
-  const isCorrect = 
-       JSON.stringify(userDebitCanon) === JSON.stringify(correctDebitCanon) &&
-       JSON.stringify(userCreditCanon) === JSON.stringify(correctCreditCanon);
+  console.log("Result:", isCorrect ? "Correct" : "Incorrect");
+  console.log("---------------------------------");
+
 
   // 4. 結果表示
   totalAnswered++;
@@ -1330,27 +1378,11 @@ function checkAnswer() {
     resultMessage.textContent = wrongMessages[Math.floor(Math.random() * wrongMessages.length)];
     resultMessage.className = "result-message wrong";
   }
-  
-  // ★★★ デバッグログ ★★★
-  console.log("--- Checking Answer (New Logic) ---");
-  console.log("Lang:", currentLang);
-  console.log("User Input (raw):", JSON.stringify(userEntriesRaw));
-  if (currentLang === 'en') {
-    console.log("User Input (translated to JA):", JSON.stringify(userEntries));
-  }
-  console.log("Correct Solution (JA):", JSON.stringify(correctSolution));
-  console.log("User Debit (canonical):", JSON.stringify(userDebitCanon));
-  console.log("Correct Debit (canonical):", JSON.stringify(correctDebitCanon));
-  console.log("User Credit (canonical):", JSON.stringify(userCreditCanon));
-  console.log("Correct Credit (canonical):", JSON.stringify(correctCreditCanon));
-  console.log("Result:", isCorrect ? "Correct" : "Incorrect");
-  console.log("-----------------------");
 
-  // 解答表示
+  // 解答パネル表示
   if(answerJa) answerJa.innerHTML = q.journalJa || '';
   if(answerEn) answerEn.innerHTML = q.journalEn || '';
 
-  // 参考リンク表示
   const refLinksContainer = document.getElementById('answer-ref-links');
   if (refLinksContainer) {
     refLinksContainer.innerHTML = '';
