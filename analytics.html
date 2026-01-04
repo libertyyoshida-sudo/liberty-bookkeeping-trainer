@@ -428,18 +428,20 @@
       }
 
       // 2. データ取得 (問題マスタ & ログ)
-      // 問題マスタ全件
-      const { data: questions, error: qError } = await supabaseClient
-        .from('accountsquiz_questions')
-        .select('id, categoryJa, titleJa, categoryEn, titleEn, ref_links')
+// 問題マスタ全件
+const { data: questions, error: qError } = await supabaseClient
+  .from('accountsquiz_questions')
+  .select('id, categoryJa, titleJa, categoryEn, titleEn, ref_links')
+  .order('id', { ascending: true });
 
+if (qError) {
+  console.error('questions error', qError);
+  return;
+}
 
-      if (qError) {
-        console.error('questions error', qError);
-        return;
-      }
-      globalQuestions = questions;
-      globalQuestions.sort((a, b) => a.id - b.id);
+// ✅ これでOK（null対策も入れてます）
+globalQuestions = questions || [];
+
 
       // ログ取得前に一旦UI更新（読み込み中など）
       // ここでは省略するが、必要ならローディング表示を入れる
