@@ -1299,13 +1299,17 @@ function checkAnswer() {
       return;
   }
   
-  const correctSolution = q.solution;
+  // Normalize the solution to ensure .debit and .credit are always arrays.
+  // This prevents crashes or incorrect logic if a solution has entries on only one side.
+  const correctSolution = {
+    debit: q.solution.debit || [],
+    credit: q.solution.credit || []
+  };
+  
   let userEntries = user;
   let solutionToCheck = correctSolution;
 
-  // When in English mode, the user's entries are in English.
-  // The canonical solution (correctSolution) is always in Japanese.
-  // Therefore, we translate the solution to English before comparing.
+  // When in English mode, translate the Japanese solution to English before comparing.
   if (currentLang === 'en') {
     const jaOptions = (q.account_options || '').split(',').map(s => s.trim()).filter(Boolean);
     const enOptions = (q.account_optionsEn || '').split(',').map(s => s.trim()).filter(Boolean);
