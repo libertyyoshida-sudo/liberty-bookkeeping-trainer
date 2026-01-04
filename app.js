@@ -3198,9 +3198,9 @@ if (!rubyEnabled) {
       showErrorBanner('クイズの読み込みに失敗しました。オフラインモードで実行します。(エラー: ' + error.message + ')');
       useHardcoded = true;
     } else if (!data || data.length === 0) {
-      console.log('Supabase quiz_questions が空のためハードコード問題を使用します');
-      showErrorBanner('クイズデータが空です。オフラインモードで実行します。(SupabaseのRLS設定を確認してください)');
-      useHardcoded = true;
+      console.log('Supabaseから問題データが0件でした。RLS（行レベルセキュリティ）の設定を確認してください。');
+      showErrorBanner('データベースから問題データを読み込めませんでした。Supabaseのテーブルに行レベルセキュリティ(RLS)ポリシーが設定されているか確認してください。ポリシーが無い場合、データは返されません。');
+      // useHardcoded = true; // ← フォールバックせず、空のままにする
     } else {
       const validQuestions = data.filter(q => q.questionJa && q.questionJa.trim() !== '');
       
