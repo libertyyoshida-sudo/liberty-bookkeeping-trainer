@@ -1277,8 +1277,8 @@ function checkAnswer() {
   };
 
   if (q && q.solution) {
-      sanitizedSolution.debit = q.solution.debit || [];
-      sanitizedSolution.credit = q.solution.credit || [];
+      sanitizedSolution.debit = q.solution.debits || q.solution.debit || [];
+      sanitizedSolution.credit = q.solution.credits || q.solution.credit || [];
   }
   
   // If the original data was incomplete, log it.
