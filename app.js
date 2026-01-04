@@ -81,8 +81,7 @@ const i18n = {
     'drill-cleared': '★クリア済',
     'toggle-main': '借方・貸方の科目と金額を入力してください。',
     'toggle-random': 'ランダム出題',
-    'hint-text':
-      '行ごとに「借方勘定科目・金額」「貸方勘定科目・金額」を入力します。不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。',
+    'hint-text': '行ごとに「借方勘定科目・金額」「貸方勘定科目・金額」を入力します。\n不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。',
     'entry-col-row': '行',
     'entry-col-debit': '借方勘定科目',
     'entry-col-debit-amount': '金額',
@@ -98,10 +97,7 @@ const i18n = {
     'history-not-logged-in': 'ログインすると直近の解答履歴が表示されます。',
     'history-none': 'まだ履歴がありません。',
     'footer': '© Liberty Co., Ltd. Bookkeeping Trainer 2.0',
-    'progress-help': `・「出題開始」で選択した条件の問題セットを開始します。
-・「答え合わせ」で自動判定します。
-・ランダム出題をONにすると、順番をシャッフルします。
-・日本語 / 英語はいつでも切り替え可能です。`,
+    'progress-help': '・「出題開始」で選択した条件の問題セットを開始します。\n・「答え合わせ」で自動判定します。\n・ランダム出題をONにすると、順番をシャッフルします。\n・日本語 / 英語はいつでも切り替え可能です。',
     'btn-login': 'ログイン',
     'btn-logout': 'ログアウト',
     'link-signup': '新規登録',
@@ -171,9 +167,7 @@ const i18n = {
     'drill-cleared': '★Cleared',
     'toggle-main': 'Enter the accounts and amounts for debit and credit.',
     'toggle-random': 'Random order',
-    'hint-text':
-      'For each row, enter “debit account / amount” and “credit account / amount”.
-If a row is not needed, leave both the account and amount blank.',
+    'hint-text': 'For each row, enter “debit account / amount” and “credit account / amount”.\nIf a row is not needed, leave both the account and amount blank.',
     'entry-col-row': 'Row',
     'entry-col-debit': 'Debit account',
     'entry-col-debit-amount': 'Amount',
@@ -189,10 +183,7 @@ If a row is not needed, leave both the account and amount blank.',
     'history-not-logged-in': 'Log in to see your recent answer history.',
     'history-none': 'No history yet.',
     'footer': '© Liberty Co., Ltd. Bookkeeping Trainer 2.0',
-    'progress-help': `・Click "Start" to begin questions with the selected conditions.
-・Click "Check answer" to auto-grade your entry.
-・Turn on "Random order" to shuffle questions.
-・You can switch between Japanese / English at any time.`,
+    'progress-help': '・Click "Start" to begin questions with the selected conditions.\n・Click "Check answer" to auto-grade your entry.\n・Turn on "Random order" to shuffle questions.\n・You can switch between Japanese / English at any time.',
     'history-title': 'Recent study history',
     'btn-login': 'Log in',
     'btn-logout': 'Log out',
