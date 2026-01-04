@@ -1144,6 +1144,46 @@ function goPrevQuestion() {
   renderQuestion();
 }
 
+// 金額入力のリアルタイムフォーマット処理
+function handleAmountInput(e) {
+  const input = e.target;
+  const originalValue = input.value;
+  const cursorPos = input.selectionStart;
+  
+  // 数字以外の文字をすべて除去
+  const numericValue = originalValue.replace(/[^0-9]/g, "");
+
+  if (numericValue === "") {
+    input.value = "";
+    return;
+  }
+
+  // カンマ区切りにフォーマット
+  const formattedValue = Number(numericValue).toLocaleString('en-US');
+
+  // 元の値のカーソル位置までにあったカンマの数
+  const commasBeforeCursor = (originalValue.substring(0, cursorPos).match(/,/g) || []).length;
+  
+  // 値が変更された場合のみDOMを更新
+  if (originalValue !== formattedValue) {
+    input.value = formattedValue;
+
+    // カーソル位置を再計算
+    const newCommas = (formattedValue.substring(0, cursorPos).match(/,/g) || []).length;
+    let cursorOffset = newCommas - commasBeforeCursor;
+
+    // 削除操作などで文字列が短くなった場合のオフセット調整
+    if (formattedValue.length < originalValue.length) {
+        cursorOffset += (formattedValue.length - originalValue.length);
+    }
+    
+    let newCursorPos = cursorPos + cursorOffset;
+
+    // カーソル位置を設定
+    input.setSelectionRange(newCursorPos, newCursorPos);
+  }
+}
+
 // 入力から仕訳を取得
 function getUserEntries() {
   const debit = [];
@@ -1192,16 +1232,24 @@ function isBalanced(entries) {
 
 // 片側比較
 function compareSide(userList, correctList) {
-  if (!Array.isArray(correctList)) return false;
-  if (userList.length !== correctList.length) return false;
+  if (!Array.isArray(correctList)) {
+    console.error("BUG: correctList is not an array", correctList);
+    return false;
+  }
+  if (userList.length !== correctList.length) {
+    console.log("Debug: Length mismatch", {user: userList.length, correct: correctList.length});
+    return false;
+  }
 
-  const remaining = correctList.map((e) => ({ ...e })); // コピー
+  const remaining = correctList.map((e) => ({ account: (e.account || '').trim(), amount: e.amount }));
 
   for (const u of userList) {
     const index = remaining.findIndex(
       (c) => c.account === u.account && Number(c.amount) === Number(u.amount)
     );
     if (index === -1) {
+      console.log('Debug: No match found for user entry:', u);
+      console.log('Debug: Remaining correct entries to match:', remaining);
       return false;
     }
     remaining.splice(index, 1);
@@ -1240,9 +1288,18 @@ function checkAnswer() {
   }
   const correctSolution = q.solution;
 
-  const isCorrect =
-    compareSide(user.debit, correctSolution.debit) &&
-    compareSide(user.credit, correctSolution.credit);
+    // ★★★ デバッグログ追加 ★★★
+    console.log("--- Checking Answer ---");
+    console.log("User Debit:", JSON.stringify(user.debit));
+    console.log("Correct Debit:", JSON.stringify(correctSolution.debits));
+    console.log("User Credit:", JSON.stringify(user.credit));
+    console.log("Correct Credit:", JSON.stringify(correctSolution.credits));
+    
+    const isCorrect =
+      compareSide(user.debit, correctSolution.debits) &&
+      compareSide(user.credit, correctSolution.credits);
+      
+    console.log("Result:", isCorrect ? "Correct" : "Incorrect");  console.log("-----------------------");
     
   totalAnswered++;
   if (isCorrect) {
@@ -1532,29 +1589,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if(document.getElementById('btn-weak-cancel')) document.getElementById('btn-weak-cancel').addEventListener('click', closeWeakSettingsModal);
   if(document.getElementById('btn-weak-save')) document.getElementById('btn-weak-save').addEventListener('click', saveWeakSettingsFromModal);
 
-  // 金額入力欄のフォーマット
+  // 金額入力欄のフォーマット（新しい方式）
   document.querySelectorAll('.amount-input').forEach(input => {
-    // 入力欄にフォーカスした時、カンマを除去して数値のみにする
-    input.addEventListener('focus', (e) => {
-      const value = e.target.value;
-      if (value) {
-        const num = parseAmount(value);
-        if (!isNaN(num)) {
-          e.target.value = num;
-        }
-      }
-    });
-
-    // 入力欄からフォーカスが外れた時、カンマを付与する
-    input.addEventListener('blur', (e) => {
-      const value = e.target.value;
-      if (value) {
-        const num = parseAmount(value);
-        if (!isNaN(num)) {
-          e.target.value = formatAmount(num);
-        }
-      }
-    });
+    input.addEventListener('input', handleAmountInput);
   });
 
 
