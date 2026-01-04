@@ -9,8 +9,8 @@ console.log("Supabase loaded:", window.supabase);
 console.log("SUPABASE_URL:", SUPABASE_URL);
 console.log("SUPABASE_ANON_KEY exists:", !!SUPABASE_ANON_KEY);
 
-if (window.supabase?.createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+if (typeof supabase !== 'undefined' && supabase.createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -21,6 +21,45 @@ if (window.supabase?.createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
   console.log("Supabase client initialized ✅", supabaseClient);
 } else {
   console.error("Supabase library not loaded or config missing ❌");
+}
+
+// 問題全件をロード
+async function loadAllQuestions() {
+  if (!supabaseClient) {
+    console.warn("Supabase client not ready. Using fallback questions.");
+    allQuestions = hardcodedQuestions;
+    setupCategoryFilterOptions(allQuestions);
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('quiz_questions')
+      .select('*')
+      .order('id', { ascending: true }); // ID順で並び替え
+
+    if (error) {
+      throw error;
+    }
+
+    if (data && data.length > 0) {
+      allQuestions = data;
+      console.log(`✅ ${data.length} questions loaded from Supabase.`);
+    } else {
+      console.warn("No questions found in Supabase. Using fallback.");
+      allQuestions = hardcodedQuestions;
+    }
+    
+  } catch (error) {
+    console.error("Error loading questions from Supabase:", error);
+    showErrorBanner(`データベースからの問題読み込みに失敗しました。オフライン用の問題を利用します。(Error: ${error.message})`);
+    allQuestions = hardcodedQuestions;
+  } finally {
+    // カテゴリフィルタをセットアップ（DOMの準備ができていれば）
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      setupCategoryFilterOptions(allQuestions);
+    }
+  }
 }
 
 // 画面文言の多言語対応
@@ -43,8 +82,7 @@ const i18n = {
     'toggle-main': '借方・貸方の科目と金額を入力してください。',
     'toggle-random': 'ランダム出題',
     'hint-text':
-      '行ごとに「借方勘定科目・金額」「貸方勘定科目・金額」を入力します。
-不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。',
+      '行ごとに「借方勘定科目・金額」「貸方勘定科目・金額」を入力します。不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。',
     'entry-col-row': '行',
     'entry-col-debit': '借方勘定科目',
     'entry-col-debit-amount': '金額',
@@ -1331,3 +1369,125 @@ async function loadLearnedHistory() {
     console.error("loadLearnedHistory error", e);
   }
 }
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadAllQuestions();
+
+  // DOM 取得
+  questionLabel = document.getElementById("question-label");
+  categoryLabel = document.getElementById("category-label");
+  idLabel = document.getElementById("id-label");
+  randomLabel = document.getElementById("random-label");
+  questionTextJa = document.getElementById("question-text-ja");
+  questionTextEn = document.getElementById("question-text-en");
+  langJaBtn = document.getElementById("lang-ja");
+  langEnBtn = document.getElementById("lang-en");
+  randomModeCheckbox = document.getElementById("random-mode");
+  unlearnedCheckbox = document.getElementById("filter-unlearned");
+  notClearedCheckbox = document.getElementById("filter-not-cleared");
+  reviewCheckbox = document.getElementById("filter-review");
+  drillModeCheckbox = document.getElementById("mode-drill");
+  weakOnlyCheckbox = document.getElementById("filter-weak-only");
+  
+  prevBtn = document.getElementById("prev-question");
+  nextBtn = document.getElementById("next-question");
+  checkBtn = document.getElementById("check-answer");
+  resultMessage = document.getElementById("result-message");
+  answerPanel = document.getElementById("answer-panel");
+  answerJa = document.getElementById("answer-ja");
+  answerEn = document.getElementById("answer-en");
+  scorePill = document.getElementById("score-pill");
+  categoryFilterSelect = document.getElementById("category-filter");
+  questionCountSelect = document.getElementById("question-count");
+  historyListEl = document.getElementById('history-list');
+
+  btnFontSize = document.getElementById('btn-font-size');
+  btnLineHeight = document.getElementById('btn-line-height');
+  btnFontFamily = document.getElementById('btn-font-family');
+  btnSpeech = document.getElementById('btn-speech');
+  speechRateInput = document.getElementById('speech-rate');
+  speechRateVal = document.getElementById('speech-rate-val');
+  
+  // イベントリスナー
+  if (langJaBtn) langJaBtn.addEventListener("click", () => {
+    currentLang = "ja";
+    applyLanguage();
+  });
+  if (langEnBtn) langEnBtn.addEventListener("click", () => {
+    currentLang = "en";
+    applyLanguage();
+  });
+  if (randomModeCheckbox) randomModeCheckbox.addEventListener("click", () => (randomMode = randomModeCheckbox.checked));
+
+  if (prevBtn) prevBtn.addEventListener("click", goPrevQuestion);
+  if (nextBtn) nextBtn.addEventListener("click", goNextQuestion);
+  if (checkBtn) checkBtn.addEventListener("click", checkAnswer);
+
+  if (document.getElementById('btn-start-session')) {
+    document.getElementById('btn-start-session').addEventListener('click', startNewSessionFromUI);
+  }
+
+  // 認証
+  if (document.getElementById('btn-login')) {
+    document.getElementById('btn-login').addEventListener('click', signIn);
+  }
+  if (document.getElementById('btn-logout')) {
+    document.getElementById('btn-logout').addEventListener('click', signOut);
+  }
+
+  // 表示設定
+  if (btnFontSize) btnFontSize.addEventListener('click', toggleFontSize);
+  if (btnLineHeight) btnLineHeight.addEventListener('click', toggleLineHeight);
+  if (btnFontFamily) btnFontFamily.addEventListener('click', toggleFontFamily);
+  if (btnSpeech) btnSpeech.addEventListener('click', toggleSpeech);
+  if (speechRateInput) speechRateInput.addEventListener('input', () => {
+    if (speechRateVal) speechRateVal.textContent = parseFloat(speechRateInput.value).toFixed(1);
+    // 読み上げ中なら、一度止めてから再生し直して速度を反映
+    if (isSpeaking) {
+      playSpeech();
+    }
+  });
+
+  // ルビ
+  const toggleRubyBtn = document.getElementById('toggle-ruby');
+  if (toggleRubyBtn) {
+    toggleRubyBtn.addEventListener('click', async () => {
+      rubyEnabled = !rubyEnabled;
+      toggleRubyBtn.textContent = rubyEnabled ? 'ルビ表示：ON' : 'ルビ表示：OFF';
+      toggleRubyBtn.style.background = rubyEnabled ? 'var(--primary)' : '';
+      
+      if (rubyEnabled && !kuroshiroReady) {
+        toggleRubyBtn.disabled = true;
+        toggleRubyBtn.textContent = '準備中...';
+        await initKuroshiro();
+        toggleRubyBtn.disabled = false;
+        toggleRubyBtn.textContent = 'ルビ表示：ON';
+      }
+      // 現在の問題を再描画してルビを反映
+      renderQuestion();
+    });
+  }
+  
+  // 苦手設定モーダル
+  if(document.getElementById('btn-weak-settings')) document.getElementById('btn-weak-settings').addEventListener('click', openWeakSettingsModal);
+  if(document.getElementById('btn-weak-cancel')) document.getElementById('btn-weak-cancel').addEventListener('click', closeWeakSettingsModal);
+  if(document.getElementById('btn-weak-save')) document.getElementById('btn-weak-save').addEventListener('click', saveWeakSettingsFromModal);
+
+
+  // 初期化処理
+  initAccountSelects();
+  applyLanguage();
+
+  // 認証状態の初期チェックと関連データロード
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  window.sessionUser = session?.user || null;
+  updateAuthUI();
+  
+  loadMyHistory();
+  if (window.sessionUser) {
+    loadLearnedHistory();
+    loadWeakCategories();
+  } else {
+    loadWeakCategories(); // Guest settings
+  }
+});
