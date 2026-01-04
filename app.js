@@ -341,6 +341,7 @@ let randomMode = false;
 let historyStack = []; // 戻る用にインデックスを積む
 let totalAnswered = 0;
 let totalCorrect = 0;
+let isInitialLoad = true; // 初回読み込みフラグ
 
 // ルビ表示用
 let rubyEnabled = false;
@@ -681,45 +682,49 @@ function createQuestionSetFromUI() {
   const drillMode = drillModeCheckbox ? drillModeCheckbox.checked : false;
 
   let pool = allQuestions;
-  if (cat) {
-    pool = pool.filter(q => q.categoryJa === cat);
-  }
   
-  // 未学習フィルタ
-  if (unlearnedOnly) {
-    if (!window.sessionUser) {
-      alert(currentLang === 'en' ? 'Please log in to use "Unlearned only".' : '「未学習のみ」機能を使うにはログインしてください。');
-      // チェックを外すなどの処理はせず、そのまま全件対象にするか、空にするか。ここではアラート出してフィルタしない挙動にする
-    } else {
-      pool = pool.filter(q => !learnedQuestionIds.has(q.id));
+  // 初回読み込み時はフィルタを適用しない
+  if (!isInitialLoad) {
+    if (cat) {
+      pool = pool.filter(q => q.categoryJa === cat);
     }
-  }
-
-  // 未修得フィルタ（クリア済みを除外）
-  if (notClearedOnly) {
-    if (!window.sessionUser) {
-      alert(currentLang === 'en' ? 'Please log in to use "Not cleared only".' : '「未修得のみ」機能を使うにはログインしてください。');
-    } else {
-      // クリア済みIDに含まれていないものを残す（未学習も含まれる）
-      pool = pool.filter(q => !clearedQuestionIds.has(q.id));
+    
+    // 未学習フィルタ
+    if (unlearnedOnly) {
+      if (!window.sessionUser) {
+        alert(currentLang === 'en' ? 'Please log in to use "Unlearned only".' : '「未学習のみ」機能を使うにはログインしてください。');
+        // チェックを外すなどの処理はせず、そのまま全件対象にするか、空にするか。ここではアラート出してフィルタしない挙動にする
+      } else {
+        pool = pool.filter(q => !learnedQuestionIds.has(q.id));
+      }
     }
-  }
 
-  // 復習モード（過去に間違えたことがある問題のみ）
-  if (reviewOnly) {
-    if (!window.sessionUser) {
-      alert(currentLang === 'en' ? 'Please log in to use "Review mode".' : '「復習モード」機能を使うにはログインしてください。');
-    } else {
-      pool = pool.filter(q => wrongQuestionIds.has(q.id));
+    // 未修得フィルタ（クリア済みを除外）
+    if (notClearedOnly) {
+      if (!window.sessionUser) {
+        alert(currentLang === 'en' ? 'Please log in to use "Not cleared only".' : '「未修得のみ」機能を使うにはログインしてください。');
+      } else {
+        // クリア済みIDに含まれていないものを残す（未学習も含まれる）
+        pool = pool.filter(q => !clearedQuestionIds.has(q.id));
+      }
     }
-  }
 
-  // 苦手カテゴリ優先
-  if (weakOnly) {
-    if (weakCategories.size === 0) {
-      alert(currentLang === 'en' ? 'No weak categories set. Please configure them in "Weak Settings".' : '苦手カテゴリが設定されていません。「苦手設定」ボタンから設定してください。');
-    } else {
-      pool = pool.filter(q => weakCategories.has(q.categoryJa));
+    // 復習モード（過去に間違えたことがある問題のみ）
+    if (reviewOnly) {
+      if (!window.sessionUser) {
+        alert(currentLang === 'en' ? 'Please log in to use "Review mode".' : '「復習モード」機能を使うにはログインしてください。');
+      } else {
+        pool = pool.filter(q => wrongQuestionIds.has(q.id));
+      }
+    }
+
+    // 苦手カテゴリ優先
+    if (weakOnly) {
+      if (weakCategories.size === 0) {
+        alert(currentLang === 'en' ? 'No weak categories set. Please configure them in "Weak Settings".' : '苦手カテゴリが設定されていません。「苦手設定」ボタンから設定してください。');
+      } else {
+        pool = pool.filter(q => weakCategories.has(q.categoryJa));
+      }
     }
   }
 
@@ -768,6 +773,7 @@ function startNewSessionFromUI() {
   totalCorrect = 0;
   updateScore();
   renderQuestion();
+  isInitialLoad = false; // 初回読み込みフラグを解除
 }
 
 // 文字サイズ変更
@@ -1166,6 +1172,18 @@ function getUserEntries() {
   return { debit, credit };
 }
 
+// カンマ区切りの文字列を数値に変換
+function parseAmount(str) {
+  if (typeof str !== 'string' || !str) return NaN;
+  return Number(str.replace(/,/g, ''));
+}
+
+// 数値をカンマ区切りの文字列に変換
+function formatAmount(num) {
+  if (typeof num !== 'number' || isNaN(num)) return '';
+  return num.toLocaleString('en-US');
+}
+
 //両側の合計が一致しているか
 function isBalanced(entries) {
   const sum = (list) => list.reduce((acc, e) => acc + e.amount, 0);
@@ -1191,10 +1209,66 @@ function compareSide(userList, correctList) {
   return remaining.length === 0;
 }
 
-// 答え合わせ（デバッグ用）
+// 答え合わせ
 function checkAnswer() {
-  console.log("checkAnswer function is successfully called!");
-  alert("「答え合わせ」ボタンは現在デバッグモードです。");
+  if (!questions || questions.length === 0) {
+    console.log("No questions loaded, cannot check answer.");
+    return;
+  }
+
+  const user = getUserEntries();
+  const t = i18n[currentLang];
+
+  if (user.debit.length === 0 && user.credit.length === 0) {
+    resultMessage.textContent = t['msg-input-required'];
+    resultMessage.className = "result-message warning";
+    return;
+  }
+
+  if (!isBalanced(user)) {
+    resultMessage.textContent = t['msg-not-balanced'];
+    resultMessage.className = "result-message warning";
+    return;
+  }
+
+  const q = questions[currentIndex];
+  if (!q || !q.solution) {
+      console.error("Current question or its solution is missing.");
+      resultMessage.textContent = "エラー: 現在の問題または解答データがありません。";
+      resultMessage.className = "result-message wrong";
+      return;
+  }
+  const correctSolution = q.solution;
+
+  const isCorrect =
+    compareSide(user.debit, correctSolution.debit) &&
+    compareSide(user.credit, correctSolution.credit);
+    
+  totalAnswered++;
+  if (isCorrect) {
+    totalCorrect++;
+    const correctMessages = t['msg-correct'];
+    resultMessage.textContent = correctMessages[Math.floor(Math.random() * correctMessages.length)];
+    resultMessage.className = "result-message correct";
+  } else {
+    const wrongMessages = t['msg-wrong'];
+    resultMessage.textContent = wrongMessages[Math.floor(Math.random() * wrongMessages.length)];
+    resultMessage.className = "result-message wrong";
+  }
+
+  if(answerJa) answerJa.textContent = q.journalJa || '';
+  if(answerEn) answerEn.textContent = q.journalEn || '';
+  if(answerPanel) answerPanel.style.display = "block";
+  
+  updateScore();
+
+  if (window.sessionUser) {
+    logStudyResult_TEST(q, isCorrect);
+    learnedQuestionIds.add(q.id);
+    if (!isCorrect) {
+      wrongQuestionIds.add(q.id);
+    }
+  }
 }
 
 // 学習ログ保存（ログイン時のみ）
@@ -1458,6 +1532,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   if(document.getElementById('btn-weak-cancel')) document.getElementById('btn-weak-cancel').addEventListener('click', closeWeakSettingsModal);
   if(document.getElementById('btn-weak-save')) document.getElementById('btn-weak-save').addEventListener('click', saveWeakSettingsFromModal);
 
+  // 金額入力欄のフォーマット
+  document.querySelectorAll('.amount-input').forEach(input => {
+    // 入力欄にフォーカスした時、カンマを除去して数値のみにする
+    input.addEventListener('focus', (e) => {
+      const value = e.target.value;
+      if (value) {
+        const num = parseAmount(value);
+        if (!isNaN(num)) {
+          e.target.value = num;
+        }
+      }
+    });
+
+    // 入力欄からフォーカスが外れた時、カンマを付与する
+    input.addEventListener('blur', (e) => {
+      const value = e.target.value;
+      if (value) {
+        const num = parseAmount(value);
+        if (!isNaN(num)) {
+          e.target.value = formatAmount(num);
+        }
+      }
+    });
+  });
+
 
   // 初期化処理
   initAccountSelects();
@@ -1475,4 +1574,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     loadWeakCategories(); // Guest settings
   }
+
+  // 初期状態で問題セッションを自動開始
+  startNewSessionFromUI();
 });
