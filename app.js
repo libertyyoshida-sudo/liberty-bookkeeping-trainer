@@ -540,6 +540,9 @@ function buildAccountListFromQuestion(q) {
   // 重複除去
   const unique = Array.from(new Set(list));
 
+  // ✅ ここでシャッフル（毎回問題ごとに順番が変わる）
+  unique = shuffleArray(unique);
+
   // 先頭に「空欄」を追加
   unique.unshift("");
 
