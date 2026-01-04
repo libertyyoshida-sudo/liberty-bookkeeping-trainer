@@ -1313,8 +1313,35 @@ function checkAnswer() {
     resultMessage.className = "result-message wrong";
   }
 
-  if(answerJa) answerJa.textContent = q.journalJa || '';
-  if(answerEn) answerEn.textContent = q.journalEn || '';
+  // 解答表示（innerHTMLを使用して<br>を解釈させる）
+  if(answerJa) answerJa.innerHTML = q.journalJa || '';
+  if(answerEn) answerEn.innerHTML = q.journalEn || '';
+
+  // 参考リンク表示ロジックを復活
+  const refLinksContainer = document.getElementById('answer-ref-links');
+  if (refLinksContainer) {
+    refLinksContainer.innerHTML = ''; // 過去のリンクをクリア
+    if (q.ref_links && typeof q.ref_links === 'object' && Object.keys(q.ref_links).length > 0) {
+      const p = document.createElement('p');
+      p.style.margin = '8px 0 4px';
+      p.style.fontWeight = 'bold';
+      p.style.fontSize = '0.8rem';
+      p.textContent = '📖 参考';
+      refLinksContainer.appendChild(p);
+
+      for (const [text, url] of Object.entries(q.ref_links)) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.textContent = text;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.style.display = 'block';
+        link.style.marginTop = '4px';
+        refLinksContainer.appendChild(link);
+      }
+    }
+  }
+  
   if(answerPanel) answerPanel.style.display = "block";
   
   updateScore();
