@@ -1242,7 +1242,7 @@ function isBalanced(entries) {
   return sum(entries.debit) === sum(entries.credit);
 }
 
-// 答え合わせロジック（刷新版 v2）
+// 答え合わせロジック（刷新版 v3）
 function checkAnswer() {
   if (!questions || questions.length === 0) {
     console.log("No questions loaded, cannot check answer.");
@@ -1267,19 +1267,28 @@ function checkAnswer() {
     return;
   }
 
-  if (!q || !q.solution || !q.solution.debit || !q.solution.credit) {
-    console.error("Current question or its solution is missing/invalid.", q);
-    resultMessage.textContent = "エラー: この問題の正解データが壊れているか、存在しません。管理者に連絡してください。\n(Error: The solution data for this question is corrupt or missing.)";
-    resultMessage.className = "result-message wrong";
-    // Also display the answer panel to show what we have
-    if(answerJa) answerJa.innerHTML = (q && q.journalJa) ? q.journalJa : '<i>No model answer available.</i>';
-    if(answerEn) answerEn.innerHTML = (q && q.journalEn) ? q.journalEn : '<i>No model answer available.</i>';
-    if(answerPanel) answerPanel.style.display = "block";
-    return;
+  // v3 MODIFICATION: Sanitize solution object to prevent crashes
+  // If the solution data is broken, default to empty arrays.
+  // This allows the check to proceed, which will result
+  // in a "wrong" answer, but is better than a generic error.
+  const sanitizedSolution = {
+    debit: [],
+    credit: []
+  };
+
+  if (q && q.solution) {
+      sanitizedSolution.debit = q.solution.debit || [];
+      sanitizedSolution.credit = q.solution.credit || [];
   }
+  
+  // If the original data was incomplete, log it.
+  if (!q || !q.solution || !q.solution.debit || !q.solution.credit) {
+    console.warn(`Warning: Question (ID: ${q?.id}) has a malformed or missing solution object. Grading against a potentially empty solution.`, q?.solution);
+  }
+  // End of v3 MODIFICATION
 
   // --- デバッグログ準備 ---
-  console.log(`--- Checking Answer (v2) --- [Lang: ${currentLang}]`);
+  console.log(`--- Checking Answer (v3) --- [Lang: ${currentLang}]`);
   console.log("User Input:", JSON.stringify(userEntries));
 
   // 2. 比較のための正規化関数
@@ -1289,24 +1298,24 @@ function checkAnswer() {
       .sort();
 
   // 3. 言語に応じた正解データとユーザー入力を準備
-  let correctSolution;
+  let correctSolutionForGrading;
   let isCorrect = false;
 
   if (currentLang === 'ja') {
     // ------------------
     // 日本語モードの判定
     // ------------------
-    correctSolution = {
-      debit: q.solution.debit.map(e => ({ ...e })),
-      credit: q.solution.credit.map(e => ({ ...e }))
+    correctSolutionForGrading = {
+      debit: sanitizedSolution.debit.map(e => ({ ...e })),
+      credit: sanitizedSolution.credit.map(e => ({ ...e }))
     };
 
     const userDebitCanon = canonicalize(userEntries.debit);
     const userCreditCanon = canonicalize(userEntries.credit);
-    const correctDebitCanon = canonicalize(correctSolution.debit);
-    const correctCreditCanon = canonicalize(correctSolution.credit);
+    const correctDebitCanon = canonicalize(correctSolutionForGrading.debit);
+    const correctCreditCanon = canonicalize(correctSolutionForGrading.credit);
     
-    console.log("Correct Solution (JA):", JSON.stringify(correctSolution));
+    console.log("Correct Solution (JA):", JSON.stringify(correctSolutionForGrading));
     console.log("User Debit (canon):", JSON.stringify(userDebitCanon));
     console.log("Correct Debit (canon):", JSON.stringify(correctDebitCanon));
     console.log("User Credit (canon):", JSON.stringify(userCreditCanon));
@@ -1339,17 +1348,17 @@ function checkAnswer() {
 
     // 日本語の正解データを英語に変換
     try {
-      correctSolution = {
-        debit: q.solution.debit.map(e => ({ ...e, account: toEnglish(e.account) })),
-        credit: q.solution.credit.map(e => ({ ...e, account: toEnglish(e.account) }))
+      correctSolutionForGrading = {
+        debit: sanitizedSolution.debit.map(e => ({ ...e, account: toEnglish(e.account) })),
+        credit: sanitizedSolution.credit.map(e => ({ ...e, account: toEnglish(e.account) }))
       };
 
       const userDebitCanon = canonicalize(userEntries.debit);
       const userCreditCanon = canonicalize(userEntries.credit);
-      const correctDebitCanon = canonicalize(correctSolution.debit);
-      const correctCreditCanon = canonicalize(correctSolution.credit);
+      const correctDebitCanon = canonicalize(correctSolutionForGrading.debit);
+      const correctCreditCanon = canonicalize(correctSolutionForGrading.credit);
       
-      console.log("Correct Solution (EN):", JSON.stringify(correctSolution));
+      console.log("Correct Solution (EN):", JSON.stringify(correctSolutionForGrading));
       console.log("User Debit (canon):", JSON.stringify(userDebitCanon));
       console.log("Correct Debit (canon):", JSON.stringify(correctDebitCanon));
       console.log("User Credit (canon):", JSON.stringify(userCreditCanon));
