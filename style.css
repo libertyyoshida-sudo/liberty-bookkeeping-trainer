@@ -634,3 +634,13 @@ rt {
   max-width: 400px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
+
+/* --- Furigana (Ruby) settings --- */
+ruby { 
+  ruby-position: over; 
+}
+
+rt { 
+  font-size: 0.55em; 
+  line-height: 1;
+}
