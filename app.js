@@ -1242,6 +1242,86 @@ function isBalanced(entries) {
   return sum(entries.debit) === sum(entries.credit);
 }
 
+//AI解説
+async function askAiExplanation() {
+  const aiChatBox = document.getElementById("ai-chat-box");
+  if (!aiChatBox) return;
+
+  const WORKER_URL = window.APP_AI_WORKER_URL;
+  if (!WORKER_URL) {
+    aiChatBox.innerHTML = "⚠️ APP_AI_WORKER_URL が未設定です（index.html の script で定義してください）";
+    return;
+  }
+
+  if (!questions || questions.length === 0) {
+    aiChatBox.innerHTML = "⚠️ 問題データがありません。";
+    return;
+  }
+
+  const q = questions[currentIndex];
+
+  // 表示言語に応じて問題文と模範仕訳を選ぶ
+  const questionText = currentLang === "ja" ? (q.questionJa || "") : (q.questionEn || "");
+  const modelAnswer  = currentLang === "ja" ? (q.journalJa || "") : (q.journalEn || "");
+
+  // プロンプト生成（簿記学習向け）
+  const prompt = `
+あなたは簿記の先生です。次の問題を初心者にもわかるように解説してください。
+【問題】
+${questionText}
+
+【模範仕訳】
+${modelAnswer}
+
+解説の構成：
+1) 何が起きた取引か
+2) 勘定科目を選ぶ理由
+3) 借方・貸方の考え方
+4) よくある間違い
+5) 覚え方のコツ（短く）
+`;
+
+  aiChatBox.innerHTML = "⏳ AIが解説を作成中...";
+
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt,
+        lang: currentLang,
+        questionId: q.id
+      })
+    });
+
+    // HTTPエラー
+    if (!res.ok) {
+      const text = await res.text();
+      aiChatBox.innerHTML = `⚠️ AI解説の取得に失敗しました（HTTP ${res.status}）<br>${text}`;
+      return;
+    }
+
+    // JSON or Text（Worker側の仕様差に強くする）
+    const contentType = res.headers.get("content-type") || "";
+    let reply = "";
+
+    if (contentType.includes("application/json")) {
+      const data = await res.json();
+      reply = data.reply || data.text || data.message || data.result || JSON.stringify(data);
+    } else {
+      reply = await res.text();
+    }
+
+    // 表示（改行を反映）
+    aiChatBox.innerHTML = (reply || "⚠️ AIの返答が空でした").replace(/\n/g, "<br>");
+
+  } catch (e) {
+    console.error(e);
+    aiChatBox.innerHTML = `⚠️ 通信エラー：${e.message}`;
+  }
+}
+
+
 // 答え合わせロジック（刷新版 v3）
 function checkAnswer() {
   if (!questions || questions.length === 0) {
@@ -1634,12 +1714,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log("btnAiClear:", btnAiClear);
   console.log("aiChatBox:", aiChatBox);
 
-  if (btnAiExplain) {
-    btnAiExplain.addEventListener("click", () => {
-      console.log("AI explain clicked ✅");
-      if (aiChatBox) aiChatBox.innerHTML = "✅ クリック検知OK（JS接続OK）";
-    });
-  }
+　if (btnAiExplain) {
+   btnAiExplain.addEventListener("click", askAiExplanation);
+ }
 
   if (btnAiClear) {
     btnAiClear.addEventListener("click", () => {
