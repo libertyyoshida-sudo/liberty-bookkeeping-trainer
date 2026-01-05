@@ -1305,7 +1305,6 @@ ${modelAnswer}
       const data = await res.json();
       reply = 
         data.answer ||
-        data.response ||   // ✅ これを追加（Workerの返し方に一致）
         data.reply ||
         data.text ||
         data.message ||
