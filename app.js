@@ -412,6 +412,8 @@ function initKuroshiro() {
         window.KuroshiroAnalyzerKuromoji ||
         window.KuromojioAnalyzer?.default||
         window.KuromojioAnalyzer;
+
+      console.log("DEBUG AnalyzerClass:", AnalyzerClass); // 追加で確認
         
       if (!AnalyzerClass) {
         throw new Error("KuromojiAnalyzer not loaded");
