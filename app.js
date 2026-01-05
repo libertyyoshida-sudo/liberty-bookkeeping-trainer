@@ -1287,11 +1287,7 @@ ${modelAnswer}
     const res = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt,
-        lang: currentLang,
-        questionId: q.id
-      })
+      body: JSON.stringify({ message: prompt })
     });
 
     // HTTPエラー
