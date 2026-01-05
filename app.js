@@ -410,8 +410,8 @@ function initKuroshiro() {
       const AnalyzerClass =
         window.KuroshiroAnalyzerKuromoji?.default ||
         window.KuroshiroAnalyzerKuromoji ||
-        window.KuromojioAnalyzer?.default||
-        window.KuromojioAnalyzer;
+        window.KuromojiAnalyzer?.default ||
+        window.KuromojiAnalyzer;
 
       console.log("DEBUG AnalyzerClass:", AnalyzerClass); // 追加で確認
         
