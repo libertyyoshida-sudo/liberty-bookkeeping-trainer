@@ -407,13 +407,18 @@ function initKuroshiro() {
       kuroshiro = new KuroClass();
 
       // Analyzer確認
-      const AnalyzerClass = window.KuroshiroAnalyzerKuromoji?.default || 
-                           window.KuroshiroAnalyzerKuromoji;
+      const AnalyzerClass =
+        window.KuroshiroAnalyzerKuromoji?.default ||
+        window.KuroshiroAnalyzerKuromoji ||
+        window.KuromojioAnalyzer?.default||
+        window.KuromojioAnalyzer;
+        
       if (!AnalyzerClass) {
         throw new Error("KuromojiAnalyzer not loaded");
       }
 
       const dictPath = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/";  // ← CDNのパス
+      
       const analyzer = new AnalyzerClass({ dictPath });
 
       await kuroshiro.init(analyzer);
@@ -1777,7 +1782,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (rubyEnabled && !kuroshiroReady) {
         toggleRubyBtn.disabled = true;
         toggleRubyBtn.textContent = '準備中...';
+
+
+      try {  
         await initKuroshiro();
+     } catch (e) {
+       rubyEnabled = false;
+       toggleRubyBtn.textContent = 'ルビ表示：OFF';
+       toggleRubyBtn.disabled = false;
+       alert("ルビ初期化に失敗しました。ライブラリ読み込みを確認してください。");
+       console.error(e);
+       return;
+      }
+        
         toggleRubyBtn.disabled = false;
         toggleRubyBtn.textContent = 'ルビ表示：ON';
       }
