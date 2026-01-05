@@ -419,7 +419,8 @@ function initKuroshiro() {
         throw new Error("KuromojiAnalyzer not loaded");
       }
 
-      const dictPath = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/";  // ← CDNのパス
+      const dictPath = "./dict/";
+      //const dictPath = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/";  // ← CDNのパス
       
       const analyzer = new AnalyzerClass({ dictPath });
 
