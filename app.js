@@ -1624,6 +1624,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnSpeech = document.getElementById('btn-speech');
   speechRateInput = document.getElementById('speech-rate');
   speechRateVal = document.getElementById('speech-rate-val');
+
+// --- AI解説 UI ---
+  const btnAiExplain = document.getElementById("btn-ai-explain");
+  const btnAiClear   = document.getElementById("btn-ai-clear");
+  const aiChatBox    = document.getElementById("ai-chat-box");
+
+  console.log("btnAiExplain:", btnAiExplain);
+  console.log("btnAiClear:", btnAiClear);
+  console.log("aiChatBox:", aiChatBox);
+
+  if (btnAiExplain) {
+    btnAiExplain.addEventListener("click", () => {
+      console.log("AI explain clicked ✅");
+      if (aiChatBox) aiChatBox.innerHTML = "✅ クリック検知OK（JS接続OK）";
+    });
+  }
+
+  if (btnAiClear) {
+    btnAiClear.addEventListener("click", () => {
+    if (aiChatBox) aiChatBox.innerHTML = "";
+    });
+  }
   
   // イベントリスナー
   if (langJaBtn) langJaBtn.addEventListener("click", () => {
