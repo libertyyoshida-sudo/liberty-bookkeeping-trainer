@@ -1303,7 +1303,14 @@ ${modelAnswer}
 
     if (contentType.includes("application/json")) {
       const data = await res.json();
-      reply = data.reply || data.text || data.message || data.result || JSON.stringify(data);
+      reply = 
+        data.answer ||
+        data.response ||   // ✅ これを追加（Workerの返し方に一致）
+        data.reply ||
+        data.text ||
+        data.message ||
+        data.result ||
+        JSON.stringify(data);
     } else {
       reply = await res.text();
     }
