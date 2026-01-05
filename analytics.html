@@ -430,7 +430,7 @@
       // 2. データ取得 (問題マスタ & ログ)
 // 問題マスタ全件
 const { data: questions, error: qError } = await supabaseClient
-  .from('accountsquiz_questions')
+  .from('quiz_questions')
   .select('id, categoryJa, titleJa, categoryEn, titleEn, ref_links')
   .order('id', { ascending: true });
 
