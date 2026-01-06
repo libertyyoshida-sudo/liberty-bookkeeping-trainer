@@ -4,6 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>勘定科目クイズ</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dist/kuromoji.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
+
   
   <!-- ✅ 共通スタイルと設定を読み込む -->
   <link rel="stylesheet" href="style.css" />
@@ -152,6 +157,11 @@
         <div id="quiz-progress" style="font-weight:bold; color:#555;">
           0 / 10
         </div>
+
+       <!-- ルビ表示切替ボタン -->
+       <button id="toggle-ruby" class="auth-small-btn" style="margin-left:8px;">
+       ルビ表示：OFF
+       </button>
 
         
         <button class="btn btn-primary" id="nextBtn" style="margin-left:auto;">次の問題</button>
