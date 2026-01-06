@@ -644,3 +644,23 @@ rt {
   font-size: 0.55em; 
   line-height: 1;
 }
+
+/* 勝手に文字が拡大しない */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* 説明文（hint-text と progress-help）をスマホでも整うサイズ */
+.hint-text,
+#progress-help {
+  font-size: clamp(0.68rem, 2.6vw, 0.78rem);
+  line-height: 1.45;
+}
+
+@media (max-width: 600px) {
+  .hint-text,
+  #progress-help {
+    font-size: 0.7rem;
+  }
+}
