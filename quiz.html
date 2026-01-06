@@ -177,7 +177,9 @@
         <div id="timer-bar" class="timer-bar-fill"></div>
       </div>
 
-      <div class="question-text" id="prompt" style="font-size:1.1rem; font-weight:bold; min-height:auto; display:none;"></div>
+      <div class="question-text" id="prompt"
+        data-furigana-target
+        style="font-size:1.1rem; font-weight:bold; min-height:auto; display:none;"></div>
 
       <div class="grid" id="choices"></div>
 
@@ -222,6 +224,95 @@
       const countEl = document.getElementById("quiz-count");　// ★追加：問題数UI
       const progressEl = document.getElementById("quiz-progress");
 
+      // --- ルビ表示（index.htmlと同じ考え方） ---
+      let rubyEnabled = false;
+      let kuroshiro = null;
+      let kuroshiroReady = false;
+      let kuroshiroInitPromise = null;
+      
+      function furiganaTextToRubyHtml(str) {
+        return str.replace(
+          /([一-龠々〆ヵヶ]+)\(([^)]+)\)/g,
+          "<ruby>$1<rt>$2</rt></ruby>"
+        );
+      }
+      
+      function initKuroshiro() {
+        if (kuroshiroReady && kuroshiro) return Promise.resolve();
+        if (kuroshiroInitPromise) return kuroshiroInitPromise;
+      
+        kuroshiroInitPromise = new Promise(async (resolve, reject) => {
+          try {
+            const KuroClass = window.Kuroshiro?.default || window.Kuroshiro;
+            kuroshiro = new KuroClass();
+      
+            const AnalyzerClass =
+              window.KuroshiroAnalyzerKuromoji?.default ||
+              window.KuroshiroAnalyzerKuromoji ||
+              window.KuromojiAnalyzer?.default ||
+              window.KuromojiAnalyzer;
+      
+            const dictPath = "./dict/"; // index.htmlと同じ
+            const analyzer = new AnalyzerClass({ dictPath });
+      
+            await kuroshiro.init(analyzer);
+            kuroshiroReady = true;
+            resolve(true);
+          } catch (e) {
+            kuroshiroInitPromise = null;
+            reject(e);
+          }
+        });
+      
+        return kuroshiroInitPromise;
+      }
+      
+      async function applyRubyToTargets() {
+        const targets = document.querySelectorAll("[data-furigana-target]");
+        if (!targets.length) return;
+      
+        if (!rubyEnabled) {
+          // OFF → 元に戻す
+          targets.forEach(el => {
+            // promptは dataset.baseText を持たないので innerText を元に戻すのは難しい
+            // なので prompt も baseText を持たせる
+            if (el.dataset.baseText) {
+              el.textContent = el.dataset.baseText;
+            }
+          });
+          return;
+        }
+      
+        await initKuroshiro();
+      
+        for (const el of targets) {
+          // 元テキストが無ければ保存（prompt用）
+          if (!el.dataset.baseText) {
+            el.dataset.baseText = el.textContent;
+          }
+      
+          const base = el.dataset.baseText || el.textContent;
+          if (!base || !base.trim()) continue;
+      
+          // 日本語を「漢字(かな)」形式へ
+          const withFurigana = await kuroshiro.convert(base, { to: "hiragana", mode: "furigana" });
+          // 「漢字(かな)」→ <ruby>…</ruby>
+          const rubyHtml = furiganaTextToRubyHtml(withFurigana);
+      
+          el.innerHTML = rubyHtml;
+        }
+      }
+      
+      const toggleRubyBtn = document.getElementById("toggle-ruby");
+      if (toggleRubyBtn) {
+        toggleRubyBtn.addEventListener("click", async () => {
+          rubyEnabled = !rubyEnabled;
+          toggleRubyBtn.textContent = rubyEnabled ? "ルビ表示：ON" : "ルビ表示：OFF";
+          await applyRubyToTargets();
+        });
+      }
+      
+
       // ★追加：出題数管理
       let quizLimit = Number(countEl?.value ?? 10); // selectの初期値
       let quizCurrentNo = 0;
@@ -241,8 +332,6 @@
       let streak = 0;
       let timerInterval = null;
       const TIME_LIMIT = 10; // 秒
-
-
       
       // ログインユーザー取得
       supabaseClient.auth.getUser().then(({ data }) => {
@@ -332,6 +421,8 @@
          shuffledChoices.forEach(c => {
            const btn = document.createElement("button");
            btn.className = "choice-btn";
+           btn.setAttribute("data-furigana-target", "");
+           btn.dataset.baseText = c.label;   // 元文字列（ルビOFFのときに戻す用）
            btn.textContent = c.label;
            btn.onclick = () => answer(c.id);
            choicesEl.appendChild(btn);
@@ -344,6 +435,11 @@
         startTimer();
       }
 
+      //問題表示のタビにルビON再適用
+      if (rubyEnabled) {
+        await applyRubyToTargets();
+      }
+            
       // Web Audio API で簡易SE再生
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
