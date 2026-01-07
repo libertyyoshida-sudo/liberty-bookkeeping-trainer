@@ -427,6 +427,11 @@
            btn.onclick = () => answer(c.id);
            choicesEl.appendChild(btn);
          });
+
+        // ✅ ここに入れる！
+        if (rubyEnabled) {
+          await applyRubyToTargets();
+        }
                 
         // デバッグ用（運用時は消してください）
         debugEl.textContent = `question_id=${data.question_id} / correct=${data.correct_account_code}`;
@@ -435,10 +440,6 @@
         startTimer();
       }
 
-      //問題表示のタビにルビON再適用
-      if (rubyEnabled) {
-        await applyRubyToTargets();
-      }
             
       // Web Audio API で簡易SE再生
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
