@@ -21,7 +21,10 @@ if (typeof supabase !== 'undefined' && supabase.createClient && SUPABASE_URL && 
   console.log("Supabase client initialized ✅", supabaseClient);
 } else {
   console.error("Supabase library not loaded or config missing ❌");
+
+  window.supabaseClient = supabaseClient;
 }
+
 
 // 問題全件をロード
 async function loadAllQuestions() {
@@ -509,6 +512,15 @@ async function signIn() {
   loadWeakCategories(); // 苦手カテゴリ読み込み
   alert('ログインしました。');
 }
+
+// ✅ 管理者だけ管理者ページリンクを表示
+async function showAdminLinkIfAdmin() {
+  const adminLink = document.getElementById("admin-link");
+  if (!adminLink) return;
+
+  // supabaseClient が無いなら何もしない
+  if (!window.supabaseClient
+
 
 async function signOut() {
   await supabaseClient.auth.signOut();
