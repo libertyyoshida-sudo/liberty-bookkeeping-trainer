@@ -1863,6 +1863,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabaseClient.auth.getSession();
   window.sessionUser = session?.user || null;
   updateAuthUI();
+
+  await showAdminLinkIfAdmin();
   
   loadMyHistory();
   if (window.sessionUser) {
