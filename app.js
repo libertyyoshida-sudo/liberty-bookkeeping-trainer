@@ -21,10 +21,10 @@ if (typeof supabase !== 'undefined' && supabase.createClient && SUPABASE_URL && 
   console.log("Supabase client initialized ✅", supabaseClient);
 } else {
   console.error("Supabase library not loaded or config missing ❌");
-
-  window.supabaseClient = supabaseClient;
+ 
 }
 
+window.supabaseClient = supabaseClient;
 
 // 問題全件をロード
 async function loadAllQuestions() {
@@ -1860,11 +1860,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyLanguage();
 
   // 認証状態の初期チェックと関連データロード
+ if (!supabaseClient) {
+  console.warn("Supabase client is null. Auth and DB functions disabled.");
+  window.sessionUser = null;
+  updateAuthUI();
+} else {
   const { data: { session } } = await supabaseClient.auth.getSession();
   window.sessionUser = session?.user || null;
   updateAuthUI();
-
   await showAdminLinkIfAdmin();
+}
   
   loadMyHistory();
   if (window.sessionUser) {
