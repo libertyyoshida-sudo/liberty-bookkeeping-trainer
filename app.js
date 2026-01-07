@@ -519,7 +519,33 @@ async function showAdminLinkIfAdmin() {
   if (!adminLink) return;
 
   // supabaseClient が無いなら何もしない
-  if (!window.supabaseClient
+  if (!supabaseClient) return;
+
+  const { data: authData, error: authError } = await supabaseClient.auth.getUser();
+  if (authError) {
+    console.log("auth error:", authError);
+    return;
+  }
+
+  const user = authData?.user;
+  if (!user) return;
+
+  const { data: profs, error: profError } = await supabaseClient
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profError) {
+    console.log("profile error:", profError);
+    return;
+  }
+
+  if (profs?.role === "admin") {
+    adminLink.style.display = "inline-block";
+  }
+}
+
 
 
 async function signOut() {
