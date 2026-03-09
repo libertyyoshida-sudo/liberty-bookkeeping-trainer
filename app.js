@@ -69,7 +69,7 @@ async function loadAllQuestions() {
 const i18n = {
   ja: {
     'app-title': 'Liberty Bookkeeping Trainer',
-    'app-subtitle': '留学生向け 簿記仕訳トレーニング 2.0',
+    'app-subtitle': '留学生向け 簿記仕訳トレーニング ',
     'practice-pill': 'Practice',
     'question-label-prefix': '問題',       // 「問題 1 / 10」の「問題」部分
     'filter-category': 'カテゴリ:',
@@ -99,7 +99,7 @@ const i18n = {
     'history-title': '直近の学習履歴',
     'history-not-logged-in': 'ログインすると直近の解答履歴が表示されます。',
     'history-none': 'まだ履歴がありません。',
-    'footer': '© Liberty Co., Ltd. Bookkeeping Trainer 2.0',
+    'footer': '© Liberty Co., Ltd. Bookkeeping Trainer ',
     'progress-help': '・「出題開始」で選択した条件の問題セットを開始します。\n・「答え合わせ」で自動判定します。\n・ランダム出題をONにすると、順番をシャッフルします。\n・日本語 / 英語はいつでも切り替え可能です。',
     'btn-login': 'ログイン',
     'btn-logout': 'ログアウト',
@@ -185,7 +185,7 @@ const i18n = {
     'history-title': 'Recent study history',
     'history-not-logged-in': 'Log in to see your recent answer history.',
     'history-none': 'No history yet.',
-    'footer': '© Liberty Co., Ltd. Bookkeeping Trainer 2.0',
+    'footer': '© Liberty Co., Ltd. Bookkeeping Trainer ',
     'progress-help': '・Click "Start" to begin questions with the selected conditions.\n・Click "Check answer" to auto-grade your entry.\n・Turn on "Random order" to shuffle questions.\n・You can switch between Japanese / English at any time.',
     'history-title': 'Recent study history',
     'btn-login': 'Log in',
