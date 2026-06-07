@@ -245,7 +245,7 @@ const i18n = {
 function showErrorBanner(message) {
   const banner = document.getElementById('error-banner');
   if (banner) {
-    banner.innerHTML = message;
+    banner.textContent = message;
     banner.style.display = 'block';
   }
 }
