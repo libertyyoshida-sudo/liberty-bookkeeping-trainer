@@ -1521,8 +1521,8 @@ function checkAnswer() {
   }
 
   // 解答パネル表示
-  if(answerJa) answerJa.innerHTML = q.journalJa || '';
-  if(answerEn) answerEn.innerHTML = q.journalEn || '';
+  if (answerJa) answerJa.textContent = q.journalJa || "";
+  if (answerEn) answerEn.textContent = q.journalEn || "";
 
   const refLinksContainer = document.getElementById('answer-ref-links');
   if (refLinksContainer) {
