@@ -664,3 +664,7 @@ html {
     font-size: 0.7rem;
   }
 }
+
+#ai-chat-box {
+  white-space: pre-wrap;
+}
