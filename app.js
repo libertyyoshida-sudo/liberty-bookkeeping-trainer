@@ -1295,12 +1295,12 @@ async function askAiExplanation() {
 
   const WORKER_URL = window.APP_AI_WORKER_URL;
   if (!WORKER_URL) {
-    aiChatBox.innerHTML = "⚠️ APP_AI_WORKER_URL が未設定です（index.html の script で定義してください）";
+    aiChatBox.textContent = "⚠️ APP_AI_WORKER_URL が未設定です（index.html の script で定義してください）";
     return;
   }
 
   if (!questions || questions.length === 0) {
-    aiChatBox.innerHTML = "⚠️ 問題データがありません。";
+    aiChatBox.textContent = "⚠️ 問題データがありません。";
     return;
   }
 
@@ -1327,7 +1327,7 @@ ${modelAnswer}
 5) 覚え方のコツ（短く）
 `;
 
-  aiChatBox.innerHTML = "⏳ AIが解説を作成中...";
+  aiChatBox.textContent = "⏳ AIが解説を作成中...";
 
   try {
     const res = await fetch(WORKER_URL, {
@@ -1339,7 +1339,7 @@ ${modelAnswer}
     // HTTPエラー
     if (!res.ok) {
       const text = await res.text();
-      aiChatBox.innerHTML = `⚠️ AI解説の取得に失敗しました（HTTP ${res.status}）<br>${text}`;
+      aiChatBox.textContent = `⚠️ AI解説の取得に失敗しました（HTTP ${res.status}）\n${text}`;
       return;
     }
 
