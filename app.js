@@ -1361,11 +1361,11 @@ ${modelAnswer}
     }
 
     // 表示（改行を反映）
-    aiChatBox.innerHTML = (reply || "⚠️ AIの返答が空でした").replace(/\n/g, "<br>");
+    aiChatBox.textContent = reply || "⚠️ AIの返答が空でした";
 
   } catch (e) {
     console.error(e);
-    aiChatBox.innerHTML = `⚠️ 通信エラー：${e.message}`;
+    aiChatBox.textContent = `⚠️ 通信エラー：${e.message}`;
   }
 }
 
