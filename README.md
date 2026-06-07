@@ -163,4 +163,4 @@ AI解説は学習補助を目的としています。会計処理の最終判断
 
 ## 運営
 
-Liberty Co., Ltd.
+Takeshi Yoshida
