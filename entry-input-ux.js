@@ -103,6 +103,17 @@
     style.id = 'entry-mobile-action-styles';
     style.textContent = `
       @media (max-width:760px) {
+        .card-header > #toggle-ruby,
+        .card-header > #toggle-easy-japanese,
+        .card-header > [data-easy-japanese-toggle] {
+          display: inline-flex !important;
+          align-items: center;
+          justify-content: center;
+          min-height: 38px;
+          margin-left: 0 !important;
+          padding: 8px 10px;
+          white-space: nowrap;
+        }
         .button-row {
           position: sticky;
           bottom: calc(72px + env(safe-area-inset-bottom));
