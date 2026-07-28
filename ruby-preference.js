@@ -1,7 +1,10 @@
 (() => {
   const STORAGE_KEY = "liberty-ruby-enabled";
-  let answerConversionToken = 0;
-  let answerObserver = null;
+  const MAX_CACHE_SIZE = 150;
+  const rubyCache = new Map();
+  const conversionTokens = new WeakMap();
+  const observers = [];
+  const renderingTargets = new WeakSet();
 
   const isRubyEnabled = () => {
     try {
@@ -20,7 +23,11 @@
   };
 
   const savePreference = () => {
-    localStorage.setItem(STORAGE_KEY, isRubyEnabled() ? "true" : "false");
+    try {
+      localStorage.setItem(STORAGE_KEY, isRubyEnabled() ? "true" : "false");
+    } catch (error) {
+      console.debug("Ruby preference could not be saved:", error);
+    }
   };
 
   const updateButton = () => {
@@ -33,7 +40,7 @@
     button.textContent = enabled ? "ルビ表示：ON" : "ルビ表示：OFF";
     button.setAttribute("aria-pressed", String(enabled));
     button.title = japaneseMode
-      ? "問題文と模範仕訳のルビ表示を切り替えます"
+      ? "問題文・模範仕訳・AI解説のルビ表示を切り替えます"
       : "ルビ表示は日本語モードで反映されます";
     button.style.background = enabled ? "var(--primary)" : "";
     button.style.color = enabled ? "#fff" : "";
@@ -51,34 +58,42 @@
     return converted;
   };
 
-  const restorePlainAnswer = () => {
-    const answer = document.getElementById("answer-ja");
-    if (!answer) return;
+  const rememberCache = (text, html) => {
+    if (rubyCache.has(text)) rubyCache.delete(text);
+    rubyCache.set(text, html);
 
-    let plainText = answer.dataset.rubyBaseText || "";
-    try {
-      if (questions?.length && questions[currentIndex]) {
-        plainText = questions[currentIndex].journalJa || plainText;
-      }
-    } catch {
-      // Keep the stored base text when question state is not ready.
-    }
-
-    if (plainText) {
-      answer.textContent = plainText;
-      answer.dataset.rubyBaseText = plainText;
+    if (rubyCache.size > MAX_CACHE_SIZE) {
+      const oldestKey = rubyCache.keys().next().value;
+      rubyCache.delete(oldestKey);
     }
   };
 
-  const applyRubyToAnswer = async () => {
-    const answer = document.getElementById("answer-ja");
-    if (!answer) return;
+  const convertToRubyHtml = async (plainText) => {
+    const normalized = String(plainText || "");
+    if (!normalized.trim()) return "";
 
-    if (!isRubyEnabled() || getCurrentLanguage() !== "ja") {
-      restorePlainAnswer();
-      return;
+    const cached = rubyCache.get(normalized);
+    if (cached) {
+      rubyCache.delete(normalized);
+      rubyCache.set(normalized, cached);
+      return cached;
     }
 
+    if (typeof initKuroshiro === "function") {
+      await initKuroshiro();
+    }
+    if (!kuroshiroReady || !kuroshiro) return "";
+
+    const converted = await kuroshiro.convert(normalized, {
+      to: "hiragana",
+      mode: "furigana"
+    });
+    const html = toRubyHtml(converted);
+    rememberCache(normalized, html);
+    return html;
+  };
+
+  const getAnswerPlainText = (answer) => {
     let plainText = "";
     try {
       if (questions?.length && questions[currentIndex]) {
@@ -87,37 +102,77 @@
     } catch {
       plainText = "";
     }
+    return plainText || answer.dataset.rubyBaseText || answer.textContent || "";
+  };
 
-    if (!plainText) {
-      plainText = answer.dataset.rubyBaseText || answer.textContent || "";
+  const restorePlainTarget = (element, resolver) => {
+    if (!element) return;
+    conversionTokens.set(element, (conversionTokens.get(element) || 0) + 1);
+
+    const plainText = resolver ? resolver(element) : element.dataset.rubyBaseText || "";
+    if (!plainText) return;
+
+    renderingTargets.add(element);
+    element.textContent = plainText;
+    element.dataset.rubyBaseText = plainText;
+    queueMicrotask(() => renderingTargets.delete(element));
+  };
+
+  const applyRubyToTarget = async (element, resolver) => {
+    if (!element) return;
+
+    if (!isRubyEnabled() || getCurrentLanguage() !== "ja") {
+      restorePlainTarget(element, resolver);
+      return;
     }
+
+    const plainText = resolver
+      ? resolver(element)
+      : element.dataset.rubyBaseText || element.textContent || "";
     if (!plainText.trim()) return;
 
-    answer.dataset.rubyBaseText = plainText;
-    const token = ++answerConversionToken;
+    element.dataset.rubyBaseText = plainText;
+    const token = (conversionTokens.get(element) || 0) + 1;
+    conversionTokens.set(element, token);
 
     try {
-      if (typeof initKuroshiro === "function") {
-        await initKuroshiro();
-      }
-      if (token !== answerConversionToken || !isRubyEnabled()) return;
-      if (!kuroshiroReady || !kuroshiro) return;
+      const html = await convertToRubyHtml(plainText);
+      if (!html || conversionTokens.get(element) !== token || !isRubyEnabled()) return;
 
-      const converted = await kuroshiro.convert(plainText, {
-        to: "hiragana",
-        mode: "furigana"
-      });
-
-      if (token !== answerConversionToken || !isRubyEnabled()) return;
-      answer.innerHTML = toRubyHtml(converted);
+      renderingTargets.add(element);
+      element.innerHTML = html;
+      queueMicrotask(() => renderingTargets.delete(element));
     } catch (error) {
-      console.error("Model answer ruby conversion failed:", error);
-      answer.textContent = plainText;
+      console.error("Ruby conversion failed:", error);
+      restorePlainTarget(element, () => plainText);
     }
   };
 
+  const applyRubyToAnswer = () => {
+    const answer = document.getElementById("answer-ja");
+    return applyRubyToTarget(answer, getAnswerPlainText);
+  };
+
+  const applyRubyToAiExplanation = () => {
+    const aiBox = document.getElementById("ai-chat-box");
+    return applyRubyToTarget(aiBox);
+  };
+
+  const refreshExtendedRuby = async () => {
+    await Promise.all([
+      applyRubyToAnswer(),
+      applyRubyToAiExplanation()
+    ]);
+  };
+
   const restorePreference = async () => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    let stored = null;
+    try {
+      stored = localStorage.getItem(STORAGE_KEY);
+    } catch (error) {
+      console.debug("Ruby preference could not be read:", error);
+    }
+
     if (stored !== "true") {
       updateButton();
       return;
@@ -126,63 +181,72 @@
     try {
       rubyEnabled = true;
       updateButton();
-      if (typeof initKuroshiro === "function") {
-        await initKuroshiro();
-      }
-      if (typeof renderQuestion === "function") {
-        renderQuestion();
-      }
-      await applyRubyToAnswer();
+      if (typeof initKuroshiro === "function") await initKuroshiro();
+      if (typeof renderQuestion === "function") renderQuestion();
+      await refreshExtendedRuby();
     } catch (error) {
       console.error("Ruby preference restore failed:", error);
       rubyEnabled = false;
-      localStorage.setItem(STORAGE_KEY, "false");
+      try {
+        localStorage.setItem(STORAGE_KEY, "false");
+      } catch {
+        // Ignore storage failures and keep the page usable.
+      }
       updateButton();
     }
   };
 
-  const watchAnswer = () => {
-    const answer = document.getElementById("answer-ja");
-    if (!answer || answerObserver) return;
+  const observeTarget = (element, callback) => {
+    if (!element) return;
 
-    answerObserver = new MutationObserver(() => {
-      if (answer.querySelector("ruby") && isRubyEnabled()) return;
-      window.setTimeout(applyRubyToAnswer, 0);
+    const observer = new MutationObserver(() => {
+      if (renderingTargets.has(element)) return;
+      if (element.querySelector("ruby") && isRubyEnabled()) return;
+
+      const currentText = element.textContent || "";
+      if (currentText.trim()) element.dataset.rubyBaseText = currentText;
+      window.setTimeout(callback, 0);
     });
-    answerObserver.observe(answer, {
+
+    observer.observe(element, {
       childList: true,
       characterData: true,
       subtree: true
     });
+    observers.push(observer);
   };
 
   document.addEventListener("DOMContentLoaded", () => {
     const button = document.getElementById("toggle-ruby");
     const langJa = document.getElementById("lang-ja");
     const langEn = document.getElementById("lang-en");
+    const answer = document.getElementById("answer-ja");
+    const aiBox = document.getElementById("ai-chat-box");
 
-    watchAnswer();
+    observeTarget(answer, applyRubyToAnswer);
+    observeTarget(aiBox, applyRubyToAiExplanation);
     restorePreference();
 
     button?.addEventListener("click", () => {
       window.setTimeout(() => {
         savePreference();
         updateButton();
-        applyRubyToAnswer();
+        refreshExtendedRuby();
       }, 0);
     });
 
     langJa?.addEventListener("click", () => {
       window.setTimeout(() => {
         updateButton();
-        applyRubyToAnswer();
+        refreshExtendedRuby();
       }, 0);
     });
 
     langEn?.addEventListener("click", () => {
       window.setTimeout(() => {
         updateButton();
-        restorePlainAnswer();
+        restorePlainTarget(answer, getAnswerPlainText);
+        restorePlainTarget(aiBox);
       }, 0);
     });
   });
