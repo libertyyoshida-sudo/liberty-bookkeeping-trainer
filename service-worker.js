@@ -1,6 +1,6 @@
-const CACHE_VERSION = "liberty-bookkeeping-v7";
+const CACHE_VERSION = "liberty-bookkeeping-v8";
 const SYNC_TAG = "liberty-learning-sync";
-const ASSET_VERSION = "20260728-7";
+const ASSET_VERSION = "20260728-8";
 
 const APP_SHELL = [
   "./",
