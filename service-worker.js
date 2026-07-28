@@ -1,6 +1,6 @@
-const CACHE_VERSION = "liberty-bookkeeping-v5";
+const CACHE_VERSION = "liberty-bookkeeping-v6";
 const SYNC_TAG = "liberty-learning-sync";
-const ASSET_VERSION = "20260728-5";
+const ASSET_VERSION = "20260728-6";
 
 const APP_SHELL = [
   "./",
@@ -17,6 +17,8 @@ const APP_SHELL = [
   `./offline-sync.js?v=${ASSET_VERSION}`,
   `./study-sync-adapter.js?v=${ASSET_VERSION}`,
   `./learning-progress.js?v=${ASSET_VERSION}`,
+  `./account-search.js?v=${ASSET_VERSION}`,
+  `./entry-input-ux.js?v=${ASSET_VERSION}`,
   "./analytics.html",
   "./history.html",
   "./contents.html",
