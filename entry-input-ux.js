@@ -11,6 +11,18 @@
     return digits ? Number(digits).toLocaleString('en-JP') : '';
   };
 
+  const normalizeAllAmounts = () => {
+    document.querySelectorAll(amountSelector).forEach((input) => {
+      input.value = digitsOnly(input.value);
+    });
+  };
+
+  const restoreAllAmounts = () => {
+    document.querySelectorAll(amountSelector).forEach((input) => {
+      if (document.activeElement !== input) input.value = formatAmount(input.value);
+    });
+  };
+
   const nextField = (input) => {
     const row = input.closest('.entry-row');
     if (!row) return null;
@@ -60,6 +72,20 @@
   };
 
   const enhanceAll = () => document.querySelectorAll(amountSelector).forEach(enhance);
+
+  document.addEventListener('pointerdown', (event) => {
+    if (!event.target.closest('#btn-check, [data-action="check-answer"]')) return;
+    normalizeAllAmounts();
+    setTimeout(restoreAllAmounts, 0);
+  }, true);
+
+  document.addEventListener('submit', () => {
+    normalizeAllAmounts();
+    setTimeout(restoreAllAmounts, 0);
+  }, true);
+
+  window.addEventListener('liberty-before-grade', normalizeAllAmounts);
+  window.addEventListener('liberty-after-grade', restoreAllAmounts);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', enhanceAll, { once: true });
