@@ -1,6 +1,6 @@
-const CACHE_VERSION = "liberty-bookkeeping-v4";
+const CACHE_VERSION = "liberty-bookkeeping-v5";
 const SYNC_TAG = "liberty-learning-sync";
-const ASSET_VERSION = "20260728-4";
+const ASSET_VERSION = "20260728-5";
 
 const APP_SHELL = [
   "./",
@@ -16,6 +16,7 @@ const APP_SHELL = [
   `./pwa-install.js?v=${ASSET_VERSION}`,
   `./offline-sync.js?v=${ASSET_VERSION}`,
   `./study-sync-adapter.js?v=${ASSET_VERSION}`,
+  `./learning-progress.js?v=${ASSET_VERSION}`,
   "./analytics.html",
   "./history.html",
   "./contents.html",
