@@ -216,6 +216,17 @@
     observers.push(observer);
   };
 
+  const loadEasyJapaneseFeature = () => {
+    if (document.querySelector('script[data-liberty-easy-japanese]')) return;
+
+    const script = document.createElement("script");
+    script.src = "easy-japanese.js?v=20260728-8";
+    script.defer = true;
+    script.dataset.libertyEasyJapanese = "true";
+    script.onerror = () => console.error("Easy Japanese feature could not be loaded.");
+    document.head.appendChild(script);
+  };
+
   document.addEventListener("DOMContentLoaded", () => {
     const button = document.getElementById("toggle-ruby");
     const langJa = document.getElementById("lang-ja");
@@ -226,6 +237,7 @@
     observeTarget(answer, applyRubyToAnswer);
     observeTarget(aiBox, applyRubyToAiExplanation);
     restorePreference();
+    loadEasyJapaneseFeature();
 
     button?.addEventListener("click", () => {
       window.setTimeout(() => {
