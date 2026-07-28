@@ -1,7 +1,8 @@
 (() => {
   const DB_NAME = "liberty-bookkeeping-offline";
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const STORE_NAME = "sync_queue";
+  const SYNC_TAG = "liberty-learning-sync";
   const handlers = new Map();
   let syncing = false;
 
@@ -10,13 +11,25 @@
 
     request.onupgradeneeded = () => {
       const db = request.result;
+      let store;
+
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, {
+        store = db.createObjectStore(STORE_NAME, {
           keyPath: "id",
           autoIncrement: true
         });
+      } else {
+        store = request.transaction.objectStore(STORE_NAME);
+      }
+
+      if (!store.indexNames.contains("createdAt")) {
         store.createIndex("createdAt", "createdAt", { unique: false });
+      }
+      if (!store.indexNames.contains("type")) {
         store.createIndex("type", "type", { unique: false });
+      }
+      if (!store.indexNames.contains("dedupeKey")) {
+        store.createIndex("dedupeKey", "dedupeKey", { unique: false });
       }
     };
 
@@ -64,11 +77,51 @@
     });
   };
 
+  const findByDedupeKey = async (dedupeKey) => {
+    if (!dedupeKey) return null;
+
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, "readonly");
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.index("dedupeKey").get(dedupeKey);
+
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+      transaction.oncomplete = () => db.close();
+    });
+  };
+
   const remove = (id) => runTransaction("readwrite", (store) => store.delete(id));
+
+  const requestBackgroundSync = async () => {
+    if (!("serviceWorker" in navigator)) return false;
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      if (!("sync" in registration)) return false;
+      await registration.sync.register(SYNC_TAG);
+      return true;
+    } catch (error) {
+      console.debug("Background Sync registration unavailable:", error);
+      return false;
+    }
+  };
 
   const queue = async (type, payload, options = {}) => {
     if (!type || typeof type !== "string") {
       throw new TypeError("Offline sync type is required");
+    }
+
+    const dedupeKey = options.dedupeKey || null;
+    const existing = await findByDedupeKey(dedupeKey);
+    if (existing) {
+      emit("liberty-offline-duplicate", {
+        id: existing.id,
+        type,
+        dedupeKey
+      });
+      return existing.id;
     }
 
     const record = {
@@ -76,24 +129,14 @@
       payload,
       createdAt: new Date().toISOString(),
       attempts: 0,
-      dedupeKey: options.dedupeKey || null
+      dedupeKey
     };
 
     const id = await runTransaction("readwrite", (store) => store.add(record));
     emit("liberty-offline-queued", { id, type });
 
-    if (navigator.onLine) {
-      void sync();
-    } else if ("serviceWorker" in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        if ("sync" in registration) {
-          await registration.sync.register("liberty-learning-sync");
-        }
-      } catch (error) {
-        console.debug("Background Sync registration unavailable:", error);
-      }
-    }
+    await requestBackgroundSync();
+    if (navigator.onLine) void sync();
 
     return id;
   };
@@ -149,6 +192,7 @@
       }
 
       const pendingCount = await count();
+      if (pendingCount > 0) await requestBackgroundSync();
       emit("liberty-offline-sync-complete", { synced, pending: pendingCount });
       return { synced, pending: pendingCount };
     } finally {
@@ -181,7 +225,8 @@
     sync,
     count,
     getPending,
-    register
+    register,
+    requestBackgroundSync
   };
 
   window.addEventListener("online", () => {
