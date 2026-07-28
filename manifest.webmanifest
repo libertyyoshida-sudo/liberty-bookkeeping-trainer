@@ -1,0 +1,35 @@
+{
+  "name": "Liberty Bookkeeping Trainer",
+  "short_name": "簿記トレーナー",
+  "description": "毎日少しずつ学べる、リバティーの簿記仕訳トレーニングアプリ",
+  "lang": "ja",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f7fb",
+  "theme_color": "#1769e0",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "今日の学習",
+      "short_name": "学習",
+      "url": "./index.html?source=shortcut#practice",
+      "icons": [{"src": "app-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+    },
+    {
+      "name": "学習分析",
+      "short_name": "分析",
+      "url": "./analytics.html",
+      "icons": [{"src": "app-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+    }
+  ]
+}
