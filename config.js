@@ -17,7 +17,7 @@ window.APP_AI_WORKER_URL = "https://ai-chat.libertyyoshida.workers.dev";
 // Mobile-first daily learning UI and PWA bootstrap.
 // Kept separate from the existing app so the stable learning logic remains untouched.
 (() => {
-  const version = "20260728-2";
+  const version = "20260728-3";
 
   if (!document.querySelector('meta[name="theme-color"]')) {
     const themeColor = document.createElement("meta");
@@ -48,21 +48,19 @@ window.APP_AI_WORKER_URL = "https://ai-chat.libertyyoshida.workers.dev";
     document.head.appendChild(link);
   }
 
-  if (!document.querySelector('script[data-daily-ui="true"]')) {
+  const loadScript = (src, marker) => {
+    if (document.querySelector(`script[data-liberty-module="${marker}"]`)) return;
     const script = document.createElement("script");
-    script.src = `daily-ui.js?v=${version}`;
+    script.src = `${src}?v=${version}`;
     script.defer = true;
-    script.dataset.dailyUi = "true";
+    script.dataset.libertyModule = marker;
     document.head.appendChild(script);
-  }
+  };
 
-  if (!document.querySelector('script[data-pwa-install="true"]')) {
-    const script = document.createElement("script");
-    script.src = `pwa-install.js?v=${version}`;
-    script.defer = true;
-    script.dataset.pwaInstall = "true";
-    document.head.appendChild(script);
-  }
+  loadScript("daily-ui.js", "daily-ui");
+  loadScript("pwa-install.js", "pwa-install");
+  loadScript("offline-sync.js", "offline-sync");
+  loadScript("study-sync-adapter.js", "study-sync-adapter");
 
   if ("serviceWorker" in navigator && location.protocol === "https:") {
     window.addEventListener("load", async () => {
@@ -71,6 +69,12 @@ window.APP_AI_WORKER_URL = "https://ai-chat.libertyyoshida.workers.dev";
           `service-worker.js?v=${version}`,
           { scope: "./" }
         );
+
+        if (registration.waiting && navigator.serviceWorker.controller) {
+          window.dispatchEvent(new CustomEvent("liberty-pwa-update-ready", {
+            detail: { registration }
+          }));
+        }
 
         registration.addEventListener("updatefound", () => {
           const worker = registration.installing;
