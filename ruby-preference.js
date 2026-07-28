@@ -47,6 +47,66 @@
     button.style.opacity = japaneseMode ? "1" : "0.65";
   };
 
+  const installMobileRubyToolbar = () => {
+    const button = document.getElementById("toggle-ruby");
+    const question = document.getElementById("question-text-ja");
+    if (!button || !question) return;
+
+    let toolbar = document.getElementById("mobile-ruby-toolbar");
+    if (!toolbar) {
+      toolbar = document.createElement("div");
+      toolbar.id = "mobile-ruby-toolbar";
+      toolbar.setAttribute("aria-label", "読みやすさ設定");
+      question.parentNode.insertBefore(toolbar, question);
+    }
+
+    if (button.parentElement !== toolbar) toolbar.appendChild(button);
+    button.classList.add("mobile-ruby-toggle");
+    button.style.marginLeft = "0";
+
+    if (!document.getElementById("mobile-ruby-toolbar-style")) {
+      const style = document.createElement("style");
+      style.id = "mobile-ruby-toolbar-style";
+      style.textContent = `
+        #mobile-ruby-toolbar { display:none; }
+        @media (max-width:760px) {
+          #mobile-ruby-toolbar {
+            display:flex !important;
+            justify-content:flex-end;
+            align-items:center;
+            margin:8px 0 10px;
+            min-height:42px;
+          }
+          #mobile-ruby-toolbar #toggle-ruby {
+            display:inline-flex !important;
+            visibility:visible !important;
+            opacity:1;
+            align-items:center;
+            justify-content:center;
+            min-height:40px;
+            padding:9px 14px;
+            border:1px solid var(--border-soft,#d7deea);
+            border-radius:12px;
+            background:#fff;
+            color:var(--text-main,#243047);
+            font-size:.82rem;
+            font-weight:800;
+            line-height:1;
+            white-space:nowrap;
+            box-shadow:0 4px 12px rgba(16,35,63,.08);
+            cursor:pointer;
+          }
+          body.daily-dark #mobile-ruby-toolbar #toggle-ruby {
+            background:#172033;
+            color:#edf4ff;
+            border-color:#344158;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  };
+
   const toRubyHtml = (converted) => {
     try {
       if (typeof furiganaTextToRubyHtml === "function") {
@@ -228,6 +288,8 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    installMobileRubyToolbar();
+
     const button = document.getElementById("toggle-ruby");
     const langJa = document.getElementById("lang-ja");
     const langEn = document.getElementById("lang-en");
