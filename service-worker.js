@@ -1,20 +1,36 @@
-const CACHE_VERSION = "liberty-bookkeeping-v1";
+const CACHE_VERSION = "liberty-bookkeeping-v4";
+const SYNC_TAG = "liberty-learning-sync";
+const ASSET_VERSION = "20260728-4";
+
 const APP_SHELL = [
   "./",
   "./index.html",
   "./offline.html",
-  "./manifest.webmanifest",
-  "./app-icon.svg",
+  `./manifest.webmanifest?v=${ASSET_VERSION}`,
+  `./app-icon.svg?v=${ASSET_VERSION}`,
   "./style.css",
   "./config.js",
   "./app.js?v=4",
-  "./daily-ui.css?v=20260728-2",
-  "./daily-ui.js?v=20260728-2",
+  `./daily-ui.css?v=${ASSET_VERSION}`,
+  `./daily-ui.js?v=${ASSET_VERSION}`,
+  `./pwa-install.js?v=${ASSET_VERSION}`,
+  `./offline-sync.js?v=${ASSET_VERSION}`,
+  `./study-sync-adapter.js?v=${ASSET_VERSION}`,
   "./analytics.html",
   "./history.html",
   "./contents.html",
   "./quiz.html"
 ];
+
+const notifyClients = async (message) => {
+  const clients = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true
+  });
+
+  clients.forEach((client) => client.postMessage(message));
+  return clients.length;
+};
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -31,6 +47,7 @@ self.addEventListener("activate", (event) => {
         keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))
       ))
       .then(() => self.clients.claim())
+      .then(() => notifyClients({ type: "LIBERTY_SERVICE_WORKER_READY" }))
   );
 });
 
@@ -45,8 +62,12 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
+          if (response && response.ok) {
+            const copy = response.clone();
+            event.waitUntil(
+              caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy))
+            );
+          }
           return response;
         })
         .catch(async () => {
@@ -65,7 +86,9 @@ self.addEventListener("fetch", (event) => {
           .then((response) => {
             if (response && response.ok) {
               const copy = response.clone();
-              caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
+              event.waitUntil(
+                caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy))
+              );
             }
             return response;
           })
@@ -77,8 +100,61 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+self.addEventListener("sync", (event) => {
+  if (event.tag !== SYNC_TAG) return;
+
+  event.waitUntil((async () => {
+    const clientCount = await notifyClients({
+      type: "LIBERTY_SYNC_REQUEST",
+      source: "background-sync"
+    });
+
+    if (clientCount === 0 && self.registration.sync) {
+      try {
+        await self.registration.sync.register(SYNC_TAG);
+      } catch (error) {
+        console.debug("Background sync could not be re-registered:", error);
+      }
+    }
+  })());
+});
+
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
+  const message = event.data || {};
+
+  if (message.type === "SKIP_WAITING") {
     self.skipWaiting();
+    return;
   }
+
+  if (message.type === "LIBERTY_REQUEST_SYNC") {
+    event.waitUntil(
+      notifyClients({
+        type: "LIBERTY_SYNC_REQUEST",
+        source: "client-message"
+      })
+    );
+  }
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  event.waitUntil((async () => {
+    const clients = await self.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true
+    });
+
+    const existing = clients.find((client) => "focus" in client);
+    if (existing) {
+      await existing.focus();
+      existing.postMessage({ type: "LIBERTY_SYNC_REQUEST", source: "notification" });
+      return;
+    }
+
+    if (self.clients.openWindow) {
+      await self.clients.openWindow("./");
+    }
+  })());
 });
