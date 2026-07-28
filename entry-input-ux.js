@@ -97,7 +97,52 @@
     });
   };
 
+  const installMobileActionStyles = () => {
+    if (document.getElementById('entry-mobile-action-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'entry-mobile-action-styles';
+    style.textContent = `
+      @media (max-width:760px) {
+        .button-row {
+          position: sticky;
+          bottom: calc(72px + env(safe-area-inset-bottom));
+          z-index: 900;
+          margin: 12px -6px 0;
+          padding: 8px 6px;
+          border: 1px solid rgba(223,229,238,.95);
+          border-radius: 14px;
+          background: rgba(255,255,255,.96);
+          box-shadow: 0 -8px 24px rgba(16,35,63,.10);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+        .button-row #check-answer,
+        .button-row [data-action="check-answer"] {
+          min-height: 46px;
+          font-size: .88rem;
+          font-weight: 800;
+          box-shadow: 0 8px 18px rgba(23,105,224,.22);
+        }
+        .button-row #prev-question,
+        .button-row #next-question {
+          min-height: 42px;
+        }
+        body.daily-dark .button-row {
+          background: rgba(23,32,51,.96);
+          border-color: #344158;
+          box-shadow: 0 -8px 24px rgba(0,0,0,.24);
+        }
+        .entry-row:focus-within {
+          border-color: var(--daily-blue,#1769e0);
+          box-shadow: 0 0 0 3px rgba(23,105,224,.10);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
   const enhanceAll = () => {
+    installMobileActionStyles();
     document.querySelectorAll(amountSelector).forEach(enhanceAmount);
     document.querySelectorAll(accountSelector).forEach(enhanceAccount);
   };
