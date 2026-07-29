@@ -1,5 +1,6 @@
 (() => {
   const STORAGE_KEY = "liberty-ruby-enabled";
+  const ASSET_VERSION = "20260729-9";
   const MAX_CACHE_SIZE = 150;
   const rubyCache = new Map();
   const conversionTokens = new WeakMap();
@@ -47,29 +48,72 @@
     button.style.opacity = japaneseMode ? "1" : "0.65";
   };
 
-  const installMobileRubyToolbar = () => {
+  const installResponsiveRubyPlacement = () => {
     const button = document.getElementById("toggle-ruby");
+    const header = document.querySelector(".layout .card-header");
     const question = document.getElementById("question-text-ja");
-    if (!button || !question) return;
+    if (!button || !header || !question) return;
 
-    let toolbar = document.getElementById("mobile-ruby-toolbar");
-    if (!toolbar) {
-      toolbar = document.createElement("div");
-      toolbar.id = "mobile-ruby-toolbar";
-      toolbar.setAttribute("aria-label", "読みやすさ設定");
-      question.parentNode.insertBefore(toolbar, question);
+    let mobileToolbar = document.getElementById("mobile-ruby-toolbar");
+    if (!mobileToolbar) {
+      mobileToolbar = document.createElement("div");
+      mobileToolbar.id = "mobile-ruby-toolbar";
+      mobileToolbar.setAttribute("aria-label", "読みやすさ設定");
+      question.parentNode.insertBefore(mobileToolbar, question);
     }
 
-    if (button.parentElement !== toolbar) toolbar.appendChild(button);
-    button.classList.add("mobile-ruby-toggle");
-    button.style.marginLeft = "0";
+    let desktopToolbar = header.querySelector(".desktop-ruby-toolbar");
+    if (!desktopToolbar) {
+      desktopToolbar = document.createElement("div");
+      desktopToolbar.className = "desktop-ruby-toolbar";
+      desktopToolbar.setAttribute("aria-label", "ルビ設定");
+      const readingTools = header.querySelector(".desktop-reading-tools");
+      if (readingTools) header.insertBefore(desktopToolbar, readingTools);
+      else header.appendChild(desktopToolbar);
+    }
 
-    if (!document.getElementById("mobile-ruby-toolbar-style")) {
+    const relocate = () => {
+      const mobile = window.matchMedia("(max-width: 760px)").matches;
+      const destination = mobile ? mobileToolbar : desktopToolbar;
+      if (button.parentElement !== destination) destination.appendChild(button);
+      button.classList.toggle("mobile-ruby-toggle", mobile);
+      button.classList.toggle("desktop-ruby-toggle", !mobile);
+      button.style.marginLeft = "0";
+      button.style.display = "inline-flex";
+      button.style.visibility = "visible";
+      updateButton();
+    };
+
+    if (!document.getElementById("responsive-ruby-toolbar-style")) {
       const style = document.createElement("style");
-      style.id = "mobile-ruby-toolbar-style";
+      style.id = "responsive-ruby-toolbar-style";
       style.textContent = `
         #mobile-ruby-toolbar { display:none; }
+        .desktop-ruby-toolbar {
+          display:flex;
+          align-items:center;
+          justify-content:flex-end;
+          margin-left:auto;
+        }
+        .desktop-ruby-toolbar #toggle-ruby,
+        #mobile-ruby-toolbar #toggle-ruby {
+          align-items:center;
+          justify-content:center;
+          min-height:38px;
+          padding:8px 13px;
+          border:1px solid #ead58b;
+          border-radius:999px;
+          background:#fff4c7;
+          color:#604800;
+          font-size:.8rem;
+          font-weight:800;
+          line-height:1;
+          white-space:nowrap;
+          box-shadow:0 4px 12px rgba(96,72,0,.10);
+          cursor:pointer;
+        }
         @media (max-width:760px) {
+          .desktop-ruby-toolbar { display:none !important; }
           #mobile-ruby-toolbar {
             display:flex !important;
             justify-content:flex-end;
@@ -80,38 +124,45 @@
           #mobile-ruby-toolbar #toggle-ruby {
             display:inline-flex !important;
             visibility:visible !important;
-            opacity:1;
-            align-items:center;
-            justify-content:center;
             min-height:40px;
             padding:9px 14px;
-            border:1px solid var(--border-soft,#d7deea);
             border-radius:12px;
-            background:#fff;
-            color:var(--text-main,#243047);
-            font-size:.82rem;
-            font-weight:800;
-            line-height:1;
-            white-space:nowrap;
-            box-shadow:0 4px 12px rgba(16,35,63,.08);
-            cursor:pointer;
           }
-          body.daily-dark #mobile-ruby-toolbar #toggle-ruby {
-            background:#172033;
-            color:#edf4ff;
-            border-color:#344158;
+        }
+        @media (min-width:761px) {
+          .desktop-ruby-toolbar { display:flex !important; }
+          .desktop-ruby-toolbar #toggle-ruby {
+            display:inline-flex !important;
+            visibility:visible !important;
           }
+        }
+        body.daily-dark .desktop-ruby-toolbar #toggle-ruby,
+        body.daily-dark #mobile-ruby-toolbar #toggle-ruby {
+          background:#3d3517;
+          color:#fff4c7;
+          border-color:#6b5b20;
         }
       `;
       document.head.appendChild(style);
     }
+
+    relocate();
+    window.addEventListener("resize", relocate, { passive: true });
+  };
+
+  const loadDesktopLayoutFeature = () => {
+    if (document.querySelector('script[data-liberty-desktop-layout]')) return;
+    const script = document.createElement("script");
+    script.src = `desktop-layout.js?v=${ASSET_VERSION}`;
+    script.defer = true;
+    script.dataset.libertyDesktopLayout = "true";
+    script.onerror = () => console.error("Desktop layout feature could not be loaded.");
+    document.head.appendChild(script);
   };
 
   const toRubyHtml = (converted) => {
     try {
-      if (typeof furiganaTextToRubyHtml === "function") {
-        return furiganaTextToRubyHtml(converted);
-      }
+      if (typeof furiganaTextToRubyHtml === "function") return furiganaTextToRubyHtml(converted);
     } catch (error) {
       console.debug("Ruby HTML helper unavailable:", error);
     }
@@ -121,33 +172,21 @@
   const rememberCache = (text, html) => {
     if (rubyCache.has(text)) rubyCache.delete(text);
     rubyCache.set(text, html);
-
-    if (rubyCache.size > MAX_CACHE_SIZE) {
-      const oldestKey = rubyCache.keys().next().value;
-      rubyCache.delete(oldestKey);
-    }
+    if (rubyCache.size > MAX_CACHE_SIZE) rubyCache.delete(rubyCache.keys().next().value);
   };
 
   const convertToRubyHtml = async (plainText) => {
     const normalized = String(plainText || "");
     if (!normalized.trim()) return "";
-
     const cached = rubyCache.get(normalized);
     if (cached) {
       rubyCache.delete(normalized);
       rubyCache.set(normalized, cached);
       return cached;
     }
-
-    if (typeof initKuroshiro === "function") {
-      await initKuroshiro();
-    }
+    if (typeof initKuroshiro === "function") await initKuroshiro();
     if (!kuroshiroReady || !kuroshiro) return "";
-
-    const converted = await kuroshiro.convert(normalized, {
-      to: "hiragana",
-      mode: "furigana"
-    });
+    const converted = await kuroshiro.convert(normalized, { to: "hiragana", mode: "furigana" });
     const html = toRubyHtml(converted);
     rememberCache(normalized, html);
     return html;
@@ -156,9 +195,7 @@
   const getAnswerPlainText = (answer) => {
     let plainText = "";
     try {
-      if (questions?.length && questions[currentIndex]) {
-        plainText = questions[currentIndex].journalJa || "";
-      }
+      if (questions?.length && questions[currentIndex]) plainText = questions[currentIndex].journalJa || "";
     } catch {
       plainText = "";
     }
@@ -168,10 +205,8 @@
   const restorePlainTarget = (element, resolver) => {
     if (!element) return;
     conversionTokens.set(element, (conversionTokens.get(element) || 0) + 1);
-
     const plainText = resolver ? resolver(element) : element.dataset.rubyBaseText || "";
     if (!plainText) return;
-
     renderingTargets.add(element);
     element.textContent = plainText;
     element.dataset.rubyBaseText = plainText;
@@ -180,25 +215,18 @@
 
   const applyRubyToTarget = async (element, resolver) => {
     if (!element) return;
-
     if (!isRubyEnabled() || getCurrentLanguage() !== "ja") {
       restorePlainTarget(element, resolver);
       return;
     }
-
-    const plainText = resolver
-      ? resolver(element)
-      : element.dataset.rubyBaseText || element.textContent || "";
+    const plainText = resolver ? resolver(element) : element.dataset.rubyBaseText || element.textContent || "";
     if (!plainText.trim()) return;
-
     element.dataset.rubyBaseText = plainText;
     const token = (conversionTokens.get(element) || 0) + 1;
     conversionTokens.set(element, token);
-
     try {
       const html = await convertToRubyHtml(plainText);
       if (!html || conversionTokens.get(element) !== token || !isRubyEnabled()) return;
-
       renderingTargets.add(element);
       element.innerHTML = html;
       queueMicrotask(() => renderingTargets.delete(element));
@@ -208,22 +236,9 @@
     }
   };
 
-  const applyRubyToAnswer = () => {
-    const answer = document.getElementById("answer-ja");
-    return applyRubyToTarget(answer, getAnswerPlainText);
-  };
-
-  const applyRubyToAiExplanation = () => {
-    const aiBox = document.getElementById("ai-chat-box");
-    return applyRubyToTarget(aiBox);
-  };
-
-  const refreshExtendedRuby = async () => {
-    await Promise.all([
-      applyRubyToAnswer(),
-      applyRubyToAiExplanation()
-    ]);
-  };
+  const applyRubyToAnswer = () => applyRubyToTarget(document.getElementById("answer-ja"), getAnswerPlainText);
+  const applyRubyToAiExplanation = () => applyRubyToTarget(document.getElementById("ai-chat-box"));
+  const refreshExtendedRuby = async () => Promise.all([applyRubyToAnswer(), applyRubyToAiExplanation()]);
 
   const restorePreference = async () => {
     let stored = null;
@@ -232,12 +247,10 @@
     } catch (error) {
       console.debug("Ruby preference could not be read:", error);
     }
-
     if (stored !== "true") {
       updateButton();
       return;
     }
-
     try {
       rubyEnabled = true;
       updateButton();
@@ -247,40 +260,28 @@
     } catch (error) {
       console.error("Ruby preference restore failed:", error);
       rubyEnabled = false;
-      try {
-        localStorage.setItem(STORAGE_KEY, "false");
-      } catch {
-        // Ignore storage failures and keep the page usable.
-      }
+      try { localStorage.setItem(STORAGE_KEY, "false"); } catch {}
       updateButton();
     }
   };
 
   const observeTarget = (element, callback) => {
     if (!element) return;
-
     const observer = new MutationObserver(() => {
       if (renderingTargets.has(element)) return;
       if (element.querySelector("ruby") && isRubyEnabled()) return;
-
       const currentText = element.textContent || "";
       if (currentText.trim()) element.dataset.rubyBaseText = currentText;
       window.setTimeout(callback, 0);
     });
-
-    observer.observe(element, {
-      childList: true,
-      characterData: true,
-      subtree: true
-    });
+    observer.observe(element, { childList: true, characterData: true, subtree: true });
     observers.push(observer);
   };
 
   const loadEasyJapaneseFeature = () => {
     if (document.querySelector('script[data-liberty-easy-japanese]')) return;
-
     const script = document.createElement("script");
-    script.src = "easy-japanese.js?v=20260728-8";
+    script.src = `easy-japanese.js?v=${ASSET_VERSION}`;
     script.defer = true;
     script.dataset.libertyEasyJapanese = "true";
     script.onerror = () => console.error("Easy Japanese feature could not be loaded.");
@@ -288,7 +289,8 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
-    installMobileRubyToolbar();
+    loadDesktopLayoutFeature();
+    installResponsiveRubyPlacement();
 
     const button = document.getElementById("toggle-ruby");
     const langJa = document.getElementById("lang-ja");
