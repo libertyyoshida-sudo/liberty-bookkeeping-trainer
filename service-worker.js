@@ -1,6 +1,6 @@
-const CACHE_VERSION = "liberty-bookkeeping-v8";
+const CACHE_VERSION = "liberty-bookkeeping-v9";
 const SYNC_TAG = "liberty-learning-sync";
-const ASSET_VERSION = "20260728-8";
+const ASSET_VERSION = "20260729-9";
 
 const APP_SHELL = [
   "./",
@@ -11,6 +11,9 @@ const APP_SHELL = [
   "./style.css",
   "./config.js",
   "./app.js?v=4",
+  `./ruby-preference.js?v=${ASSET_VERSION}`,
+  `./desktop-layout.js?v=${ASSET_VERSION}`,
+  `./easy-japanese.js?v=${ASSET_VERSION}`,
   `./daily-ui.css?v=${ASSET_VERSION}`,
   `./daily-ui.js?v=${ASSET_VERSION}`,
   `./pwa-install.js?v=${ASSET_VERSION}`,
