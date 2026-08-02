@@ -5,328 +5,197 @@
   <title>Liberty Bookkeeping Trainer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <link rel="stylesheet" href="style.css" />
-  
+
   <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dist/kuromoji.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
-
-  <!-- ⭐ Supabase を「外で」読み込む（ここがポイント） -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  
   <script src="app.js?v=4"></script>
+  <script src="desktop-layout.js?v=20260729-9" defer></script>
+  <script src="ruby-preference.js?v=20260729-9" defer></script>
+
   <style>
-    /* スマホ表示時にトップナビを横スクロールにする */
-    @media (max-width: 600px) {
+    @media (max-width:600px) {
       .top-nav {
-        display: flex;
-        flex-wrap: nowrap !important;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        gap: 8px;
-        padding-bottom: 4px;
+        display:flex;
+        flex-wrap:nowrap !important;
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+        gap:8px;
+        padding-bottom:4px;
       }
-      .top-nav a {
-        flex: 0 0 auto;
-      }
+      .top-nav a { flex:0 0 auto; }
     }
   </style>
 </head>
 <body>
-  <div id="error-banner" style="display: none; background-color: #fff1f1; border-bottom: 2px solid #ffc2c2; color: #c53030; padding: 16px; text-align: center; font-weight: bold; font-size: 0.9rem;">
-  </div>
+  <div id="error-banner" style="display:none;background-color:#fff1f1;border-bottom:2px solid #ffc2c2;color:#c53030;padding:16px;text-align:center;font-weight:bold;font-size:.9rem;"></div>
+
   <div class="page">
     <header>
-      <!-- Liberty ロゴ -->
       <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
       <div class="title-block">
         <h1 data-i18n="app-title">Liberty Bookkeeping Trainer</h1>
-        <span data-i18n="app-subtitle">留学生向け 簿記仕訳トレーニング </span>
+        <span data-i18n="app-subtitle">留学生向け 簿記仕訳トレーニング</span>
       </div>
 
-     <div class="auth-box">
-      <!-- ログアウト状態 -->
-      <div id="auth-when-logged-out">
-       <div class="auth-fields">
-        <input type="email" id="auth-email" placeholder="メールアドレス" />
-        <input type="password" id="auth-password" placeholder="パスワード" />
-       </div>
+      <div class="auth-box">
+        <div id="auth-when-logged-out">
+          <div class="auth-fields">
+            <input type="email" id="auth-email" placeholder="メールアドレス" />
+            <input type="password" id="auth-password" placeholder="パスワード" />
+          </div>
+          <div class="auth-actions">
+            <button class="auth-primary-btn" id="btn-login" data-i18n="btn-login">ログイン</button>
+            <a href="signup.html" class="auth-link" data-i18n="link-signup">新規登録</a>
+            <a href="forgot-password.html" class="auth-link" data-i18n="link-forgot-pass">パスワードをお忘れの方はこちら</a>
+          </div>
+        </div>
+        <div id="auth-when-logged-in" style="display:none;">
+          <span id="auth-user-label" class="auth-status"></span>
+          <button class="auth-small-btn" id="btn-logout" data-i18n="btn-logout">ログアウト</button>
+        </div>
+      </div>
+    </header>
 
-      <div class="auth-actions">
-        <button class="auth-primary-btn" id="btn-login" data-i18n="btn-login">ログイン</button>
-        <a href="signup.html" class="auth-link" data-i18n="link-signup">新規登録</a>
-        <a href="forgot-password.html" class="auth-link" data-i18n="link-forgot-pass">パスワードをお忘れの方はこちら</a>
-       </div>
+    <nav class="top-nav" aria-label="学習メニュー">
+      <a href="contents.html"><button class="top-nav-btn"><span class="icon">🎥</span><span data-i18n="nav-contents">動画・スライドを見る</span></button></a>
+      <a href="history.html"><button class="top-nav-btn"><span class="icon">📊</span><span data-i18n="nav-history">学習履歴ページへ</span></button></a>
+      <a href="analytics.html"><button class="top-nav-btn"><span class="icon">📈</span><span data-i18n="nav-analytics">学習分析</span></button></a>
+      <a href="quiz.html"><button class="top-nav-btn"><span class="icon">🧩</span><span data-i18n="nav-quiz">勘定科目クイズ</span></button></a>
+      <a href="admin.html" id="admin-link" class="btn" style="display:none;">🔑 管理者ページ</a>
+    </nav>
+
+    <main>
+      <div class="layout">
+        <section class="card practice-workspace">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-title-pill" data-i18n="practice-pill">Practice</span>
+              <span id="question-label">問題 0 / 0</span>
+            </div>
+
+            <div class="lang-toggle">
+              <button id="lang-ja" class="active">日本語</button>
+              <button id="lang-en">English</button>
+            </div>
+
+            <button id="toggle-ruby" class="auth-small-btn">ルビ表示：OFF</button>
+            <button id="btn-landscape" class="auth-small-btn">横画面モード</button>
+            <button id="btn-font-size" class="auth-small-btn">文字サイズ: 標準</button>
+            <button id="btn-line-height" class="auth-small-btn">行間: 標準</button>
+            <button id="btn-font-family" class="auth-small-btn">フォント: ゴシック</button>
+            <button id="btn-speech" class="auth-small-btn">🔊 読み上げ</button>
+            <div class="speech-rate-control" style="display:inline-flex;align-items:center;gap:4px;font-size:.75rem;color:var(--text-muted);">
+              <span>Speed</span>
+              <input type="range" id="speech-rate" min="0.5" max="2.0" step="0.1" value="1.0" style="width:50px;vertical-align:middle;" />
+              <span id="speech-rate-val">1.0</span>
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <span data-i18n="filter-category">カテゴリ:</span>
+            <select id="category-filter"></select>
+            <span data-i18n="filter-count">問題数:</span>
+            <select id="question-count"></select>
+            <label><input type="checkbox" id="filter-unlearned" /><span data-i18n="filter-unlearned">未学習のみ</span></label>
+            <label><input type="checkbox" id="filter-not-cleared" /><span data-i18n="filter-not-cleared">未修得のみ</span></label>
+            <label><input type="checkbox" id="filter-review" /><span data-i18n="filter-review">復習（ミスあり）</span></label>
+            <label><input type="checkbox" id="mode-drill" /><span data-i18n="filter-drill">特訓モード</span></label>
+            <button id="btn-weak-settings" class="auth-small-btn" style="background:#fff;border:1px solid #ccc;" data-i18n="btn-weak-settings">苦手設定</button>
+            <label><input type="checkbox" id="filter-weak-only" /><span data-i18n="filter-weak-only">苦手優先</span></label>
+            <button id="btn-start-session" class="btn btn-primary" data-i18n="filter-start">出題開始</button>
+          </div>
+
+          <div class="question-meta">
+            <span class="badge" id="category-label"></span>
+            <span id="id-label"></span>
+            <span id="random-label"></span>
+          </div>
+
+          <div class="question-text" id="question-text-ja"></div>
+          <div class="question-text" id="question-text-en" style="display:none;"></div>
+
+          <div class="toggle-row">
+            <span data-i18n="toggle-main">借方・貸方の科目と金額を入力してください。</span>
+            <label><input type="checkbox" id="random-mode" /><span data-i18n="toggle-random">ランダム出題</span></label>
+          </div>
+
+          <p class="hint-text" id="hint-text" data-i18n="hint-text" data-furigana-target>
+            行ごとに「借方勘定科目・金額」「貸方勘定科目・金額」を入力します。<br />
+            不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。
+          </p>
+
+          <div class="entry-table">
+            <div class="entry-header-row">
+              <span data-i18n="entry-col-row">行</span>
+              <span data-i18n="entry-col-debit">借方勘定科目</span>
+              <span data-i18n="entry-col-debit-amount">金額</span>
+              <span data-i18n="entry-col-credit">貸方勘定科目</span>
+              <span data-i18n="entry-col-credit-amount">金額</span>
+            </div>
+            <div class="entry-row"><span class="row-label">1</span><select class="account-select" id="debit-account-1"></select><input type="text" id="debit-amount-1" class="amount-input" inputmode="numeric" autocomplete="off" /><select class="account-select" id="credit-account-1"></select><input type="text" id="credit-amount-1" class="amount-input" inputmode="numeric" autocomplete="off" /></div>
+            <div class="entry-row"><span class="row-label">2</span><select class="account-select" id="debit-account-2"></select><input type="text" id="debit-amount-2" class="amount-input" inputmode="numeric" autocomplete="off" /><select class="account-select" id="credit-account-2"></select><input type="text" id="credit-amount-2" class="amount-input" inputmode="numeric" autocomplete="off" /></div>
+            <div class="entry-row"><span class="row-label">3</span><select class="account-select" id="debit-account-3"></select><input type="text" id="debit-amount-3" class="amount-input" inputmode="numeric" autocomplete="off" /><select class="account-select" id="credit-account-3"></select><input type="text" id="credit-amount-3" class="amount-input" inputmode="numeric" autocomplete="off" /></div>
+            <div class="entry-row"><span class="row-label">4</span><select class="account-select" id="debit-account-4"></select><input type="text" id="debit-amount-4" class="amount-input" inputmode="numeric" autocomplete="off" /><select class="account-select" id="credit-account-4"></select><input type="text" id="credit-amount-4" class="amount-input" inputmode="numeric" autocomplete="off" /></div>
+          </div>
+
+          <div class="button-row">
+            <button id="prev-question" class="btn btn-secondary" data-i18n="btn-prev">⏮ 前の問題へ</button>
+            <button id="check-answer" class="btn btn-primary" data-i18n="btn-check">✔ 答え合わせ</button>
+            <button id="next-question" class="btn btn-outline" data-i18n="btn-next">⏭ 次の問題へ</button>
+          </div>
+
+          <div id="result-message" class="result-message"></div>
+          <div class="answer-panel" id="answer-panel" style="display:none;">
+            <h3 data-i18n="answer-title">模範仕訳 / Model Answer</h3>
+            <pre id="answer-ja"></pre>
+            <pre id="answer-en"></pre>
+            <div id="answer-ref-links" style="margin-bottom:8px;font-size:.9rem;"></div>
+            <small data-i18n="answer-note">※ 科目名と金額が合致していれば正解です（行の順番は問いません）。</small>
+          </div>
+        </section>
       </div>
 
-  <!-- ログイン状態 -->
-  <div id="auth-when-logged-in" style="display:none;">
-    <span id="auth-user-label" class="auth-status"></span>
-    <button class="auth-small-btn" id="btn-logout" data-i18n="btn-logout">ログアウト</button>
-  </div>
-</div>
+      <section class="desktop-insights" aria-label="学習サポート">
+        <section class="desktop-insight-card desktop-progress-card" aria-label="進捗">
+          <div class="side-card-title" data-i18n="progress-title">進捗 / Progress</div>
+          <div class="score-box"><div class="score-pill" id="score-pill">正解 0 / 0</div></div>
+          <p id="progress-help" data-i18n="progress-help" style="color:var(--text-muted);margin-top:0;">
+            ・「出題開始」で選択した条件の問題セットを開始します。<br />
+            ・「答え合わせ」で自動判定します。<br />
+            ・ランダム出題をONにすると、順番をシャッフルします。<br />
+            ・日本語 / 英語はいつでも切り替え可能です。
+          </p>
+        </section>
 
-
-    <!-- 動画・スライド / 履歴ページへのボタン -->
-    <div class="top-nav">
-      <a href="contents.html">
-        <button class="top-nav-btn">
-          <span class="icon">🎥</span>
-          <span data-i18n="nav-contents">動画・スライドを見る</span>
-        </button>
-      </a>
-      <a href="history.html">
-        <button class="top-nav-btn">
-          <span class="icon">📊</span>
-          <span data-i18n="nav-history">学習履歴ページへ</span>
-        </button>
-      </a>
-      <a href="analytics.html">
-        <button class="top-nav-btn">
-          <span class="icon">📈</span>
-          <span data-i18n="nav-analytics">学習分析</span>
-        </button>
-      </a>
-      <a href="quiz.html">
-        <button class="top-nav-btn">
-          <span class="icon">🧩</span>
-          <span data-i18n="nav-quiz">勘定科目クイズ</span>
-        </button>
-      </a>
-      <a href="admin.html" id="admin-link" class="btn" style="display:none;">
-      🔑 管理者ページ
-      </a>
-    </div>
-
-    <div class="layout">
-      <!-- 左：問題＆入力 -->
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="card-title-pill" data-i18n="practice-pill">Practice</span>
-            <span id="question-label">問題 0 / 0</span>
+        <section class="desktop-insight-card desktop-ai-card" aria-label="AI解説">
+          <div class="side-card-title" data-i18n="ai-explain-title">AI解説（この問題）</div>
+          <div id="ai-chat-box" style="border:1px solid var(--border-soft);border-radius:10px;padding:10px;background:#f9fbff;font-size:.78rem;max-height:260px;overflow-y:auto;"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="btn-ai-explain" class="btn btn-primary" style="flex:1;justify-content:center;" data-i18n="btn-ai-explain">この問題を解説して</button>
+            <button id="btn-ai-clear" class="btn btn-secondary" data-i18n="btn-ai-clear">クリア</button>
           </div>
-          <div class="lang-toggle">
-            <button id="lang-ja" class="active">日本語</button>
-            <button id="lang-en">English</button>
-          </div>
+          <div style="margin-top:8px;font-size:.72rem;color:var(--text-muted);line-height:1.4;" data-i18n="ai-note">※AIの解説は学習補助です。最終判断はテキスト等で確認してください。</div>
+        </section>
 
-          <!-- ルビ表示切替ボタン -->
-          <button id="toggle-ruby" class="auth-small-btn" style="margin-left:8px;">
-            ルビ表示：OFF
-          </button>
-
-          <button id="btn-landscape" class="auth-small-btn" style="margin-left:8px;">
-            横画面モード
-          </button>
-
-          <button id="btn-font-size" class="auth-small-btn" style="margin-left:8px;">
-            文字サイズ: 標準
-          </button>
-
-          <button id="btn-line-height" class="auth-small-btn" style="margin-left:8px;">
-            行間: 標準
-          </button>
-
-          <button id="btn-font-family" class="auth-small-btn" style="margin-left:8px;">
-            フォント: ゴシック
-          </button>
-
-          <button id="btn-speech" class="auth-small-btn" style="margin-left:8px;">
-            🔊 読み上げ
-          </button>
-
-          <div style="display:inline-flex; align-items:center; margin-left:8px; gap:4px; font-size:0.75rem; color:var(--text-muted);">
-            <span>Speed</span>
-            <input type="range" id="speech-rate" min="0.5" max="2.0" step="0.1" value="1.0" style="width:50px; vertical-align:middle;">
-            <span id="speech-rate-val">1.0</span>
-          </div>
-          
-        </div>
-
-        <!-- 出題条件 -->
-        <div class="filter-row">
-          <span data-i18n="filter-category">カテゴリ:</span>
-          <select id="category-filter"></select>
-          <span data-i18n="filter-count">問題数:</span>
-          <select id="question-count"></select>
-          <label>
-            <input type="checkbox" id="filter-unlearned" />
-            <span data-i18n="filter-unlearned">未学習のみ</span>
-          </label>
-          <label>
-            <input type="checkbox" id="filter-not-cleared" />
-            <span data-i18n="filter-not-cleared">未修得のみ</span>
-          </label>
-          <label>
-            <input type="checkbox" id="filter-review" />
-            <span data-i18n="filter-review">復習（ミスあり）</span>
-          </label>
-          <label>
-            <input type="checkbox" id="mode-drill" />
-            <span data-i18n="filter-drill">特訓モード</span>
-          </label>
-          
-          <button id="btn-weak-settings" class="auth-small-btn" style="background:#fff; border:1px solid #ccc; margin-left:4px;" data-i18n="btn-weak-settings">苦手設定</button>
-          <label>
-            <input type="checkbox" id="filter-weak-only" />
-            <span data-i18n="filter-weak-only">苦手優先</span>
-          </label>
-
-          <button id="btn-start-session" class="btn btn-primary" data-i18n="filter-start">出題開始</button>
-        </div>
-
-        <div class="question-meta">
-          <span class="badge" id="category-label"></span>
-          <span id="id-label"></span>
-          <span id="random-label"></span>
-        </div>
-
-        <div class="question-text" id="question-text-ja">
-          <!-- 日本語問題文 -->
-        </div>
-        <div class="question-text" id="question-text-en" style="display:none;">
-          <!-- English question -->
-        </div>
-
-        <div class="toggle-row">
-          <span data-i18n="toggle-main">借方・貸方の科目と金額を入力してください。</span>
-          <label>
-            <input type="checkbox" id="random-mode" />
-            <span data-i18n="toggle-random">ランダム出題</span>
-          </label>
-        </div>
-
-        <p class="hint-text" id="hint-text" data-i18n="hint-text" data-furigana-target>
-          行ごとに「借方勘定科目・金額」「貸方勘定科目・金額」を入力します。<br>
-          不要な欄は科目を「空欄」のまま、金額も空欄にしておいてください。
-        </p>
-
-        <!-- 仕訳入力テーブル -->
-        <div class="entry-table">
-          <div class="entry-header-row">
-            <span data-i18n="entry-col-row">行</span>
-            <span data-i18n="entry-col-debit">借方勘定科目</span>
-            <span data-i18n="entry-col-debit-amount">金額</span>
-            <span data-i18n="entry-col-credit">貸方勘定科目</span>
-            <span data-i18n="entry-col-credit-amount">金額</span>
-          </div>
-
-          <!-- 4行分用意 -->
-          <div class="entry-row">
-            <span class="row-label">1</span>
-            <select class="account-select" id="debit-account-1"></select>
-            <input type="text" id="debit-amount-1" class="amount-input" inputmode="numeric" autocomplete="off" />
-            <select class="account-select" id="credit-account-1"></select>
-            <input type="text" id="credit-amount-1" class="amount-input" inputmode="numeric" autocomplete="off" />
-          </div>
-
-          <div class="entry-row">
-            <span class="row-label">2</span>
-            <select class="account-select" id="debit-account-2"></select>
-            <input type="text" id="debit-amount-2" class="amount-input" inputmode="numeric" autocomplete="off" />
-            <select class="account-select" id="credit-account-2"></select>
-            <input type="text" id="credit-amount-2" class="amount-input" inputmode="numeric" autocomplete="off" />
-          </div>
-
-          <div class="entry-row">
-            <span class="row-label">3</span>
-            <select class="account-select" id="debit-account-3"></select>
-            <input type="text" id="debit-amount-3" class="amount-input" inputmode="numeric" autocomplete="off" />
-            <select class="account-select" id="credit-account-3"></select>
-            <input type="text" id="credit-amount-3" class="amount-input" inputmode="numeric" autocomplete="off" />
-          </div>
-
-          <div class="entry-row">
-            <span class="row-label">4</span>
-            <select class="account-select" id="debit-account-4"></select>
-            <input type="text" id="debit-amount-4" class="amount-input" inputmode="numeric" autocomplete="off" />
-            <select class="account-select" id="credit-account-4"></select>
-            <input type="text" id="credit-amount-4" class="amount-input" inputmode="numeric" autocomplete="off" />
-          </div>
-        </div>
-
-        <div class="button-row">
-          <button id="prev-question" class="btn btn-secondary" data-i18n="btn-prev">⏮ 前の問題へ</button>
-          <button id="check-answer" class="btn btn-primary" data-i18n="btn-check">✔ 答え合わせ</button>
-          <button id="next-question" class="btn btn-outline" data-i18n="btn-next">⏭ 次の問題へ</button>
-        </div>
-
-        <div id="result-message" class="result-message"></div>
-
-        <div class="answer-panel" id="answer-panel" style="display:none;">
-          <h3 data-i18n="answer-title">模範仕訳 / Model Answer</h3>
-          <pre id="answer-ja"></pre>
-          <pre id="answer-en"></pre>
-          <div id="answer-ref-links" style="margin-bottom:8px; font-size:0.9rem;"></div>
-          <small data-i18n="answer-note">※ 科目名と金額が合致していれば正解です（行の順番は問いません）。</small>
-        </div>
+        <section class="desktop-insight-card desktop-history-card" aria-label="直近の学習履歴">
+          <div class="history-box-title" data-i18n="history-title">直近の学習履歴</div>
+          <div id="history-list" class="history-list"></div>
+        </section>
       </section>
+    </main>
 
-      <!-- 右：進捗＆履歴 -->
-      <aside class="card">
-        <div class="side-card-title" data-i18n="progress-title">進捗 / Progress</div>
-        <div class="score-box">
-          <div class="score-pill" id="score-pill">正解 0 / 0</div>
-        </div>
-
-        <!-- AI解説（右サイドに追加） -->
- <div style="margin-top:14px;">
-  <div class="side-card-title" data-i18n="ai-explain-title">AI解説（この問題）</div>
-
-  <div id="ai-chat-box" style="
-    border:1px solid var(--border-soft);
-    border-radius:10px;
-    padding:8px;
-    background:#f9fbff;
-    font-size:0.78rem;
-    max-height:440px;
-    overflow-y:auto;
-  "></div>
-
-  <div style="display:flex; gap:6px; margin-top:8px;">
-    <button id="btn-ai-explain" class="btn btn-primary" style="flex:1;" data-i18n="btn-ai-explain">
-      この問題を解説して
-    </button>
-    <button id="btn-ai-clear" class="btn btn-secondary" style="flex:0;" data-i18n="btn-ai-clear">
-      クリア
-    </button>
-  </div>
- 
-  <div style="margin-top:6px; font-size:0.72rem; color:var(--text-muted); line-height:1.4;" data-i18n="ai-note">
-    ※AIの解説は学習補助です。最終判断はテキスト等で確認してください。
-  </div>
-</div>
-
-        
-        <p id="progress-help"
-          data-i18n="progress-help"
-          style= color:var(--text-muted); margin-top:0;">
-          ・「出題開始」で選択した条件の問題セットを開始します。<br>
-          ・「答え合わせ」で自動判定します。<br>
-          ・ランダム出題をONにすると、順番をシャッフルします。<br>
-          ・日本語 / 英語はいつでも切り替え可能です。
-        </p>
-
-        <div class="history-box-title" data-i18n="history-title">直近の学習履歴</div>
-        <div id="history-list" class="history-list">
-          <!-- 履歴が入る -->
-        </div>
-      </aside>
-    </div>
-
-    <footer>
-      &copy; Liberty Co., Ltd. Bookkeeping Trainer 
-    </footer>
+    <footer>&copy; Liberty Co., Ltd. Bookkeeping Trainer</footer>
   </div>
 
-  <!-- 苦手カテゴリ設定モーダル -->
   <div id="weak-modal" class="modal-overlay" style="display:none;">
     <div class="modal-content">
       <h3 data-i18n="weak-modal-title" style="margin-top:0;">苦手カテゴリの設定</h3>
-      <p data-i18n="weak-modal-desc" style="font-size:0.85rem; color:#666; margin-bottom:10px;">重点的に学習したいカテゴリを選択してください。</p>
-      <div id="weak-cat-list" style="max-height:300px; overflow-y:auto; margin-bottom:16px; border:1px solid #eee; padding:10px; border-radius:8px;"></div>
-      <div style="text-align:right; gap:8px; display:flex; justify-content:flex-end;">
+      <p data-i18n="weak-modal-desc" style="font-size:.85rem;color:#666;margin-bottom:10px;">重点的に学習したいカテゴリを選択してください。</p>
+      <div id="weak-cat-list" style="max-height:300px;overflow-y:auto;margin-bottom:16px;border:1px solid #eee;padding:10px;border-radius:8px;"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
         <button id="btn-weak-cancel" class="btn btn-secondary" data-i18n="btn-cancel">キャンセル</button>
         <button id="btn-weak-save" class="btn btn-primary" data-i18n="btn-save">保存</button>
       </div>

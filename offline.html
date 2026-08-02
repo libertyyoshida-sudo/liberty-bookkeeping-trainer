@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1769e0" />
+  <title>オフライン | Liberty Bookkeeping Trainer</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f4f7fb; color: #172033; }
+    main { width: min(100%, 440px); padding: 32px 24px; border-radius: 24px; background: #fff; box-shadow: 0 18px 60px rgba(36, 58, 92, .14); text-align: center; }
+    img { width: 96px; height: 96px; }
+    h1 { margin: 20px 0 8px; font-size: 1.45rem; }
+    p { margin: 0 0 24px; color: #62708a; line-height: 1.7; }
+    button { width: 100%; border: 0; border-radius: 14px; padding: 14px 18px; background: #1769e0; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+    small { display: block; margin-top: 16px; color: #8290a8; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="app-icon.svg" alt="" />
+    <h1>現在オフラインです</h1>
+    <p>一度開いた学習画面は、キャッシュから利用できる場合があります。通信環境が戻ったら再読み込みしてください。</p>
+    <button type="button" onclick="location.reload()">もう一度読み込む</button>
+    <small>Liberty Bookkeeping Trainer</small>
+  </main>
+</body>
+</html>
