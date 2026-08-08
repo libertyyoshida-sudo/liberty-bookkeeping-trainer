@@ -458,7 +458,7 @@ let questionTextJa, questionTextEn;
 let langJaBtn, langEnBtn, randomModeCheckbox, unlearnedCheckbox, notClearedCheckbox, reviewCheckbox, drillModeCheckbox, weakOnlyCheckbox, btnFontSize, btnLineHeight, btnFontFamily, btnSpeech, speechRateInput, speechRateVal;
 let prevBtn, nextBtn, checkBtn;
 let resultMessage, answerPanel, answerJa, answerEn, scorePill;
-let categoryFilterSelect, questionCountSelect, historyListEl;
+let categoryFilterSelect, questionCountSelect, historyListEl, aiChatBox;
 
 // --------------------------- 
 // 認証まわり
@@ -510,6 +510,9 @@ async function signIn() {
   loadMyHistory();
   loadLearnedHistory(); // ログイン時に学習済みデータを取得
   loadWeakCategories(); // 苦手カテゴリ読み込み
+  if (window.LibertyProgressStore?.refresh) {
+    await window.LibertyProgressStore.refresh('auth');
+  }
   alert('ログインしました。');
 }
 
@@ -555,6 +558,9 @@ async function signOut() {
   loadMyHistory();
   learnedQuestionIds.clear(); // ログアウト時はクリア
   loadWeakCategories(); // ゲスト用に切り替え
+  if (window.LibertyProgressStore?.refresh) {
+    await window.LibertyProgressStore.refresh('auth');
+  }
   alert('ログアウトしました。');
 }
 
@@ -842,8 +848,46 @@ function toggleFontSize() {
 
 function applyFontSize() {
   const size = fontSizes[currentFontSizeLevel];
-  if (questionTextJa) questionTextJa.style.fontSize = size;
-  if (questionTextEn) questionTextEn.style.fontSize = size;
+  document.documentElement.style.setProperty('--app-font-size', size);
+
+  let style = document.getElementById('app-font-size-override');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'app-font-size-override';
+    document.head.appendChild(style);
+  }
+  style.textContent = `
+    :root {
+      --app-font-size: ${size};
+    }
+    #question-text-ja,
+    #question-text-en,
+    #ai-chat-box,
+    #answer-panel,
+    #answer-ja,
+    #answer-en,
+    #answer-ref-links,
+    .account-select,
+    .amount-input {
+      font-size: var(--app-font-size) !important;
+    }
+  `;
+
+  document.querySelectorAll('.account-select, .amount-input').forEach((el) => {
+    el.style.fontSize = size;
+    el.style.setProperty('font-size', size, 'important');
+  });
+
+  if (aiChatBox) {
+    aiChatBox.style.whiteSpace = 'pre-wrap';
+  }
+  
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.account-select, .amount-input').forEach((el) => {
+      el.style.fontSize = size;
+      el.style.setProperty('font-size', size, 'important');
+    });
+  });
   
   // ボタンラベル更新
   if (btnFontSize) {
@@ -862,6 +906,7 @@ function applyLineHeight() {
   const lh = lineHeights[currentLineHeightLevel];
   if (questionTextJa) questionTextJa.style.lineHeight = lh;
   if (questionTextEn) questionTextEn.style.lineHeight = lh;
+  if (aiChatBox) aiChatBox.style.lineHeight = lh;
   
   if (btnLineHeight) {
     const t = i18n[currentLang];
@@ -879,6 +924,7 @@ function applyFontFamily() {
   const ff = fontFamilies[currentFontFamilyLevel];
   if (questionTextJa) questionTextJa.style.fontFamily = ff;
   if (questionTextEn) questionTextEn.style.fontFamily = ff;
+  if (aiChatBox) aiChatBox.style.fontFamily = ff;
   
   if (btnFontFamily) {
     const t = i18n[currentLang];
@@ -1206,40 +1252,35 @@ function goPrevQuestion() {
 function handleAmountInput(e) {
   const input = e.target;
   const originalValue = input.value;
-  const cursorPos = input.selectionStart;
-  
-  // 数字以外の文字をすべて除去
-  const numericValue = originalValue.replace(/[^0-9]/g, "");
+  const cursorPos = input.selectionStart ?? originalValue.length;
 
+  const numericValue = originalValue.replace(/[^0-9]/g, "");
   if (numericValue === "") {
     input.value = "";
     return;
   }
 
-  // カンマ区切りにフォーマット
   const formattedValue = Number(numericValue).toLocaleString('en-US');
+  if (originalValue === formattedValue) return;
 
-  // 元の値のカーソル位置までにあったカンマの数
-  const commasBeforeCursor = (originalValue.substring(0, cursorPos).match(/,/g) || []).length;
-  
-  // 値が変更された場合のみDOMを更新
-  if (originalValue !== formattedValue) {
-    input.value = formattedValue;
+  input.value = formattedValue;
 
-    // カーソル位置を再計算
-    const newCommas = (formattedValue.substring(0, cursorPos).match(/,/g) || []).length;
-    let cursorOffset = newCommas - commasBeforeCursor;
+  const prefix = originalValue.slice(0, cursorPos);
+  const digitsBeforeCursor = (prefix.replace(/[^0-9]/g, "")).length;
+  let newCursorPos = formattedValue.length;
+  let digitsSeen = 0;
 
-    // 削除操作などで文字列が短くなった場合のオフセット調整
-    if (formattedValue.length < originalValue.length) {
-        cursorOffset += (formattedValue.length - originalValue.length);
+  for (let i = 0; i < formattedValue.length; i++) {
+    if (/\d/.test(formattedValue[i])) {
+      digitsSeen += 1;
+      if (digitsSeen === digitsBeforeCursor) {
+        newCursorPos = i + 1;
+        break;
+      }
     }
-    
-    let newCursorPos = cursorPos + cursorOffset;
-
-    // カーソル位置を設定
-    input.setSelectionRange(newCursorPos, newCursorPos);
   }
+
+  input.setSelectionRange(newCursorPos, newCursorPos);
 }
 
 // 入力から仕訳を取得
@@ -1597,6 +1638,9 @@ async function logStudyResult_TEST(q, isCorrect) {
     } else {
       console.log('✅ study_logs insert success:', data);
       loadMyHistory();
+      if (window.LibertyProgressStore?.queueRefresh) {
+        window.LibertyProgressStore.queueRefresh('answer');
+      }
     }
   } catch (e) {
     console.error('logStudyResult exception', e);
@@ -1756,19 +1800,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 // --- AI解説 UI ---
   const btnAiExplain = document.getElementById("btn-ai-explain");
   const btnAiClear   = document.getElementById("btn-ai-clear");
-  const aiChatBox    = document.getElementById("ai-chat-box");
+ aiChatBox = document.getElementById("ai-chat-box");
 
   console.log("btnAiExplain:", btnAiExplain);
   console.log("btnAiClear:", btnAiClear);
   console.log("aiChatBox:", aiChatBox);
 
-　if (btnAiExplain) {
+ if (btnAiExplain) {
    btnAiExplain.addEventListener("click", askAiExplanation);
  }
 
   if (btnAiClear) {
     btnAiClear.addEventListener("click", () => {
-    if (aiChatBox) aiChatBox.innerHTML = "";
+     if (aiChatBox) aiChatBox.innerHTML = "";
     });
   }
   
@@ -1852,6 +1896,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 金額入力欄のフォーマット（新しい方式）
   document.querySelectorAll('.amount-input').forEach(input => {
     input.addEventListener('input', handleAmountInput);
+    input.addEventListener('keyup', handleAmountInput);
+    input.addEventListener('change', handleAmountInput);
+    input.oninput = handleAmountInput;
   });
 
 
@@ -1877,6 +1924,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadWeakCategories();
   } else {
     loadWeakCategories(); // Guest settings
+  }
+  if (window.LibertyProgressStore?.refresh) {
+    await window.LibertyProgressStore.refresh('auth');
   }
 
   // 初期状態で問題セッションを自動開始
