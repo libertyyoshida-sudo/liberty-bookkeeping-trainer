@@ -60,9 +60,18 @@
   };
 
   const getSummary = async () => {
-    const profile = read(PROFILE_KEY, {});
-    const activity = read(ACTIVITY_KEY, {});
-    const daily = read(DAILY_KEY, {});
+    let snapshot = null;
+    if (window.LibertyProgressStore?.getSnapshot) {
+      try {
+        snapshot = await window.LibertyProgressStore.getSnapshot();
+      } catch (error) {
+        console.warn("Learning progress failed to load shared snapshot:", error);
+      }
+    }
+
+    const profile = snapshot?.profile || read(PROFILE_KEY, {});
+    const activity = snapshot?.activity || read(ACTIVITY_KEY, {});
+    const daily = snapshot?.daily || read(DAILY_KEY, {});
     const pending = window.LibertyOfflineSync
       ? await window.LibertyOfflineSync.count().catch(() => 0)
       : 0;
@@ -81,7 +90,8 @@
       streak: calculateStreak(activity),
       longestStreak: calculateLongestStreak(activity),
       pendingSync: pending,
-      online: navigator.onLine
+      online: navigator.onLine,
+      source: snapshot?.source || "local"
     };
   };
 
@@ -141,6 +151,7 @@
   window.addEventListener("storage", (event) => {
     if ([PROFILE_KEY, ACTIVITY_KEY, DAILY_KEY].includes(event.key)) scheduleRender();
   });
+  window.addEventListener("liberty-progress-updated", scheduleRender);
 
   window.LibertyLearningProgress = {
     getSummary,
