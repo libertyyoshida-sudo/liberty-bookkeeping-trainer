@@ -17,7 +17,7 @@ window.APP_AI_WORKER_URL = "https://ai-chat.libertyyoshida.workers.dev";
 // Mobile-first daily learning UI and PWA bootstrap.
 // Kept separate from the existing app so the stable learning logic remains untouched.
 (() => {
-  const version = "20260808-2";
+  const version = "20260809-1";
 
   if (!document.querySelector('meta[name="theme-color"]')) {
     const themeColor = document.createElement("meta");

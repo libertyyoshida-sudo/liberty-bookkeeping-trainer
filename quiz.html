@@ -106,34 +106,43 @@
   .result-area { margin-top: 12px; padding: 12px; font-size: 1.05rem; }
 }
 
-    
+
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1200;
+      display: flex;
+      justify-content: flex-end;
+      padding: 8px 0;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
   <div class="page">
+    <div class="top-bar">
+      <div class="lang-toggle" id="lang-toggle">
+        <button id="lang-ja" type="button" class="active">日本語</button>
+        <button id="lang-en" type="button">English</button>
+      </div>
+    </div>
     <header>
       <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
-      <h1 style="font-size:1.4rem; color:var(--primary); margin:0;">勘定科目クイズ</h1>
+      <h1 id="page-title" style="font-size:1.4rem; color:var(--primary); margin:0;">勘定科目クイズ</h1>
     </header>
 
     <div class="nav-links" style="margin-bottom:16px;">
-      <a href="index.html" class="back-link">← トップ（問題）へ戻る</a>
+      <a href="index.html" class="back-link" id="back-link">← トップ（問題）へ戻る</a>
     </div>
 
     <div class="card">
       <div class="quiz-options">
-        <label>Language:
-          <select id="lang">
-            <option value="ja" selected>日本語</option>
-            <option value="en">English</option>
-          </select>
-        </label>
         <button id="sound-toggle-btn" class="btn" style="padding: 6px 10px;">🔊</button>
 
-        <label>Mode:
+        <label id="mode-label">Mode:
           <select id="mode">
-            <option value="statement" selected>やさしい（BS/PLで選択肢）</option>
-            <option value="category">むずかしい（カテゴリ優先）</option>
+            <option value="statement" selected id="mode-opt-statement">やさしい（BS/PLで選択肢）</option>
+            <option value="category" id="mode-opt-category">むずかしい（カテゴリ優先）</option>
           </select>
         </label>
 
@@ -145,12 +154,12 @@
           🔥 <span id="streak-count">0</span> Streak!
         </div>
 
-        <label>問題数:
+        <label id="count-label">問題数:
           <select id="quiz-count">
             <option value="5">5</option>
             <option value="10" selected>10</option>
             <option value="20">20</option>
-            <option value="9999">無制限</option>
+            <option value="9999" id="count-opt-unlimited">無制限</option>
           </select>
         </label>
 
@@ -163,14 +172,14 @@
        ルビ表示：OFF
        </button>
 
-        
+
         <button class="btn btn-primary" id="nextBtn" style="margin-left:auto;">次の問題</button>
       </div>
 
       <!-- ローディング -->
       <div id="loading-container" class="loading-container">
         <div class="spinner"></div>
-        <div style="color:var(--text-muted); font-size:0.9rem;">読み込み中...</div>
+        <div style="color:var(--text-muted); font-size:0.9rem;" id="loading-text">読み込み中...</div>
       </div>
 
       <div id="timer-container" class="timer-bar-bg">
@@ -197,7 +206,117 @@
   </div>
 
   <script>
-    window.addEventListener('DOMContentLoaded', async () => {  
+    const LANG_STORAGE_KEY = 'liberty-lang';
+    const QUIZ_I18N = {
+      ja: {
+        'page-title': '勘定科目クイズ',
+        'back-link': '← トップ（問題）へ戻る',
+        'mode-label': 'Mode: ',
+        'mode-opt-statement': 'やさしい（BS/PLで選択肢）',
+        'mode-opt-category': 'むずかしい（カテゴリ優先）',
+        'count-label': '問題数: ',
+        'count-opt-unlimited': '無制限',
+        'toggle-ruby-off': 'ルビ表示：OFF',
+        'toggle-ruby-on': 'ルビ表示：ON',
+        'next-btn': '次の問題',
+        'loading-text': '読み込み中...',
+        'ai-explain-btn': '🤖 なぜ？ (AI解説)',
+        'ai-explain-generating': '解説を生成中...',
+        'ai-explain-regenerate': '🤖 解説を再生成',
+        'ai-explain-thinking': '考え中...',
+        'ai-explain-error': 'エラーが発生しました: ',
+        'quiz-done-prompt': '✅ ここまで！おつかれさまでした。',
+        'quiz-done-result': '設定した問題数が終了しました。',
+        'quiz-error': 'エラーが起きました。',
+        'quiz-data-error': 'クイズデータの取得に失敗しました。',
+        'result-correct': '✅ 正解！',
+        'result-wrong': '❌ ちがいます',
+        'result-timeup': '⏰ 時間切れ！',
+        'correct-answer-prefix': '正解は: '
+      },
+      en: {
+        'page-title': 'Account Quiz',
+        'back-link': '← Back to Top',
+        'mode-label': 'Mode: ',
+        'mode-opt-statement': 'Easy (BS/PL choices)',
+        'mode-opt-category': 'Hard (category-first)',
+        'count-label': 'Questions: ',
+        'count-opt-unlimited': 'Unlimited',
+        'toggle-ruby-off': 'Furigana: OFF',
+        'toggle-ruby-on': 'Furigana: ON',
+        'next-btn': 'Next Question',
+        'loading-text': 'Loading...',
+        'ai-explain-btn': '🤖 Why? (AI Explanation)',
+        'ai-explain-generating': 'Generating explanation...',
+        'ai-explain-regenerate': '🤖 Regenerate explanation',
+        'ai-explain-thinking': 'Thinking...',
+        'ai-explain-error': 'An error occurred: ',
+        'quiz-done-prompt': '✅ All done! Great work.',
+        'quiz-done-result': "You've completed the set number of questions.",
+        'quiz-error': 'An error occurred.',
+        'quiz-data-error': 'Failed to load quiz data.',
+        'result-correct': '✅ Correct!',
+        'result-wrong': '❌ Incorrect',
+        'result-timeup': "⏰ Time's up!",
+        'correct-answer-prefix': 'Correct answer: '
+      }
+    };
+
+    function getQuizLang() {
+      return localStorage.getItem(LANG_STORAGE_KEY) === 'en' ? 'en' : 'ja';
+    }
+
+    function qt(key) {
+      return QUIZ_I18N[getQuizLang()][key];
+    }
+
+    function applyQuizLang() {
+      const lang = getQuizLang();
+      document.documentElement.lang = lang;
+      const t = QUIZ_I18N[lang];
+      ['page-title', 'back-link', 'count-opt-unlimited'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = t[id];
+      });
+      const modeLabel = document.getElementById('mode-label');
+      if (modeLabel) modeLabel.firstChild.textContent = t['mode-label'];
+      const countLabel = document.getElementById('count-label');
+      if (countLabel) countLabel.firstChild.textContent = t['count-label'];
+      const modeOptStatement = document.getElementById('mode-opt-statement');
+      if (modeOptStatement) modeOptStatement.textContent = t['mode-opt-statement'];
+      const modeOptCategory = document.getElementById('mode-opt-category');
+      if (modeOptCategory) modeOptCategory.textContent = t['mode-opt-category'];
+      const nextBtn = document.getElementById('nextBtn');
+      if (nextBtn) nextBtn.textContent = t['next-btn'];
+      const loadingText = document.getElementById('loading-text');
+      if (loadingText) loadingText.textContent = t['loading-text'];
+      const toggleRubyBtn = document.getElementById('toggle-ruby');
+      if (toggleRubyBtn) {
+        toggleRubyBtn.style.display = lang === 'en' ? 'none' : '';
+      }
+      const langJaBtn = document.getElementById('lang-ja');
+      const langEnBtn = document.getElementById('lang-en');
+      if (langJaBtn) langJaBtn.classList.toggle('active', lang === 'ja');
+      if (langEnBtn) langEnBtn.classList.toggle('active', lang === 'en');
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      applyQuizLang();
+      const langJaBtn = document.getElementById('lang-ja');
+      const langEnBtn = document.getElementById('lang-en');
+      if (langJaBtn) langJaBtn.addEventListener('click', () => {
+        localStorage.setItem(LANG_STORAGE_KEY, 'ja');
+        applyQuizLang();
+        window.dispatchEvent(new CustomEvent('liberty-lang-changed', { detail: { lang: 'ja' } }));
+        loadQuiz();
+      });
+      if (langEnBtn) langEnBtn.addEventListener('click', () => {
+        localStorage.setItem(LANG_STORAGE_KEY, 'en');
+        applyQuizLang();
+        window.dispatchEvent(new CustomEvent('liberty-lang-changed', { detail: { lang: 'en' } }));
+        loadQuiz();
+      });
+
       // config.js の値を利用
       const supabaseUrl = window.SUPABASE_URL;
       const supabaseKey = window.SUPABASE_ANON_KEY;
@@ -208,7 +327,6 @@
       const choicesEl = document.getElementById("choices");
       const resultEl = document.getElementById("result");
       const debugEl = document.getElementById("debug");
-      const langEl = document.getElementById("lang");
       const modeEl = document.getElementById("mode");
       const nextBtn = document.getElementById("nextBtn");
       const streakBox = document.getElementById("streak-box");
@@ -307,7 +425,7 @@
       if (toggleRubyBtn) {
         toggleRubyBtn.addEventListener("click", async () => {
           rubyEnabled = !rubyEnabled;
-          toggleRubyBtn.textContent = rubyEnabled ? "ルビ表示：ON" : "ルビ表示：OFF";
+          toggleRubyBtn.textContent = rubyEnabled ? qt('toggle-ruby-on') : qt('toggle-ruby-off');
           await applyRubyToTargets();
         });
       }
@@ -341,10 +459,10 @@
       async function loadQuiz(){
         // ★追加：問題数に達したら終了
         if (quizLimit !== 9999 && quizCurrentNo >= quizLimit) {
-          promptEl.textContent = "✅ ここまで！おつかれさまでした。";
+          promptEl.textContent = qt('quiz-done-prompt');
           choicesEl.innerHTML = "";
           resultEl.className = "result-area ok";
-          resultEl.textContent = "設定した問題数が終了しました。";
+          resultEl.textContent = qt('quiz-done-result');
           nextBtn.disabled = true;
           return;
         }
@@ -352,7 +470,7 @@
         resultEl.textContent = "";
         choicesEl.innerHTML = "";
         stopTimer(); // 前のタイマー停止
-        
+
         // ローディング表示開始
         loadingContainer.style.display = "block";
         promptEl.style.display = "none";
@@ -362,23 +480,23 @@
         aiExplanation.style.display = "none";
         aiExplanation.textContent = "";
         btnAiExplain.disabled = false;
-        btnAiExplain.textContent = "🤖 なぜ？ (AI解説)";
+        btnAiExplain.textContent = qt('ai-explain-btn');
 
         const { data: rawData, error } = await supabaseClient.rpc("get_accounts_quiz", {
-          lang: langEl.value,
+          lang: getQuizLang(),
           mode: modeEl.value
         });
 
         // ★★★ デバッグ用ログ（残しておきます） ★★★
         console.log("Supabase RPC 'get_accounts_quiz' response:", { data: rawData, error });
-        
+
         // ローディング終了
         loadingContainer.style.display = "none";
         promptEl.style.display = "block";
         choicesEl.style.display = "grid";
 
         if(error){
-          promptEl.textContent = "エラーが起きました。";
+          promptEl.textContent = qt('quiz-error');
           debugEl.textContent = error.message;
           return;
         }
@@ -395,7 +513,7 @@
             console.error("クイズデータの形式が不正です。受信したデータ:", data);
           }
           
-          promptEl.textContent = "クイズデータの取得に失敗しました。";
+          promptEl.textContent = qt('quiz-data-error');
           debugEl.textContent = "RPC 'get_accounts_quiz' did not return a valid quiz object. Check the function's return value in Supabase.";
           return;
         }
@@ -496,7 +614,7 @@
           created_at: new Date().toISOString(),
           meta: {
             mode: modeEl.value,
-            lang: langEl.value
+            lang: getQuizLang()
           }
         });
 
@@ -515,14 +633,21 @@
         }
 
         btnAiExplain.disabled = true;
-        btnAiExplain.textContent = "解説を生成中...";
+        btnAiExplain.textContent = qt('ai-explain-generating');
         aiExplanation.style.display = "block";
-        aiExplanation.textContent = "考え中...";
+        aiExplanation.textContent = qt('ai-explain-thinking');
 
         const correctChoice = current.choices.find(c => String(c.id) === String(current.correct_account_id));
         const correctLabel = correctChoice ? correctChoice.label : "Unknown";
 
-        const prompt = `
+        const prompt = getQuizLang() === 'en' ? `
+You are a bookkeeping teacher. Please explain the following account-selection quiz question in English.
+
+[Question] ${current.prompt}
+[Correct answer] ${correctLabel}
+
+Explain briefly, in a way a beginner can understand, why this account is correct.
+`.trim() : `
 あなたは簿記の先生です。以下の勘定科目クイズの解説をしてください。
 
 【問題】${current.prompt}
@@ -541,13 +666,13 @@
           if (!res.ok) throw new Error(res.statusText);
           const data = await res.json();
           const answer = data.answer || data.response || JSON.stringify(data);
-          
+
           aiExplanation.textContent = answer;
         } catch (e) {
           console.error(e);
-          aiExplanation.textContent = "エラーが発生しました: " + e.message;
+          aiExplanation.textContent = qt('ai-explain-error') + e.message;
         } finally {
-          btnAiExplain.textContent = "🤖 解説を再生成";
+          btnAiExplain.textContent = qt('ai-explain-regenerate');
           btnAiExplain.disabled = false;
         }
       }
@@ -634,10 +759,10 @@
 
         if (isTimeUp) {
           resultEl.className = "result-area ng";
-          resultEl.textContent = "⏰ 時間切れ！";
+          resultEl.textContent = qt('result-timeup');
         } else {
           resultEl.className = "result-area " + (ok ? "ok" : "ng");
-          resultEl.textContent = ok ? "✅ 正解！" : "❌ ちがいます";
+          resultEl.textContent = ok ? qt('result-correct') : qt('result-wrong');
         }
 
         // 解説エリア表示
@@ -645,7 +770,7 @@
         if (!ok || isTimeUp) {
           const correctChoice = current.choices.find(c => String(c.id) === String(current.correct_account_id));
           correctDisplay.style.display = "block";
-          correctDisplay.textContent = `正解は: ${correctChoice ? correctChoice.label : '???'}`;
+          correctDisplay.textContent = `${qt('correct-answer-prefix')}${correctChoice ? correctChoice.label : '???'}`;
         } else {
           correctDisplay.style.display = "none";
         }
@@ -655,6 +780,6 @@
       loadQuiz();
     });
   </script>
-  <script src="page-controls.js?v=20260809-1"></script>
+  <script src="page-controls.js?v=20260809-2"></script>
 </body>
 </html>

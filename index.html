@@ -11,7 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js?v=20260808-2"></script>
-  <script src="app.js?v=20260808-4"></script>
+  <script src="app.js?v=20260809-1"></script>
   <script src="desktop-layout.js?v=20260729-9" defer></script>
   <script src="ruby-preference.js?v=20260729-9" defer></script>
 
@@ -32,12 +32,25 @@
 <body>
   <div id="error-banner" style="display:none;background-color:#fff1f1;border-bottom:2px solid #ffc2c2;color:#c53030;padding:16px;text-align:center;font-weight:bold;font-size:.9rem;"></div>
 
+  <div id="top-bar" class="top-bar">
+    <div class="lang-toggle" id="lang-toggle">
+      <button id="lang-ja" class="active">日本語</button>
+      <button id="lang-en">English</button>
+    </div>
+  </div>
+
+  <div id="font-size-widget" class="font-size-widget">
+    <button id="btn-font-size" class="floating-pill-btn" type="button">文字サイズ: 標準</button>
+    <button id="btn-font-size-close" class="floating-close-btn" type="button" aria-label="文字サイズボタンを非表示にする" title="非表示">×</button>
+  </div>
+  <button id="btn-font-size-restore" class="floating-restore-btn" type="button" title="文字サイズボタンを表示" style="display:none;">Aa</button>
+
   <div class="page">
     <header>
       <img src="https://liberty-system.co.jp/common/img/logo.png" alt="Liberty" class="logo" />
       <div class="title-block">
         <h1 data-i18n="app-title">Liberty Bookkeeping Trainer</h1>
-        <span data-i18n="app-subtitle">会計を学ぶと世界が広がる</span>
+        <span data-i18n="app-subtitle">世界とつながる、簿記会計の第一歩</span>
       </div>
 
       <div class="auth-box">
@@ -76,14 +89,8 @@
               <span id="question-label">問題 0 / 0</span>
             </div>
 
-            <div class="lang-toggle">
-              <button id="lang-ja" class="active">日本語</button>
-              <button id="lang-en">English</button>
-            </div>
-
             <button id="toggle-ruby" class="auth-small-btn">ルビ表示：OFF</button>
             <button id="btn-landscape" class="auth-small-btn">横画面モード</button>
-            <button id="btn-font-size" class="auth-small-btn">文字サイズ: 標準</button>
             <button id="btn-line-height" class="auth-small-btn">行間: 標準</button>
             <button id="btn-font-family" class="auth-small-btn">フォント: ゴシック</button>
             <button id="btn-speech" class="auth-small-btn">🔊 読み上げ</button>

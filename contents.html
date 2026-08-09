@@ -39,11 +39,105 @@
       font-size: 0.8rem;
       color: #666;
     }
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1200;
+      display: flex;
+      justify-content: flex-end;
+      padding: 8px 0;
+      width: 100%;
+    }
+    .lang-toggle {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 2px;
+      background: #e2eef9;
+    }
+    .lang-toggle button {
+      border: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: transparent;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: #666;
+    }
+    .lang-toggle button.active {
+      background: #fff;
+      color: #005bac;
+      font-weight: 600;
+      box-shadow: 0 0 0 1px rgba(0, 91, 172, 0.06);
+    }
   </style>
   <script>
     // ✅ config.js の値を使う
     const SUPABASE_URL = window.SUPABASE_URL;
     const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
+    const LANG_STORAGE_KEY = 'liberty-lang';
+
+    const CONTENTS_I18N = {
+      ja: {
+        title: 'スライド・動画',
+        back: '← トップ（問題）へ戻る',
+        loggedIn: (email) => `ログイン中: ${email}（視聴ログが保存されます）`,
+        loggedOut: '未ログインです。視聴ログは保存されません。',
+        headingSlide: 'スライド',
+        headingYoutube: 'YouTube',
+        headingSites: 'おすすめサイト',
+        slide1: '実際に役立つ簿記入門2.0（スライド閲覧）',
+        slide2: '実際に役立つ簿記入門概要（スライド閲覧）',
+        yt0: 'BOKI 簿記: The Global Bookkeeping Language',
+        yt1: '第1章「簿記の基本」初心者のための簿記入門',
+        yt2: '第2章「日々の仕訳」：初心者のための簿記ガイド',
+        yt3: '第3章 月次仕訳のすべて：日本の会計パターン解説',
+        yt4: '第4章:年数回の仕訳 ビジネス税務カレンダー解読',
+        yt5: '第5章:「決算」決算を解き明かす',
+        site1: 'CPAラーニング（無料の会計・簿記学習）',
+        site2: 'Funda簿記（簿記学習サービス）',
+        site3: 'やさしい日本語（静岡県）',
+        site4: '【簿記系YouTuber?】ふくしままさゆき（YouTube）'
+      },
+      en: {
+        title: 'Slides & Videos',
+        back: '← Back to Top',
+        loggedIn: (email) => `Logged in: ${email} (your viewing history will be saved)`,
+        loggedOut: 'Not logged in. Your viewing history will not be saved.',
+        headingSlide: 'Slides',
+        headingYoutube: 'YouTube',
+        headingSites: 'Recommended Sites',
+        slide1: 'Practical Bookkeeping Basics 2.0 (View Slides)',
+        slide2: 'Practical Bookkeeping Basics – Overview (View Slides)',
+        yt0: 'BOKI 簿記: The Global Bookkeeping Language',
+        yt1: 'Chapter 1: "Bookkeeping Basics" – An Introduction for Beginners',
+        yt2: 'Chapter 2: "Daily Journal Entries" – A Beginner’s Guide',
+        yt3: 'Chapter 3: Monthly Journal Entries Explained – Japanese Accounting Patterns',
+        yt4: 'Chapter 4: Recurring Entries – Decoding the Business Tax Calendar',
+        yt5: 'Chapter 5: "Closing the Books" – Demystifying Financial Closing',
+        site1: 'CPA Learning (Free Accounting & Bookkeeping Courses)',
+        site2: 'Funda Boki (Bookkeeping Learning Service)',
+        site3: 'Easy Japanese (Shizuoka Prefecture)',
+        site4: '[Bookkeeping YouTuber?] Fukushima Masayuki (YouTube)'
+      }
+    };
+
+    function getLang() {
+      return localStorage.getItem(LANG_STORAGE_KEY) === 'en' ? 'en' : 'ja';
+    }
+
+    function applyContentsLang() {
+      const lang = getLang();
+      document.documentElement.lang = lang;
+      const t = CONTENTS_I18N[lang];
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.dataset.i18n;
+        if (t[key] !== undefined) el.textContent = t[key];
+      });
+      const langJaBtn = document.getElementById('lang-ja');
+      const langEnBtn = document.getElementById('lang-en');
+      if (langJaBtn) langJaBtn.classList.toggle('active', lang === 'ja');
+      if (langEnBtn) langEnBtn.classList.toggle('active', lang === 'en');
+    }
 
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.error("Supabase設定が見つかりません。config.js を読み込めているか確認してください。");
@@ -72,35 +166,56 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
+      applyContentsLang();
+      const langJaBtn = document.getElementById('lang-ja');
+      const langEnBtn = document.getElementById('lang-en');
+      if (langJaBtn) langJaBtn.addEventListener('click', () => {
+        localStorage.setItem(LANG_STORAGE_KEY, 'ja');
+        applyContentsLang();
+        window.dispatchEvent(new CustomEvent('liberty-lang-changed', { detail: { lang: 'ja' } }));
+      });
+      if (langEnBtn) langEnBtn.addEventListener('click', () => {
+        localStorage.setItem(LANG_STORAGE_KEY, 'en');
+        applyContentsLang();
+        window.dispatchEvent(new CustomEvent('liberty-lang-changed', { detail: { lang: 'en' } }));
+      });
+
       const authLabel = document.getElementById('auth-label');
       const { data: authData } = await supabaseClient.auth.getUser();
       const user = authData.user;
+      const t = CONTENTS_I18N[getLang()];
       if (user) {
-        authLabel.textContent = `ログイン中: ${user.email}（視聴ログが保存されます）`;
+        authLabel.textContent = t.loggedIn(user.email);
       } else {
-        authLabel.textContent = '未ログインです。視聴ログは保存されません。';
+        authLabel.textContent = t.loggedOut;
       }
     });
   </script>
 </head>
 <body>
   <div class="page">
-    <h1>スライド・動画</h1>
-    <p><a href="index.html">← トップ（問題）へ戻る</a></p>
+    <div class="top-bar">
+      <div class="lang-toggle" id="lang-toggle">
+        <button id="lang-ja" type="button" class="active">日本語</button>
+        <button id="lang-en" type="button">English</button>
+      </div>
+    </div>
+    <h1 data-i18n="title">スライド・動画</h1>
+    <p><a href="index.html" data-i18n="back">← トップ（問題）へ戻る</a></p>
     <p class="auth-info" id="auth-label"></p>
 
     <div class="card">
-      <h2 style="font-size:1rem;">スライド</h2>
+      <h2 style="font-size:1rem;" data-i18n="headingSlide">スライド</h2>
       <ul class="content-list">
         <li>
-          <a href="slide_viewer.html?content=boki-2.0_20251229" target="_blank"
+          <a href="slide_viewer.html?content=boki-2.0_20251229" target="_blank" data-i18n="slide1"
              onclick="saveViewLog('slide','boki-2.0_20251229')">
             実際に役立つ簿記入門2.0（スライド閲覧）
           </a>
 
         </li>
         <li>
-          <a href="slide_viewer.html?content=boki-overview" target="_blank"
+          <a href="slide_viewer.html?content=boki-overview" target="_blank" data-i18n="slide2"
              onclick="saveViewLog('slide','boki-overview')">
             実際に役立つ簿記入門概要（スライド閲覧）
           </a>
@@ -109,46 +224,46 @@
     </div>
 
     <div class="card">
-      <h2 style="font-size:1rem;">YouTube</h2>
+      <h2 style="font-size:1rem;" data-i18n="headingYoutube">YouTube</h2>
       <ul class="content-list">
         <li>
           <a href="https://www.youtube.com/@cpatakeshiyoshida"
-             target="_blank"
+             target="_blank" data-i18n="yt0"
              onclick="saveViewLog('youtube','https://www.youtube.com/@cpatakeshiyoshida')">
             BOKI 簿記: The Global Bookkeeping Language
           </a>
         </li>
         <li>
           <a href="https://www.youtube.com/watch?v=obhWb9FsSBc"
-             target="_blank"
+             target="_blank" data-i18n="yt1"
              onclick="saveViewLog('youtube','yt-XXXXXXXX')">
             第1章「簿記の基本」初心者のための簿記入門
           </a>
         </li>
         <li>
           <a href="https://www.youtube.com/watch?v=iNB08ZFR-Po"
-             target="_blank"
+             target="_blank" data-i18n="yt2"
              onclick="saveViewLog('youtube','yt-YYYYYYYY')">
             第2章「日々の仕訳」：初心者のための簿記ガイド
           </a>
         </li>
         <li>
           <a href="https://www.youtube.com/watch?v=4sYE4qAGsx0"
-             target="_blank"
+             target="_blank" data-i18n="yt3"
              onclick="saveViewLog('youtube','yt-YYYYYYYY')">
             第3章 月次仕訳のすべて：日本の会計パターン解説
           </a>
         </li>
         <li>
           <a href="https://www.youtube.com/watch?v=0FSNXpStGD8&t=9s"
-             target="_blank"
+             target="_blank" data-i18n="yt4"
              onclick="saveViewLog('youtube','yt-YYYYYYYY')">
             第4章:年数回の仕訳 ビジネス税務カレンダー解読
           </a>
         </li>
         <li>
           <a href="https://www.youtube.com/watch?v=GvGs40EMGyw"
-             target="_blank"
+             target="_blank" data-i18n="yt5"
              onclick="saveViewLog('youtube','yt-YYYYYYYY')">
             第5章:「決算」決算を解き明かす
           </a>
@@ -158,37 +273,37 @@
 
         <!-- ★移動：おすすめサイト（ページ最下部） -->
     <div class="card">
-      <h2 style="font-size:1rem;">おすすめサイト</h2>
+      <h2 style="font-size:1rem;" data-i18n="headingSites">おすすめサイト</h2>
       <ul class="content-list">
         <li>
-          <a href="https://www.cpa-learning.com/" target="_blank"
+          <a href="https://www.cpa-learning.com/" target="_blank" data-i18n="site1"
              onclick="saveViewLog('site','https://www.cpa-learning.com/')">
             CPAラーニング（無料の会計・簿記学習）
           </a>
         </li>
         <li>
-          <a href="https://lp.boki.funda.jp/" target="_blank"
+          <a href="https://lp.boki.funda.jp/" target="_blank" data-i18n="site2"
              onclick="saveViewLog('site','https://lp.boki.funda.jp/')">
             Funda簿記（簿記学習サービス）
           </a>
         </li>
         <li>
-          <a href="https://www.pref.shizuoka.jp/kurashikankyo/1049844/1002474/index.html" target="_blank"
+          <a href="https://www.pref.shizuoka.jp/kurashikankyo/1049844/1002474/index.html" target="_blank" data-i18n="site3"
              onclick="saveViewLog('site','https://www.pref.shizuoka.jp/kurashikankyo/1049844/1002474/index.html')">
             やさしい日本語（静岡県）
           </a>
         </li>
         <li>
-          <a href="https://www.youtube.com/channel/UCGDec349YIziUytZzc3d7Yg" target="_blank"
+          <a href="https://www.youtube.com/channel/UCGDec349YIziUytZzc3d7Yg" target="_blank" data-i18n="site4"
              onclick="saveViewLog('youtube','https://www.youtube.com/channel/UCGDec349YIziUytZzc3d7Yg')">
             【簿記系YouTuber?】ふくしままさゆき（YouTube）
           </a>
         </li>
       </ul>
     </div>
-    
+
   </div>
-  <script src="page-controls.js?v=20260809-1"></script>
+  <script src="page-controls.js?v=20260809-2"></script>
 </body>
 </html>
 

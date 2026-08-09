@@ -336,7 +336,9 @@
       }
     };
 
-    let currentLang = 'ja';
+    const LANG_STORAGE_KEY = 'liberty-lang';
+    let currentLang = localStorage.getItem(LANG_STORAGE_KEY) === 'en' ? 'en' : 'ja';
+    document.documentElement.lang = currentLang;
     let currentUser = null;
     let globalLogs = []; // 生ログ保持用
     let globalQuestions = [];
@@ -371,8 +373,20 @@
       const rateChartTypeSelect = document.getElementById('rate-chart-type-select');
 
       // 言語切り替え
-      langJaBtn.addEventListener('click', () => { currentLang = 'ja'; updateUI(); });
-      langEnBtn.addEventListener('click', () => { currentLang = 'en'; updateUI(); });
+      langJaBtn.addEventListener('click', () => {
+        currentLang = 'ja';
+        localStorage.setItem(LANG_STORAGE_KEY, currentLang);
+        document.documentElement.lang = currentLang;
+        window.dispatchEvent(new CustomEvent('liberty-lang-changed', { detail: { lang: currentLang } }));
+        updateUI();
+      });
+      langEnBtn.addEventListener('click', () => {
+        currentLang = 'en';
+        localStorage.setItem(LANG_STORAGE_KEY, currentLang);
+        document.documentElement.lang = currentLang;
+        window.dispatchEvent(new CustomEvent('liberty-lang-changed', { detail: { lang: currentLang } }));
+        updateUI();
+      });
       
       // 期間フィルタ切り替え
       periodFilter.addEventListener('change', () => {
@@ -1330,6 +1344,6 @@ ${summaryText}
       </div>
     </div>
   </div>
-  <script src="page-controls.js?v=20260809-1"></script>
+  <script src="page-controls.js?v=20260809-2"></script>
 </body>
 </html>

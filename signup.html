@@ -181,11 +181,133 @@
     }
 
     .footer-link a:hover { text-decoration: underline; }
+
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1200;
+      display: flex;
+      justify-content: flex-end;
+      padding: 8px 16px;
+      width: 100%;
+    }
+    .lang-toggle {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 2px;
+      background: var(--primary-soft);
+    }
+    .lang-toggle button {
+      border: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: transparent;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .lang-toggle button.active {
+      background: #fff;
+      color: var(--primary);
+      font-weight: 600;
+      box-shadow: 0 0 0 1px rgba(0, 91, 172, 0.06);
+    }
   </style>
-  
+
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+    const LANG_STORAGE_KEY = 'liberty-lang';
+    const AUTH_I18N = {
+      ja: {
+        h1: '新規登録',
+        sub: 'Liberty Bookkeeping Trainer を利用するためのアカウントを作成します。',
+        'label-email': 'メールアドレス',
+        'label-password': 'パスワード',
+        'pw-helper': '条件：8文字以上・英大文字・英小文字・数字・記号を各1文字以上含めてください。',
+        'label-password-confirm': 'パスワード（確認）',
+        'label-nationality': '国籍（任意）',
+        'nationality-helper': '任意項目です。留学生の分析などに利用します。',
+        submit: 'アカウントを作成する',
+        'footer-have-account': 'すでにアカウントをお持ちの方は',
+        'footer-login-link': 'ログイン画面へ',
+        'pw-show': 'パスワードを表示',
+        'pw-hide': 'パスワードを非表示',
+        'pw-ok': '安全なパスワードです。',
+        'pw-missing-prefix': '不足: ',
+        'pw-lengthOK': '8文字以上',
+        'pw-hasUpper': '英大文字',
+        'pw-hasLower': '英小文字',
+        'pw-hasNumber': '数字',
+        'pw-hasSymbol': '記号',
+        'pw-confirm-match': '一致しています。',
+        'pw-confirm-mismatch': 'パスワードが一致しません。',
+        'err-required': 'メールアドレスとパスワードを入力してください。',
+        'err-pw-mismatch': 'パスワードと確認用パスワードが一致しません。',
+        'err-pw-weak': 'パスワード条件を満たしていません。ヒントを確認してください。',
+        'err-signup-failed': '登録に失敗しました: ',
+        'err-no-user': 'ユーザー情報の取得に失敗しました。',
+        'err-profile-failed': '登録は完了しましたが、プロフィール保存でエラーが発生しました。',
+        'err-autologin-failed': '登録は完了しましたが自動ログインに失敗しました: ',
+        'err-unknown': '不明なエラーが発生しました。'
+      },
+      en: {
+        h1: 'Sign Up',
+        sub: 'Create an account to use Liberty Bookkeeping Trainer.',
+        'label-email': 'Email address',
+        'label-password': 'Password',
+        'pw-helper': 'Requirements: at least 8 characters, including an uppercase letter, a lowercase letter, a number, and a symbol.',
+        'label-password-confirm': 'Password (confirm)',
+        'label-nationality': 'Nationality (optional)',
+        'nationality-helper': 'Optional. Used for analysis such as international student statistics.',
+        submit: 'Create account',
+        'footer-have-account': 'Already have an account?',
+        'footer-login-link': 'Go to login',
+        'pw-show': 'Show password',
+        'pw-hide': 'Hide password',
+        'pw-ok': 'This is a secure password.',
+        'pw-missing-prefix': 'Missing: ',
+        'pw-lengthOK': 'at least 8 characters',
+        'pw-hasUpper': 'an uppercase letter',
+        'pw-hasLower': 'a lowercase letter',
+        'pw-hasNumber': 'a number',
+        'pw-hasSymbol': 'a symbol',
+        'pw-confirm-match': 'Passwords match.',
+        'pw-confirm-mismatch': 'Passwords do not match.',
+        'err-required': 'Please enter your email address and password.',
+        'err-pw-mismatch': 'Password and confirmation do not match.',
+        'err-pw-weak': 'Password does not meet the requirements. Please check the hint.',
+        'err-signup-failed': 'Sign up failed: ',
+        'err-no-user': 'Failed to retrieve user information.',
+        'err-profile-failed': 'Sign up completed, but saving your profile failed.',
+        'err-autologin-failed': 'Sign up completed, but automatic login failed: ',
+        'err-unknown': 'An unknown error occurred.'
+      }
+    };
+
+    function getLang() {
+      const saved = localStorage.getItem(LANG_STORAGE_KEY);
+      return saved === 'en' ? 'en' : 'ja';
+    }
+
+    function t(key) {
+      return AUTH_I18N[getLang()][key];
+    }
+
+    function applyAuthLang() {
+      const lang = getLang();
+      document.documentElement.lang = lang;
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.dataset.i18n;
+        const value = AUTH_I18N[lang][key];
+        if (value !== undefined) el.textContent = value;
+      });
+      const langJaBtn = document.getElementById('lang-ja');
+      const langEnBtn = document.getElementById('lang-en');
+      if (langJaBtn) langJaBtn.classList.toggle('active', lang === 'ja');
+      if (langEnBtn) langEnBtn.classList.toggle('active', lang === 'en');
+    }
+
     const SUPABASE_URL = window.SUPABASE_URL;
     const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
     const { createClient } = supabase;
@@ -230,16 +352,22 @@
 
       document.getElementById("link-login").href = window.APP_BASE_URL + "/index.html";
 
+      applyAuthLang();
+      const langJaBtn = document.getElementById('lang-ja');
+      const langEnBtn = document.getElementById('lang-en');
+      if (langJaBtn) langJaBtn.addEventListener('click', () => { localStorage.setItem(LANG_STORAGE_KEY, 'ja'); applyAuthLang(); });
+      if (langEnBtn) langEnBtn.addEventListener('click', () => { localStorage.setItem(LANG_STORAGE_KEY, 'en'); applyAuthLang(); });
+
       // パスワード表示・非表示の切り替え
       togglePasswordBtn.addEventListener('click', () => {
         if (pwInput.type === 'password') {
           pwInput.type = 'text';
           togglePasswordBtn.textContent = '🙈';
-          togglePasswordBtn.setAttribute('aria-label', 'パスワードを非表示');
+          togglePasswordBtn.setAttribute('aria-label', t('pw-hide'));
         } else {
           pwInput.type = 'password';
           togglePasswordBtn.textContent = '👁️';
-          togglePasswordBtn.setAttribute('aria-label', 'パスワードを表示');
+          togglePasswordBtn.setAttribute('aria-label', t('pw-show'));
         }
       });
 
@@ -247,11 +375,11 @@
         if (pwConfirmInput.type === 'password') {
           pwConfirmInput.type = 'text';
           togglePasswordConfirmBtn.textContent = '🙈';
-          togglePasswordConfirmBtn.setAttribute('aria-label', 'パスワードを非表示');
+          togglePasswordConfirmBtn.setAttribute('aria-label', t('pw-hide'));
         } else {
           pwConfirmInput.type = 'password';
           togglePasswordConfirmBtn.textContent = '👁️';
-          togglePasswordConfirmBtn.setAttribute('aria-label', 'パスワードを表示');
+          togglePasswordConfirmBtn.setAttribute('aria-label', t('pw-show'));
         }
       });
 
@@ -266,16 +394,16 @@
         }
 
         if (r.ok) {
-          pwHint.textContent = "安全なパスワードです。";
+          pwHint.textContent = t('pw-ok');
           pwHint.style.color = "#28a745";
         } else {
           let msgs = [];
-          if (!r.lengthOK) msgs.push("8文字以上");
-          if (!r.hasUpper) msgs.push("英大文字");
-          if (!r.hasLower) msgs.push("英小文字");
-          if (!r.hasNumber) msgs.push("数字");
-          if (!r.hasSymbol) msgs.push("記号");
-          pwHint.textContent = "不足: " + msgs.join("・");
+          if (!r.lengthOK) msgs.push(t('pw-lengthOK'));
+          if (!r.hasUpper) msgs.push(t('pw-hasUpper'));
+          if (!r.hasLower) msgs.push(t('pw-hasLower'));
+          if (!r.hasNumber) msgs.push(t('pw-hasNumber'));
+          if (!r.hasSymbol) msgs.push(t('pw-hasSymbol'));
+          pwHint.textContent = t('pw-missing-prefix') + msgs.join("・");
           pwHint.style.color = "#d9534f";
         }
       });
@@ -291,10 +419,10 @@
         }
 
         if (pw === pw2) {
-          pwConfirmHint.textContent = "一致しています。";
+          pwConfirmHint.textContent = t('pw-confirm-match');
           pwConfirmHint.style.color = "#28a745";
         } else {
-          pwConfirmHint.textContent = "パスワードが一致しません。";
+          pwConfirmHint.textContent = t('pw-confirm-mismatch');
           pwConfirmHint.style.color = "#d9534f";
         }
       }
@@ -312,18 +440,18 @@
         const nationality = nationalitySelect.value;
 
         if (!email || !password) {
-          errorBox.textContent = "メールアドレスとパスワードを入力してください。";
+          errorBox.textContent = t('err-required');
           return;
         }
 
         if (password !== passwordConfirm) {
-          errorBox.textContent = "パスワードと確認用パスワードが一致しません。";
+          errorBox.textContent = t('err-pw-mismatch');
           return;
         }
 
         const check = validatePassword(password);
         if (!check.ok) {
-          errorBox.textContent = "パスワード条件を満たしていません。ヒントを確認してください。";
+          errorBox.textContent = t('err-pw-weak');
           return;
         }
 
@@ -335,13 +463,13 @@
 
           if (error) {
             console.error("signUp error", error);
-            errorBox.textContent = "登録に失敗しました: " + error.message;
+            errorBox.textContent = t('err-signup-failed') + error.message;
             return;
           }
 
           const user = data.user;
           if (!user) {
-            errorBox.textContent = "ユーザー情報の取得に失敗しました。";
+            errorBox.textContent = t('err-no-user');
             return;
           }
 
@@ -357,7 +485,7 @@
 
           if (profileError) {
             console.error("profiles insert error", profileError);
-            errorBox.textContent = "登録は完了しましたが、プロフィール保存でエラーが発生しました。";
+            errorBox.textContent = t('err-profile-failed');
             return;
           }
 
@@ -370,7 +498,7 @@
             });
 
             if (signInError) {
-              errorBox.textContent = "登録は完了しましたが自動ログインに失敗しました: " + signInError.message;
+              errorBox.textContent = t('err-autologin-failed') + signInError.message;
               return;
             }
           }
@@ -381,7 +509,7 @@
 
         } catch (e2) {
           console.error(e2);
-          errorBox.textContent = "不明なエラーが発生しました。";
+          errorBox.textContent = t('err-unknown');
         } finally {
           submitBtn.disabled = false;
         }
@@ -391,30 +519,36 @@
 </head>
 
 <body>
+  <div class="top-bar">
+    <div class="lang-toggle" id="lang-toggle">
+      <button id="lang-ja" type="button" class="active">日本語</button>
+      <button id="lang-en" type="button">English</button>
+    </div>
+  </div>
   <div class="card">
-    <h1>新規登録</h1>
-    <p class="sub">Liberty Bookkeeping Trainer を利用するためのアカウントを作成します。</p>
+    <h1 data-i18n="h1">新規登録</h1>
+    <p class="sub" data-i18n="sub">Liberty Bookkeeping Trainer を利用するためのアカウントを作成します。</p>
 
     <form id="signup-form">
       <div class="form-group">
-        <label for="email">メールアドレス</label>
+        <label for="email" data-i18n="label-email">メールアドレス</label>
         <input id="email" type="email" required autocomplete="email" />
       </div>
 
       <div class="form-group">
-        <label for="password">パスワード</label>
+        <label for="password" data-i18n="label-password">パスワード</label>
         <div class="password-wrapper">
           <input id="password" type="password" required autocomplete="new-password" />
           <button type="button" class="toggle-password" id="toggle-password" aria-label="パスワードを表示">👁️</button>
         </div>
-        <div class="helper">
+        <div class="helper" data-i18n="pw-helper">
           条件：8文字以上・英大文字・英小文字・数字・記号を各1文字以上含めてください。
         </div>
         <div id="pw-hint" class="helper"></div>
       </div>
 
       <div class="form-group">
-        <label for="passwordConfirm">パスワード（確認）</label>
+        <label for="passwordConfirm" data-i18n="label-password-confirm">パスワード（確認）</label>
         <div class="password-wrapper">
           <input id="passwordConfirm" type="password" required autocomplete="new-password" />
           <button type="button" class="toggle-password" id="toggle-password-confirm" aria-label="パスワードを表示">👁️</button>
@@ -423,7 +557,7 @@
       </div>
 
       <div class="form-group">
-        <label for="nationality">国籍（任意）</label>
+        <label for="nationality" data-i18n="label-nationality">国籍（任意）</label>
         <select id="nationality">
           <option value="JP">Japan / 日本</option>
           <option value="CN">China / 中国</option>
@@ -466,21 +600,21 @@
           <option value="GH">Ghana / ガーナ</option>
           <option value="EG">Egypt / エジプト</option>
         </select>
-        <div class="helper">任意項目です。留学生の分析などに利用します。</div>
+        <div class="helper" data-i18n="nationality-helper">任意項目です。留学生の分析などに利用します。</div>
       </div>
 
       <div id="error-message" class="error"></div>
       <div id="success-message" class="success"></div>
 
-      <button id="submit-btn" type="submit" class="btn btn-primary">
+      <button id="submit-btn" type="submit" class="btn btn-primary" data-i18n="submit">
         アカウントを作成する
       </button>
     </form>
 
     <div class="footer-link">
-      すでにアカウントをお持ちの方は <a id="link-login" href="index.html">ログイン画面へ</a>
+      <span data-i18n="footer-have-account">すでにアカウントをお持ちの方は</span> <a id="link-login" href="index.html" data-i18n="footer-login-link">ログイン画面へ</a>
     </div>
   </div>
-  <script src="page-controls.js?v=20260809-1"></script>
+  <script src="page-controls.js?v=20260809-2"></script>
 </body>
 </html>

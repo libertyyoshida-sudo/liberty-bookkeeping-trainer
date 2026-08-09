@@ -241,6 +241,81 @@ header .title-block span {
   border-radius: 999px;
 }
 
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 16px;
+  background: rgba(245, 247, 251, 0.92);
+  backdrop-filter: blur(4px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.font-size-widget {
+  position: fixed;
+  top: 52px;
+  right: 16px;
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  touch-action: none;
+  cursor: grab;
+}
+
+.font-size-widget:active {
+  cursor: grabbing;
+}
+
+.floating-pill-btn {
+  position: relative;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 28px 8px 14px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: inherit;
+}
+
+.floating-close-btn {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 0.75rem;
+}
+
+.floating-restore-btn {
+  position: fixed;
+  top: 52px;
+  right: 16px;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 0;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+  cursor: pointer;
+}
+
 .lang-toggle {
   display: inline-flex;
   border-radius: 999px;

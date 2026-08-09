@@ -69,7 +69,7 @@ async function loadAllQuestions() {
 const i18n = {
   ja: {
     'app-title': 'Liberty Bookkeeping Trainer',
-    'app-subtitle': '留学生向け 簿記仕訳トレーニング ',
+    'app-subtitle': '世界とつながる、簿記会計の第一歩',
     'practice-pill': 'Practice',
     'question-label-prefix': '問題',       // 「問題 1 / 10」の「問題」部分
     'filter-category': 'カテゴリ:',
@@ -155,7 +155,7 @@ const i18n = {
   },
   en: {
     'app-title': 'Liberty Bookkeeping Trainer',
-    'app-subtitle': 'Bookkeeping Journal Entry Trainer for International Students & Practitioners',
+    'app-subtitle': 'Your First Step in Bookkeeping — Connecting You With the World',
     'practice-pill': 'Practice',
     'question-label-prefix': 'Question',
     'filter-category': 'Category:',
@@ -350,8 +350,9 @@ const CATEGORY_ORDER = [
 ];
 
 // 状態
+const LANG_STORAGE_KEY = 'liberty-lang';
 let currentIndex = 0;
-let currentLang = "ja";
+let currentLang = localStorage.getItem(LANG_STORAGE_KEY) === 'en' ? 'en' : 'ja';
 let randomMode = false;
 let historyStack = []; // 戻る用にインデックスを積む
 let totalAnswered = 0;
@@ -896,6 +897,103 @@ function applyFontSize() {
   }
 }
 
+// 文字サイズボタン：ドラッグ移動＆非表示/復帰
+const FONT_WIDGET_POS_KEY = 'liberty-fontsize-widget-pos';
+const FONT_WIDGET_HIDDEN_KEY = 'liberty-fontsize-widget-hidden';
+
+function initFontSizeWidget() {
+  const widget = document.getElementById('font-size-widget');
+  const closeBtn = document.getElementById('btn-font-size-close');
+  const restoreBtn = document.getElementById('btn-font-size-restore');
+  if (!widget || !btnFontSize || !closeBtn || !restoreBtn) return;
+
+  function clampToViewport(left, top) {
+    const rect = widget.getBoundingClientRect();
+    const maxLeft = Math.max(8, window.innerWidth - rect.width - 8);
+    const maxTop = Math.max(8, window.innerHeight - rect.height - 8);
+    return {
+      left: Math.min(Math.max(8, left), maxLeft),
+      top: Math.min(Math.max(8, top), maxTop)
+    };
+  }
+
+  function setPosition(left, top) {
+    const clamped = clampToViewport(left, top);
+    widget.style.left = clamped.left + 'px';
+    widget.style.top = clamped.top + 'px';
+    widget.style.right = 'auto';
+    localStorage.setItem(FONT_WIDGET_POS_KEY, JSON.stringify(clamped));
+  }
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(FONT_WIDGET_POS_KEY) || 'null');
+    if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
+      setPosition(saved.left, saved.top);
+    }
+  } catch (e) {}
+
+  let dragging = false;
+  let moved = false;
+  let startX = 0, startY = 0, originLeft = 0, originTop = 0;
+  let suppressNextClick = false;
+
+  widget.addEventListener('pointerdown', (e) => {
+    if (e.target === closeBtn) return;
+    dragging = true;
+    moved = false;
+    const rect = widget.getBoundingClientRect();
+    originLeft = rect.left;
+    originTop = rect.top;
+    startX = e.clientX;
+    startY = e.clientY;
+    widget.setPointerCapture && widget.setPointerCapture(e.pointerId);
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+    if (moved) setPosition(originLeft + dx, originTop + dy);
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    if (moved) suppressNextClick = true;
+  });
+
+  btnFontSize.addEventListener('click', (e) => {
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  }, true);
+
+  function hideWidget() {
+    widget.style.display = 'none';
+    restoreBtn.style.display = 'flex';
+    localStorage.setItem(FONT_WIDGET_HIDDEN_KEY, '1');
+  }
+
+  function showWidget() {
+    widget.style.display = 'inline-flex';
+    restoreBtn.style.display = 'none';
+    localStorage.setItem(FONT_WIDGET_HIDDEN_KEY, '0');
+  }
+
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideWidget();
+  });
+  restoreBtn.addEventListener('click', showWidget);
+
+  if (localStorage.getItem(FONT_WIDGET_HIDDEN_KEY) === '1') {
+    hideWidget();
+  }
+}
+
 // 行間変更
 function toggleLineHeight() {
   currentLineHeightLevel = (currentLineHeightLevel + 1) % lineHeights.length;
@@ -933,6 +1031,24 @@ function applyFontFamily() {
 }
 
 // 音声読み上げ機能
+let cachedVoices = [];
+function loadVoicesOnce() {
+  if (!window.speechSynthesis) return;
+  const update = () => { cachedVoices = window.speechSynthesis.getVoices(); };
+  update();
+  window.speechSynthesis.addEventListener('voiceschanged', update);
+}
+loadVoicesOnce();
+
+// ネイティブ発音に近い音声を優先して選択（英語は日本語なまりの既定音声を避ける）
+function pickBestVoice(langPrefix) {
+  const voices = cachedVoices.length ? cachedVoices : (window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
+  const matches = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(langPrefix));
+  if (matches.length === 0) return null;
+  const preferred = matches.find(v => /google|natural|online|neural/i.test(v.name));
+  return preferred || matches[0];
+}
+
 function stopSpeech() {
   if (window.speechSynthesis) {
     window.speechSynthesis.cancel();
@@ -959,6 +1075,8 @@ function playSpeech() {
 
   const uttr = new SpeechSynthesisUtterance(text);
   uttr.lang = currentLang === 'ja' ? 'ja-JP' : 'en-US';
+  const voice = pickBestVoice(currentLang === 'ja' ? 'ja' : 'en');
+  if (voice) uttr.voice = voice;
   uttr.rate = speechRateInput ? parseFloat(speechRateInput.value) : 1.0; // 速度
 
   uttr.onend = () => {
@@ -1336,12 +1454,14 @@ async function askAiExplanation() {
 
   const WORKER_URL = window.APP_AI_WORKER_URL;
   if (!WORKER_URL) {
-    aiChatBox.textContent = "⚠️ APP_AI_WORKER_URL が未設定です（index.html の script で定義してください）";
+    aiChatBox.textContent = currentLang === 'en'
+      ? "⚠️ APP_AI_WORKER_URL is not set (define it in index.html's script)."
+      : "⚠️ APP_AI_WORKER_URL が未設定です（index.html の script で定義してください）";
     return;
   }
 
   if (!questions || questions.length === 0) {
-    aiChatBox.textContent = "⚠️ 問題データがありません。";
+    aiChatBox.textContent = currentLang === 'en' ? "⚠️ No question data." : "⚠️ 問題データがありません。";
     return;
   }
 
@@ -1351,8 +1471,23 @@ async function askAiExplanation() {
   const questionText = currentLang === "ja" ? (q.questionJa || "") : (q.questionEn || "");
   const modelAnswer  = currentLang === "ja" ? (q.journalJa || "") : (q.journalEn || "");
 
-  // プロンプト生成（簿記学習向け）
-  const prompt = `
+  // プロンプト生成（簿記学習向け・表示言語に合わせる）
+  const prompt = currentLang === 'en' ? `
+You are a bookkeeping teacher. Explain the following question in a way a beginner can understand.
+Please answer entirely in English.
+[Question]
+${questionText}
+
+[Model journal entry]
+${modelAnswer}
+
+Structure of the explanation:
+1) What transaction occurred
+2) Why these accounts were chosen
+3) How to think about debit/credit
+4) Common mistakes
+5) A short memory tip
+` : `
 あなたは簿記の先生です。次の問題を初心者にもわかるように解説してください。
 【問題】
 ${questionText}
@@ -1368,19 +1503,21 @@ ${modelAnswer}
 5) 覚え方のコツ（短く）
 `;
 
-  aiChatBox.textContent = "⏳ AIが解説を作成中...";
+  aiChatBox.textContent = currentLang === 'en' ? "⏳ Generating AI explanation..." : "⏳ AIが解説を作成中...";
 
   try {
     const res = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: prompt })
+      body: JSON.stringify({ message: prompt, lang: currentLang })
     });
 
     // HTTPエラー
     if (!res.ok) {
       const text = await res.text();
-      aiChatBox.textContent = `⚠️ AI解説の取得に失敗しました（HTTP ${res.status}）\n${text}`;
+      aiChatBox.textContent = currentLang === 'en'
+        ? `⚠️ Failed to get AI explanation (HTTP ${res.status})\n${text}`
+        : `⚠️ AI解説の取得に失敗しました（HTTP ${res.status}）\n${text}`;
       return;
     }
 
@@ -1402,11 +1539,11 @@ ${modelAnswer}
     }
 
     // 表示（改行を反映）
-    aiChatBox.textContent = reply || "⚠️ AIの返答が空でした";
+    aiChatBox.textContent = reply || (currentLang === 'en' ? "⚠️ The AI response was empty." : "⚠️ AIの返答が空でした");
 
   } catch (e) {
     console.error(e);
-    aiChatBox.textContent = `⚠️ 通信エラー：${e.message}`;
+    aiChatBox.textContent = currentLang === 'en' ? `⚠️ Connection error: ${e.message}` : `⚠️ 通信エラー：${e.message}`;
   }
 }
 
@@ -1819,11 +1956,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   // イベントリスナー
   if (langJaBtn) langJaBtn.addEventListener("click", () => {
     currentLang = "ja";
+    localStorage.setItem(LANG_STORAGE_KEY, currentLang);
+    document.documentElement.lang = "ja";
     applyLanguage();
+    window.dispatchEvent(new CustomEvent('liberty-lang-changed', { detail: { lang: currentLang } }));
   });
   if (langEnBtn) langEnBtn.addEventListener("click", () => {
     currentLang = "en";
+    localStorage.setItem(LANG_STORAGE_KEY, currentLang);
+    document.documentElement.lang = "en";
     applyLanguage();
+    window.dispatchEvent(new CustomEvent('liberty-lang-changed', { detail: { lang: currentLang } }));
   });
   if (randomModeCheckbox) randomModeCheckbox.addEventListener("click", () => (randomMode = randomModeCheckbox.checked));
 
@@ -1904,7 +2047,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 初期化処理
   initAccountSelects();
+  document.documentElement.lang = currentLang;
   applyLanguage();
+  initFontSizeWidget();
 
   // 認証状態の初期チェックと関連データロード
  if (!supabaseClient) {
